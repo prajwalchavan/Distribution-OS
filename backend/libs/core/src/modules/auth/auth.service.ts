@@ -14,6 +14,7 @@ import type {
   AuthTenant,
   AuthUser,
   ChangePasswordIn,
+  ChangePasswordOut,
   ForgotPasswordIn,
   LoginIn,
   LogoutIn,
@@ -52,6 +53,7 @@ import {
   DB,
   loadAuthKeys,
   requireDb,
+  SAME_PASSWORD,
   signSupportPass,
   type AuthKeys,
 } from '../../platform/index.js'
@@ -770,11 +772,17 @@ export class AuthService {
     auth: AuthClaims,
     input: ChangePasswordIn,
     client: ClientInfo,
-  ): Promise<AuthOk> {
+  ): Promise<ChangePasswordOut> {
     const db = requireDb(this.db)
     const problem = validatePassword(input.newPassword)
     if (problem) throw new ORPCError('BAD_REQUEST', { message: problem })
-    const outcome = await withSystem(db, async (tx): Promise<Outcome<AuthOk>> => {
+    // docs/22 §8 (2026-09-29): keeping the password a desk gave is not choosing one's own — the desk
+    // would still know it. The current password is checked below, so equal strings mean the same one.
+    if (input.newPassword === input.currentPassword) {
+      throw new ORPCError('BAD_REQUEST', { message: SAME_PASSWORD })
+    }
+    const keys = await loadAuthKeys()
+    const outcome = await withSystem(db, async (tx): Promise<Outcome<ChangePasswordOut>> => {
       const now = new Date()
       await liveSession(tx, auth, now)
       const user = await findUserById(tx, auth.userId)
@@ -810,7 +818,28 @@ export class AuthService {
         kind: 'password_changed',
         client,
       })
-      return ok({ ok: true as const })
+      // The token this device held says "must change the password" (platform/first-password.ts);
+      // the same session gets one that does not, so the next call goes through without a refresh.
+      const { accessTtlSeconds } = authTtl()
+      const access = await signAccessToken(
+        {
+          userId: auth.userId,
+          tenantId: auth.tenantId,
+          role: auth.role,
+          sessionId: auth.sessionId,
+          deviceId: auth.deviceId,
+          mustChangePassword: false,
+        },
+        keys,
+        accessTtlSeconds,
+        now,
+      )
+      return ok({
+        ok: true as const,
+        accessToken: access.token,
+        tokenType: 'Bearer' as const,
+        accessExpiresIn: accessTtlSeconds,
+      })
     })
     return unwrap(outcome)
   }
@@ -876,6 +905,9 @@ export class AuthService {
       const user = await findUserById(tx, claims.userId)
       if (!user || user.status !== 'active') return fail(resetInvalid())
       if (passwordFingerprint(user.passwordHash) !== claims.fingerprint) return fail(resetInvalid())
+      // The same rule as `changePassword`: a desk's first password cannot be kept by resetting to it.
+      if (user.passwordHash && (await verifyPassword(user.passwordHash, input.newPassword)))
+        return fail(new ORPCError('BAD_REQUEST', { message: SAME_PASSWORD }))
       await tx
         .update(users)
         .set({
@@ -1236,6 +1268,8 @@ async function issuePlatformPair(
       role: 'platform_admin',
       sessionId: session.row.id,
       deviceId: session.row.deviceId,
+      // A first password is a first password for the console too (platform/first-password.ts).
+      mustChangePassword: user.mustChangePassword,
     },
     keys,
     accessTtlSeconds,
@@ -1276,6 +1310,9 @@ async function issuePair(
       role,
       sessionId: session.row.id,
       deviceId: session.row.deviceId,
+      // Read from the user row at every sign-in, refresh and switch, so the claim follows the
+      // password: set while a desk's first password is the one in use, gone once the person chose.
+      mustChangePassword: user.mustChangePassword,
     },
     keys,
     accessTtlSeconds,

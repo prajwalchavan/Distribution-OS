@@ -1,24 +1,24 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { and, eq, inArray, ne, or, sql } from 'drizzle-orm'
 import { ORPCError } from '@orpc/server'
-import type {
-  MeOutput,
-  MembershipRole,
-  MembershipUpdateIn,
-  StaffCreateIn,
-  StaffCreateOut,
-  StaffList,
-  StaffMember,
-  StaffOk,
-  StaffSetPasswordIn,
-  StaffSetStatusIn,
-  StaffUpdateIn,
+import {
+  SHOP_SIGN_IN_CODES,
+  type MeOutput,
+  type MembershipRole,
+  type MembershipUpdateIn,
+  type StaffCreateIn,
+  type StaffCreateOut,
+  type StaffList,
+  type StaffMember,
+  type StaffOk,
+  type StaffSetPasswordIn,
+  type StaffSetStatusIn,
+  type StaffUpdateIn,
 } from '@dos/contracts'
 import { isGrantableExtraRole } from '@dos/domain'
 import {
   authEvents,
   memberships,
-  platformAdmins,
   tenants,
   users,
   withSystem,
@@ -40,14 +40,15 @@ import {
   checkedUsername,
   firstPasswordHash,
   freeUsername,
+  usedElsewhere,
   isUniqueViolation,
   isUsable,
   noteFirstPassword,
+  refuseIfShared,
   revokeTenantSessions,
   setFirstPassword,
   signInById,
   signInByPhone,
-  usedElsewhere,
 } from './credentials.js'
 
 /** DOS-400: the person behind a shop's sign-in, as `retailers.signIn.give` asks for it. */
@@ -65,6 +66,8 @@ export interface ShopLoginRequest {
   passwordHash: string
   /** The login the shop's platform identity already names, which is the shopkeeper whoever linked it. */
   knownUserId: string | null
+  /** The desk typed this number in the dialog (the shop had no mobile), rather than it being the shop's. */
+  phoneTyped: boolean
 }
 
 export interface ShopLogin {
@@ -72,14 +75,36 @@ export interface ShopLogin {
   username: string
   /** True when this call (or an earlier attempt of the same request) gave the person its first password. */
   made: boolean
+  /** The person signs in with a password they chose, not one a desk gave (`must_change_password` false). */
+  passwordChosen: boolean
 }
 
 /** Said to the desk when the phone is one of its own people: nothing it does not already know. */
 const STAFF_PHONE =
   'This mobile number belongs to someone who works for you. A shop needs its own mobile number to sign in.'
-/** A console account holds no membership anywhere; the desk is told only to use another number. */
-const NOT_A_SHOP_PHONE =
-  'This mobile number cannot be given a shop sign-in. Use the shopkeeper’s own mobile number.'
+/**
+ * A number whose sign-in another business made — another distributor's shopkeeper or staff, or a
+ * console account (architect's ruling of 2026-09-29, docs/22 §8, R1). One sentence for all three, and
+ * the same work to reach it, so the desk learns nothing about where the number is known; it is told
+ * what it can do. Until a phone can be proven (sign-in by OTP), a sign-in is never shared between
+ * businesses on the strength of a number: whoever made it may still know its first password.
+ */
+const SHARED_NUMBER =
+  'This mobile number already has a Distribution OS sign-in, which cannot be shared yet. Use another mobile number of the shopkeeper: change it on the shop, then give the sign-in.'
+/** The same, when the desk typed the number in the dialog because the shop had no mobile. */
+const SHARED_NUMBER_TYPED =
+  'This mobile number already has a Distribution OS sign-in, which cannot be shared yet. Enter another mobile number of the shopkeeper.'
+/**
+ * R3: a person who also belongs to another business keeps the name and the mobile number they have.
+ * Nothing about which business; the membership here (role, on or off, beat) is still the desk's.
+ */
+const NOT_YOURS_ALONE_PROFILE =
+  'This person also signs in with another business, so their name and mobile number cannot be changed here. They stay as they are.'
+/**
+ * Two desks gave the same new number a sign-in at the same moment: whichever person was made first,
+ * this request does not attach to it blind. The next try reads it as it is.
+ */
+const TRY_AGAIN = 'Could not make a sign-in for this shop just now. Try again.'
 /**
  * A new first password would open every business the login is used with, not only this one: a desk
  * that could reset it could sign in as the shopkeeper at another distributor, or as that distributor's
@@ -377,13 +402,25 @@ export class TenancyService {
           ...(input.phone !== undefined ? { phone: input.phone } : {}),
           ...(input.locale !== undefined ? { locale: input.locale } : {}),
         }
+        // Ruling R3 (docs/22 §8, 2026-09-29): the name and the mobile are the PERSON's, global. The
+        // edit form sends every field on every save, so only a real change is refused.
+        const renames =
+          (input.name !== undefined && input.name !== before.name) ||
+          (input.phone !== undefined && input.phone !== before.phone)
         try {
-          await withSystem(db, (sys) =>
-            sys
+          await withSystem(db, async (sys) => {
+            if (renames) {
+              await refuseIfShared(
+                sys,
+                { userId: input.userId, tenantId: ctx.tenantId },
+                NOT_YOURS_ALONE_PROFILE,
+              )
+            }
+            await sys
               .update(users)
               .set({ ...patch, updatedAt: new Date() })
-              .where(eq(users.id, input.userId)),
-          )
+              .where(eq(users.id, input.userId))
+          })
         } catch (err) {
           if (isUniqueViolation(err))
             throw new ORPCError('CONFLICT', {
@@ -427,11 +464,11 @@ export class TenancyService {
             // DOS-400 repair: the same rule the shop's page keeps. A password is global, so one set
             // here for a person who also signs in with another business (as its shopkeeper, its staff
             // or its owner) or to the console would let this desk sign in as them there.
-            if (await usedElsewhere(sys, who)) {
-              throw new ORPCError('CONFLICT', {
-                message: target.role === 'retailer' ? NOT_YOURS_ALONE : NOT_YOURS_ALONE_STAFF,
-              })
-            }
+            await refuseIfShared(
+              sys,
+              who,
+              target.role === 'retailer' ? NOT_YOURS_ALONE : NOT_YOURS_ALONE_STAFF,
+            )
             await setFirstPassword(sys, { ...who, passwordHash })
           })
           return { ok: true as const }
@@ -501,31 +538,53 @@ export class TenancyService {
 
   /**
    * The person a shop's sign-in belongs to: the login the shop's platform identity already names, or
-   * the user with the shop's phone, or a NEW user made with a username and the first password. A person
-   * who already signs in is NEVER given a new user or a new password. Runs as the system role, because
-   * users are global and RLS hides a person this distributor has never met; the caller learns only the
-   * username and whether a first password was set, never where else the person is known.
+   * the user with the shop's phone, or a NEW user made with a username and the first password. Runs as
+   * the system role, because users are global and RLS hides a person this distributor has never met.
+   *
+   * Architect's ruling of 2026-09-29 (docs/22 §8, R1): a sign-in is never shared between businesses on
+   * the strength of a phone number. A person who works HERE is refused with the desk's own sentence; a
+   * person who belongs to ANOTHER business (as its shopkeeper, staff or owner) or holds a console seat
+   * is refused with one sentence and the same work whatever they are elsewhere — before anything is
+   * written, so no login, link or password is touched. What is left is this distributor's alone:
+   *  - its own shopkeeper already (two shops, one number, one login) → `existing`, nothing changed;
+   *  - an earlier attempt of THIS request made it → `made` (a retry, the same first password);
+   *  - a person nobody can sign in as anywhere — no username, no password, or a login no business
+   *    holds (a give that failed half way) → it gets the username and the first password, and the
+   *    answer reads like a new user: whatever password it had, nobody keeps it.
    */
   async shopLogin(input: ShopLoginRequest): Promise<ShopLogin> {
     const db = requireDb(this.db)
     const wanted = input.username === undefined ? null : checkedUsername(input.username)
+    const shared = input.phoneTyped ? SHARED_NUMBER_TYPED : SHARED_NUMBER
     return withSystem(db, async (sys) => {
       const known = input.knownUserId === null ? null : await signInById(sys, input.knownUserId)
       const person = known ?? (await signInByPhone(sys, input.phone))
       if (person) {
-        await refuseForeignSeat(sys, input.tenantId, person.id)
-        // Already signs in: this shop joins that person's list. `made` stays true for an earlier
-        // attempt of the SAME request that made the user and then failed before its reply.
+        await refuseForeignSeat(sys, input.tenantId, person.id, shared)
         if (isUsable(person)) {
-          return { userId: person.id, username: person.username, made: person.id === input.userId }
+          // An earlier attempt of the SAME request made the user and failed before its reply.
+          if (person.id === input.userId) {
+            return {
+              userId: person.id,
+              username: person.username,
+              made: true,
+              passwordChosen: false,
+            }
+          }
+          if (await shopHere(sys, input.tenantId, person.id)) {
+            return {
+              userId: person.id,
+              username: person.username,
+              made: false,
+              passwordChosen: !person.mustChangePassword,
+            }
+          }
         }
-        // On the platform but unable to sign in (no username or no password): nothing usable is
-        // overwritten by giving it the first password, and the answer reads exactly like a new user.
         const username =
           person.username ?? wanted ?? (await freeUsername(sys, input.name, input.phone))
         await giveCredentials(sys, person.id, username, input.passwordHash)
         await noteFirstPassword(sys, { userId: person.id, tenantId: input.tenantId })
-        return { userId: person.id, username, made: true }
+        return { userId: person.id, username, made: true, passwordChosen: false }
       }
       const username = wanted ?? (await freeUsername(sys, input.name, input.phone))
       try {
@@ -545,21 +604,18 @@ export class TenancyService {
         })
       } catch (err) {
         if (!isUniqueViolation(err)) throw err
-        // Somebody signed the same phone up a moment ago: that person is the shopkeeper.
+        // Somebody signed the same phone up a moment ago — maybe at another business, whose side of it
+        // is not committed yet. Never attached blind: the next try reads the person as they are.
         const racing = await signInByPhone(sys, input.phone)
-        if (racing && isUsable(racing)) {
-          await refuseForeignSeat(sys, input.tenantId, racing.id)
-          return { userId: racing.id, username: racing.username, made: false }
-        }
         throw new ORPCError('CONFLICT', {
           message:
-            wanted === null
-              ? 'Could not make a sign-in for this shop just now. Try again.'
+            racing !== null || wanted === null
+              ? TRY_AGAIN
               : 'That username is taken. Choose another.',
         })
       }
       await noteFirstPassword(sys, { userId: input.userId, tenantId: input.tenantId })
-      return { userId: input.userId, username, made: true }
+      return { userId: input.userId, username, made: true, passwordChosen: false }
     })
   }
 
@@ -629,9 +685,7 @@ export class TenancyService {
   }): Promise<void> {
     const db = requireDb(this.db)
     await withSystem(db, async (sys) => {
-      if (await usedElsewhere(sys, input)) {
-        throw new ORPCError('CONFLICT', { message: NOT_YOURS_ALONE })
-      }
+      await refuseIfShared(sys, input, NOT_YOURS_ALONE)
       await setFirstPassword(sys, input)
     })
   }
@@ -650,19 +704,24 @@ export class TenancyService {
   }
 
   /**
-   * Which of these logins sign in here as a shop right now, and with which username: an ACTIVE
-   * shopkeeper membership of this distributor and a username. Read under the caller's own role.
+   * Which of these logins sign in here as a shop right now, with which username, and whether the
+   * password in use is one the person chose: an ACTIVE shopkeeper membership of this distributor and a
+   * username. Read under the caller's own role.
    */
   async shopUsernames(
     tx: Db,
     tenantId: string,
     userIds: readonly string[],
-  ): Promise<Map<string, string>> {
-    const out = new Map<string, string>()
+  ): Promise<Map<string, { username: string; passwordChosen: boolean }>> {
+    const out = new Map<string, { username: string; passwordChosen: boolean }>()
     const ids = [...new Set(userIds)]
     if (ids.length === 0) return out
     const rows = await tx
-      .select({ userId: users.id, username: users.username })
+      .select({
+        userId: users.id,
+        username: users.username,
+        mustChangePassword: users.mustChangePassword,
+      })
       .from(memberships)
       .innerJoin(users, eq(users.id, memberships.userId))
       .where(
@@ -673,7 +732,13 @@ export class TenancyService {
           eq(memberships.status, 'active'),
         ),
       )
-    for (const row of rows) if (row.username !== null) out.set(row.userId, row.username)
+    for (const row of rows) {
+      if (row.username !== null)
+        out.set(row.userId, {
+          username: row.username,
+          passwordChosen: !row.mustChangePassword,
+        })
+    }
     return out
   }
 
@@ -781,18 +846,18 @@ function toIso(value: Date | string | null): string | null {
 }
 
 /**
- * DOS-400: a shop's sign-in may not be a seat the person already holds for another reason. A console
- * account holds no membership anywhere by design; a person who works for THIS distributor signs in
- * here as staff and cannot also be one of its shops (one membership per person per distributor). The
- * second sentence tells the desk only about its own people.
+ * DOS-400 and the ruling of 2026-09-29 (R1): a shop's sign-in may not be a seat the person already holds
+ * for another reason. A person who works for THIS distributor signs in here as staff and cannot also be
+ * one of its shops (one membership per person per distributor): the desk is told about its own people,
+ * which it knows. Anybody else who belongs to another business or to the console is refused with
+ * `shared`, the same sentence and the same statement whatever they are there.
  */
-async function refuseForeignSeat(sys: Db, tenantId: string, userId: string): Promise<void> {
-  const [consoleSeat] = await sys
-    .select({ id: platformAdmins.id })
-    .from(platformAdmins)
-    .where(eq(platformAdmins.userId, userId))
-    .limit(1)
-  if (consoleSeat) throw new ORPCError('CONFLICT', { message: NOT_A_SHOP_PHONE })
+async function refuseForeignSeat(
+  sys: Db,
+  tenantId: string,
+  userId: string,
+  shared: string,
+): Promise<void> {
   const [staff] = await sys
     .select({ id: memberships.id })
     .from(memberships)
@@ -805,6 +870,28 @@ async function refuseForeignSeat(sys: Db, tenantId: string, userId: string): Pro
     )
     .limit(1)
   if (staff) throw new ORPCError('CONFLICT', { message: STAFF_PHONE })
+  if (await usedElsewhere(sys, { userId, tenantId })) {
+    throw new ORPCError('CONFLICT', {
+      message: shared,
+      data: { code: SHOP_SIGN_IN_CODES.numberHasSignIn },
+    })
+  }
+}
+
+/** Is the person already one of this distributor's shopkeepers (in any state: a stop keeps the row)? */
+async function shopHere(sys: Db, tenantId: string, userId: string): Promise<boolean> {
+  const [row] = await sys
+    .select({ id: memberships.id })
+    .from(memberships)
+    .where(
+      and(
+        eq(memberships.tenantId, tenantId),
+        eq(memberships.userId, userId),
+        eq(memberships.role, 'retailer'),
+      ),
+    )
+    .limit(1)
+  return row !== undefined
 }
 
 /** A username and a first password for a person on the platform who has no way to sign in yet. */

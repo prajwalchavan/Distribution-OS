@@ -5,13 +5,16 @@ import { contract } from '@dos/contracts'
 import { loadAuthKeys, OwnsReply } from '../../platform/index.js'
 import { AccessTokenGuard } from './access-token.guard.js'
 import { PlatformTokenGuard } from './platform-token.guard.js'
-import { CurrentAuth, type AuthClaims } from './auth-context.js'
+import { CurrentAuth, WhileChoosingPassword, type AuthClaims } from './auth-context.js'
 import { AuthService, type ClientInfo } from './auth.service.js'
 
 /**
  * Sign-in, refresh, logout and switch-tenant take no token (they are the ones that hand tokens out);
  * me, sessions, revokeSession and changePassword carry a Bearer access token through AccessTokenGuard.
  * No TenantGuard here: nothing in this controller is tenant-scoped.
+ *
+ * A session that must still choose its own password (the token's `pwc` claim, docs/22 §8 2026-09-29)
+ * reaches only the procedures marked `@WhileChoosingPassword()`: me, platformMe and changePassword.
  */
 @Controller()
 export class AuthController {
@@ -62,6 +65,7 @@ export class AuthController {
   }
 
   @UseGuards(PlatformTokenGuard)
+  @WhileChoosingPassword()
   @Implement(contract.auth.platformMe)
   platformMe(@OwnsReply() _reply: unknown, @CurrentAuth() auth: AuthClaims) {
     return implement(contract.auth.platformMe).handler(() => this.auth.platformMe(auth))
@@ -77,6 +81,7 @@ export class AuthController {
   }
 
   @UseGuards(AccessTokenGuard)
+  @WhileChoosingPassword()
   @Implement(contract.auth.me)
   me(@OwnsReply() _reply: unknown, @CurrentAuth() auth: AuthClaims) {
     return implement(contract.auth.me).handler(() => this.auth.me(auth))
@@ -111,6 +116,7 @@ export class AuthController {
   }
 
   @UseGuards(AccessTokenGuard)
+  @WhileChoosingPassword()
   @Implement(contract.auth.changePassword)
   changePassword(
     @OwnsReply() _reply: unknown,

@@ -1,6 +1,30 @@
-import { createParamDecorator, UnauthorizedException, type ExecutionContext } from '@nestjs/common'
+import {
+  createParamDecorator,
+  ForbiddenException,
+  SetMetadata,
+  UnauthorizedException,
+  type ExecutionContext,
+} from '@nestjs/common'
 import type { FastifyRequest } from 'fastify'
 import type { PermissionRole } from '@dos/contracts'
+import { CHOOSE_YOUR_OWN_PASSWORD } from '../../platform/index.js'
+
+const WHILE_CHOOSING_PASSWORD = 'dos:auth:whileChoosingPassword'
+
+/**
+ * Marks one of auth-service's token-bearing procedures as open to a session that must still choose
+ * its own password (`platform/first-password.ts`): `me`, `platformMe` and `changePassword` — what the
+ * "Change your password" screen needs, and nothing else.
+ */
+export const WhileChoosingPassword = (): MethodDecorator =>
+  SetMetadata(WHILE_CHOOSING_PASSWORD, true)
+
+/** 403 in words for a first-password token on a procedure that is not marked `WhileChoosingPassword`. */
+export function refuseFirstPasswordToken(context: ExecutionContext, claims: AuthClaims): void {
+  if (claims.mustChangePassword !== true) return
+  if (Reflect.getMetadata(WHILE_CHOOSING_PASSWORD, context.getHandler()) === true) return
+  throw new ForbiddenException(CHOOSE_YOUR_OWN_PASSWORD)
+}
 
 /** What a verified access token says about the caller. Nothing here is trusted until AccessTokenGuard sets it. */
 export interface AuthClaims {
@@ -18,6 +42,12 @@ export interface AuthClaims {
   sessionId: string
   /** `did`: the device id the session belongs to. */
   deviceId: string
+  /**
+   * `pwc`: the person signed in with a password a desk gave them and has not chosen their own yet
+   * (`platform/first-password.ts`). Such a token reaches only what changing the password needs.
+   * Absent = false.
+   */
+  mustChangePassword?: boolean
 }
 
 export const SIGN_IN_REQUIRED = 'Sign in to continue'

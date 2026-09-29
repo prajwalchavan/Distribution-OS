@@ -12,6 +12,7 @@ import {
   idempotencyKeys,
   memberships,
   outboxEvents,
+  platformAdmins,
   retailerIdentities,
   retailerLinks,
   retailers,
@@ -21,7 +22,7 @@ import {
 } from '@dos/db'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { withoutSecrets } from '../../platform/index.js'
+import { CHOOSE_YOUR_OWN_PASSWORD, SAME_PASSWORD, withoutSecrets } from '../../platform/index.js'
 import { bootTestApp, call, type Actor } from '../../testing/app.js'
 import { AuthModule } from '../auth/index.js'
 import { RetailersModule } from './index.js'
@@ -36,7 +37,9 @@ interface SignIn {
 interface GiveBody {
   outcome: 'created' | 'existing' | 'already'
   signIn: SignIn
+  passwordChosen: boolean
   message?: string
+  data?: { code?: string }
 }
 interface SignInBody {
   signIn: SignIn | null
@@ -46,6 +49,7 @@ interface Pair {
   accessToken: string
   refreshToken: string
   user: { id: string; username: string | null; mustChangePassword: boolean }
+  tenant: { id: string }
   role: string
   message?: string
 }
@@ -69,6 +73,11 @@ describeDb('retailers.signIn (DATABASE_URL)', () => {
   const accountantId = uuidv7()
   const repId = uuidv7()
   const knownUserId = uuidv7()
+  /** Staff of ANOTHER distributor, and a Distribution OS console account: numbers with a sign-in elsewhere. */
+  const theirStaffId = uuidv7()
+  const consoleId = uuidv7()
+  /** A shop the seed made shared: one login that buys here AND from the other distributor. */
+  const sharedUserId = uuidv7()
   const owner: Actor = { tenantId, actorId: ownerId, role: 'owner' }
   const manager: Actor = { tenantId, actorId: managerId, role: 'manager' }
   const accountant: Actor = { tenantId, actorId: accountantId, role: 'accountant' }
@@ -85,6 +94,14 @@ describeDb('retailers.signIn (DATABASE_URL)', () => {
   const shopStaffPhone = uuidv7()
   const shopClosed = uuidv7()
   const shopClash = uuidv7()
+  const shopTheirStaff = uuidv7()
+  const shopConsole = uuidv7()
+  const shopTypedKnown = uuidv7()
+  const shopShared = uuidv7()
+  const shopNewTwin = uuidv7()
+  const shopLandline = uuidv7()
+  const shopLandlineAlt = uuidv7()
+  const sharedUsername = `shared.${run}`
   const knownUsername = `known.${run}`
   /** What the server makes from the shopkeeper’s name on the shop: its first two words, lower case. */
   const sharmaKirana = `sharma${run}.kirana`
@@ -111,6 +128,27 @@ describeDb('retailers.signIn (DATABASE_URL)', () => {
         username: knownUsername,
         passwordHash: knownHash,
       },
+      {
+        id: theirStaffId,
+        phone: phone(23),
+        name: 'Their Rep',
+        username: `their.${run}`,
+        passwordHash: knownHash,
+      },
+      {
+        id: consoleId,
+        phone: phone(24),
+        name: 'Console Person',
+        username: `console.${run}`,
+        passwordHash: knownHash,
+      },
+      {
+        id: sharedUserId,
+        phone: phone(22),
+        name: 'Shared Shopkeeper',
+        username: sharedUsername,
+        passwordHash: knownHash,
+      },
     ])
     await db.insert(memberships).values([
       { id: uuidv7(), tenantId, userId: ownerId, role: 'owner' },
@@ -118,7 +156,11 @@ describeDb('retailers.signIn (DATABASE_URL)', () => {
       { id: uuidv7(), tenantId, userId: accountantId, role: 'accountant' },
       { id: uuidv7(), tenantId, userId: repId, role: 'salesperson' },
       { id: uuidv7(), tenantId: otherTenantId, userId: knownUserId, role: 'retailer' },
+      { id: uuidv7(), tenantId: otherTenantId, userId: theirStaffId, role: 'salesperson' },
+      { id: uuidv7(), tenantId, userId: sharedUserId, role: 'retailer' },
+      { id: uuidv7(), tenantId: otherTenantId, userId: sharedUserId, role: 'retailer' },
     ])
+    await db.insert(platformAdmins).values({ id: uuidv7(), userId: consoleId, role: 'support' })
     const shop = (id: string, code: string, name: string, shopPhone: string, active = true) => ({
       id,
       tenantId,
@@ -129,18 +171,45 @@ describeDb('retailers.signIn (DATABASE_URL)', () => {
       stateCode: '27',
       active,
     })
+    await db.insert(retailers).values([
+      shop(shopNew, 'A', `Sharma${run} Kirana Stores`, phone(31)),
+      shop(shopNoMobile, 'B', `Blank${run} Phone General`, ''),
+      shop(shopKnown, 'C', 'Known Traders', phone(21)),
+      shop(twinOne, 'D', 'Twin Mart One', phone(41)),
+      shop(twinTwo, 'E', 'Twin Mart Two', phone(41)),
+      shop(shopStaffPhone, 'F', 'Rep Cousin Store', phone(14)),
+      shop(shopClosed, 'G', 'Closed Corner', phone(51), false),
+      shop(shopClash, 'H', `Clash${run} Corner Stores`, phone(61)),
+      shop(shopTheirStaff, 'I', 'Their Rep Brother Store', phone(23)),
+      shop(shopConsole, 'J', 'Console Cousin Store', phone(24)),
+      shop(shopTypedKnown, 'K', 'Landline Only Store', ''),
+      shop(shopShared, 'L', 'Shared Old Store', phone(22)),
+      shop(shopNewTwin, 'M', `Sharma${run} Kirana Godown`, phone(31)),
+      { ...shop(shopLandline, 'N', 'Landline Stores', '022-2534 1234') },
+      {
+        ...shop(shopLandlineAlt, 'O', 'Landline Two Stores', '022-2534 5678'),
+        altPhone: '022-2534 9999',
+      },
+    ])
+    // The seed's shared shop: an identity naming the login and this distributor's link to it.
+    const sharedIdentity = uuidv7()
     await db
-      .insert(retailers)
-      .values([
-        shop(shopNew, 'A', `Sharma${run} Kirana Stores`, phone(31)),
-        shop(shopNoMobile, 'B', `Blank${run} Phone General`, ''),
-        shop(shopKnown, 'C', 'Known Traders', phone(21)),
-        shop(twinOne, 'D', 'Twin Mart One', phone(41)),
-        shop(twinTwo, 'E', 'Twin Mart Two', phone(41)),
-        shop(shopStaffPhone, 'F', 'Rep Cousin Store', phone(14)),
-        shop(shopClosed, 'G', 'Closed Corner', phone(51), false),
-        shop(shopClash, 'H', `Clash${run} Corner Stores`, phone(61)),
-      ])
+      .insert(retailerIdentities)
+      .values({ id: sharedIdentity, phone: phone(22), userId: sharedUserId, shopName: 'Shared' })
+    await db
+      .update(retailers)
+      .set({ identityId: sharedIdentity })
+      .where(eq(retailers.id, shopShared))
+    await db.insert(retailerLinks).values({
+      id: uuidv7(),
+      tenantId,
+      identityId: sharedIdentity,
+      retailerId: shopShared,
+      userId: sharedUserId,
+      role: 'owner',
+      linkedBy: 'rep_onboarding',
+      status: 'active',
+    })
     app = await bootTestApp([RetailersModule, AuthModule])
   })
 
@@ -284,30 +353,73 @@ describeDb('retailers.signIn (DATABASE_URL)', () => {
     expect(await userByPhone(phone(31))).toHaveLength(1)
   })
 
-  it('lets the shopkeeper sign in with the first password, be made to change it, and see only its own shop', async () => {
+  it('lets the shopkeeper sign in with the first password and reach nothing but the change of it, then its own shop', async () => {
     const first = await login(sharmaKirana, 'Kirana2468')
     expect(first.status, JSON.stringify(first.body)).toBe(200)
     expect(first.body.role).toBe('retailer')
     expect(first.body.user.mustChangePassword).toBe(true)
 
-    const own = await asToken<{ items: ShopView[] }>(first.body.accessToken, 'GET', '/retailers', {
-      activeOnly: 'false',
-    })
-    expect(own.status).toBe(200)
-    expect(own.body.items.map((s) => s.id)).toEqual([shopNew])
-    expect(own.body.items[0]).not.toHaveProperty('code')
-    expect(own.body.items[0]).not.toHaveProperty('appSignIn')
+    // Ruling R2 (docs/22 §8, 2026-09-29): a desk's first password is a first password on the SERVER.
+    const walled = await asToken<{ message?: string }>(
+      first.body.accessToken,
+      'GET',
+      '/retailers',
+      { activeOnly: 'false' },
+    )
+    expect(walled.status, JSON.stringify(walled.body)).toBe(403)
+    expect(walled.body.message).toBe(CHOOSE_YOUR_OWN_PASSWORD)
+    const me = await asToken<{ user: { mustChangePassword: boolean } }>(
+      first.body.accessToken,
+      'GET',
+      '/auth/me',
+    )
+    expect(me.status).toBe(200)
+    expect(me.body.user.mustChangePassword).toBe(true)
+    // keeping the desk's password is not choosing one
+    const same = await asToken<{ message?: string }>(
+      first.body.accessToken,
+      'POST',
+      '/auth/change-password',
+      { currentPassword: 'Kirana2468', newPassword: 'Kirana2468' },
+    )
+    expect(same.status).toBe(400)
+    expect(same.body.message).toBe(SAME_PASSWORD)
 
-    const changed = await asToken<{ ok: boolean }>(
+    const changed = await asToken<{ ok: boolean; accessToken: string }>(
       first.body.accessToken,
       'POST',
       '/auth/change-password',
       { currentPassword: 'Kirana2468', newPassword: 'MyOwn9753' },
     )
     expect(changed.status).toBe(200)
+    // the token the change answers with carries on at once; the one before it is still walled
+    const own = await asToken<{ items: ShopView[] }>(
+      changed.body.accessToken,
+      'GET',
+      '/retailers',
+      {
+        activeOnly: 'false',
+      },
+    )
+    expect(own.status, JSON.stringify(own.body)).toBe(200)
+    expect(own.body.items.map((s) => s.id)).toEqual([shopNew])
+    expect(own.body.items[0]).not.toHaveProperty('code')
+    expect(own.body.items[0]).not.toHaveProperty('appSignIn')
+    expect(
+      (await asToken(first.body.accessToken, 'GET', '/retailers', { activeOnly: 'false' })).status,
+    ).toBe(403)
     const second = await login(sharmaKirana, 'MyOwn9753')
     expect(second.status).toBe(200)
     expect(second.body.user.mustChangePassword).toBe(false)
+  })
+
+  it('puts a second shop of this distributor with the same number on the same login, and says the password is the shopkeeper’s own once it is', async () => {
+    const res = await give(owner, shopNewTwin)
+    expect(res.status, JSON.stringify(res.body)).toBe(200)
+    expect(res.body.outcome).toBe('existing')
+    expect(res.body.signIn.username).toBe(sharmaKirana)
+    expect(res.body.passwordChosen).toBe(true)
+    expect(await userByPhone(phone(31))).toHaveLength(1)
   })
 
   it('shows the back office whether a shop signs in and as whom, and the field nothing', async () => {
@@ -341,6 +453,7 @@ describeDb('retailers.signIn (DATABASE_URL)', () => {
     const res = await give(owner, shopNoMobile, { phone: phone(32) })
     expect(res.status, JSON.stringify(res.body)).toBe(200)
     expect(res.body.outcome).toBe('created')
+    expect(res.body.passwordChosen).toBe(false)
     expect(res.body.signIn.username).toBe(`blank${run}.phone`)
     const [row] = await db.select().from(retailers).where(eq(retailers.id, shopNoMobile))
     expect(row?.phone).toBe(phone(32))
@@ -350,67 +463,174 @@ describeDb('retailers.signIn (DATABASE_URL)', () => {
     expect(other.body.message).toContain('change it on the shop first')
   })
 
-  it('adds the shop to a known shopkeeper’s list: no new user, no new password, nothing said about where', async () => {
-    const res = await give(owner, shopKnown, { username: 'ignored.name' })
-    expect(res.status, JSON.stringify(res.body)).toBe(200)
-    expect(res.body.outcome).toBe('existing')
-    expect(res.body.signIn.username).toBe(knownUsername)
-    expect(JSON.stringify(res.body)).not.toContain(otherTenantId)
-    const people = await userByPhone(phone(21))
-    expect(people).toHaveLength(1)
-    expect(people[0]?.passwordHash).toBe(knownHash)
-    expect(people[0]?.mustChangePassword).toBe(false)
-    const noted = await db
-      .select()
-      .from(authEvents)
-      .where(and(eq(authEvents.userId, knownUserId), eq(authEvents.kind, 'password_set_by_admin')))
-    expect(noted).toHaveLength(0)
-    // the shopkeeper's own password now opens this distributor too
+  /** Everything a give could have written for a shop and a number, to prove a refusal wrote none of it. */
+  async function footprint(shopId: string, p: string) {
+    const people = await userByPhone(p)
+    const ids = people.map((u) => u.id)
+    const count = async (q: Promise<unknown[]>) => (await q).length
+    return {
+      people: people.map((u) => [u.id, u.passwordHash, u.mustChangePassword, u.username]),
+      memberships: ids.length
+        ? await count(
+            db
+              .select()
+              .from(memberships)
+              .where(eq(memberships.userId, ids[0] ?? '')),
+          )
+        : 0,
+      events: ids.length
+        ? await count(
+            db
+              .select()
+              .from(authEvents)
+              .where(eq(authEvents.userId, ids[0] ?? '')),
+          )
+        : 0,
+      identities: await count(
+        db.select().from(retailerIdentities).where(eq(retailerIdentities.phone, p)),
+      ),
+      links: await count(
+        db.select().from(retailerLinks).where(eq(retailerLinks.retailerId, shopId)),
+      ),
+      audits: await count(db.select().from(auditLog).where(eq(auditLog.entityId, shopId))),
+      outbox: await count(
+        db.select().from(outboxEvents).where(eq(outboxEvents.aggregateId, shopId)),
+      ),
+      shop: (await db.select().from(retailers).where(eq(retailers.id, shopId))).map((r) => [
+        r.phone,
+        r.altPhone,
+        r.identityId,
+      ]),
+    }
+  }
+
+  const sharedSentence =
+    'This mobile number already has a Distribution OS sign-in, which cannot be shared yet. Use another mobile number of the shopkeeper: change it on the shop, then give the sign-in.'
+
+  it('gives no sign-in to a number whose sign-in another business made, and says the same about a shopkeeper, a rep and a console account', async () => {
+    // Ruling R1 (docs/22 §8, 2026-09-29). Three numbers known elsewhere, three different kinds of seat.
+    const cases: [string, string][] = [
+      [shopKnown, phone(21)], // another distributor's shopkeeper
+      [shopTheirStaff, phone(23)], // another distributor's salesperson
+      [shopConsole, phone(24)], // a Distribution OS console account
+    ]
+    const bodies: string[] = []
+    for (const [shopId, p] of cases) {
+      const before = await footprint(shopId, p)
+      const key = uuidv7()
+      const res = await give(owner, shopId, { idempotencyKey: key, username: 'ignored.name' })
+      expect(res.status, JSON.stringify(res.body)).toBe(409)
+      expect(res.body.message).toBe(sharedSentence)
+      expect(res.body.data?.code).toBe('number_has_sign_in')
+      expect(JSON.stringify(res.body)).not.toContain(otherTenantId)
+      // nothing written: no membership, no link, no identity, no audit, no event, no key, no password
+      expect(await footprint(shopId, p)).toEqual(before)
+      const keys = await db.select().from(idempotencyKeys).where(eq(idempotencyKeys.key, key))
+      expect(keys).toHaveLength(0)
+      const { code, message, status } = res.body as unknown as Record<string, unknown>
+      bodies.push(JSON.stringify({ code, message, status, data: res.body.data }))
+    }
+    // one answer, byte for byte, whatever the number is elsewhere
+    expect(new Set(bodies).size).toBe(1)
+    // the known shopkeeper's own password still opens only the other distributor
     const pair = await login(knownUsername, knownPassword)
     expect(pair.status).toBe(200)
-    const both = await db
-      .select({ tenantId: memberships.tenantId, status: memberships.status })
+    const theirs = await db
+      .select({ tenantId: memberships.tenantId })
       .from(memberships)
       .where(eq(memberships.userId, knownUserId))
-    expect(both.map((m) => m.tenantId).sort()).toEqual([tenantId, otherTenantId].sort())
-    // …and this desk may not reset a password the shopkeeper also uses elsewhere
+    expect(theirs.map((m) => m.tenantId)).toEqual([otherTenantId])
+    // the manager is told the same
+    const byManager = await give(manager, shopKnown)
+    expect(byManager.status).toBe(409)
+    expect(byManager.body.message).toBe(sharedSentence)
+  })
+
+  it('says so in the dialog’s words when the number the desk typed is known elsewhere, and saves nothing on the shop', async () => {
+    const before = await footprint(shopTypedKnown, phone(21))
+    const res = await give(owner, shopTypedKnown, { phone: phone(21) })
+    expect(res.status, JSON.stringify(res.body)).toBe(409)
+    expect(res.body.message).toBe(
+      'This mobile number already has a Distribution OS sign-in, which cannot be shared yet. Enter another mobile number of the shopkeeper.',
+    )
+    expect(res.body.data?.code).toBe('number_has_sign_in')
+    expect(await footprint(shopTypedKnown, phone(21))).toEqual(before)
+    // another number of the shopkeeper goes through
+    const next = await give(owner, shopTypedKnown, { phone: phone(25) })
+    expect(next.status, JSON.stringify(next.body)).toBe(200)
+    expect(next.body.outcome).toBe('created')
+  })
+
+  it('keeps a landline the typed mobile replaces: on the second number when it is free, in the audit row always', async () => {
+    const res = await give(owner, shopLandline, { phone: phone(33) })
+    expect(res.status, JSON.stringify(res.body)).toBe(200)
+    const [row] = await db.select().from(retailers).where(eq(retailers.id, shopLandline))
+    expect(row?.phone).toBe(phone(33))
+    expect(row?.altPhone).toBe('022-2534 1234')
+    const taken = await give(owner, shopLandlineAlt, { phone: phone(34) })
+    expect(taken.status, JSON.stringify(taken.body)).toBe(200)
+    const [row2] = await db.select().from(retailers).where(eq(retailers.id, shopLandlineAlt))
+    expect(row2?.phone).toBe(phone(34))
+    expect(row2?.altPhone).toBe('022-2534 9999')
+    const [audit] = await db
+      .select()
+      .from(auditLog)
+      .where(
+        and(eq(auditLog.entityId, shopLandlineAlt), eq(auditLog.action, 'retailer.sign_in.give')),
+      )
+    expect(audit?.before).toMatchObject({ phone: '022-2534 5678', altPhone: '022-2534 9999' })
+    expect(audit?.after).toMatchObject({ phone: phone(34) })
+  })
+
+  it('keeps a shop the data already shares working as it is: its sign-in, its answer, no reset and no rename here', async () => {
+    // the seed's shared shop: it already has a sign-in here, so the desk is told what exists
+    const already = await give(owner, shopShared)
+    expect(already.status).toBe(200)
+    expect(already.body.outcome).toBe('already')
+    expect(already.body.signIn.username).toBe(sharedUsername)
+    expect(already.body.passwordChosen).toBe(true)
+    // the shopkeeper signs in here, and at the other distributor
+    expect((await login(sharedUsername, knownPassword)).status).toBe(200)
+    const there = await call<Pair>(app, null, 'POST', '/auth/login', {
+      username: sharedUsername,
+      password: knownPassword,
+      deviceId: uuidv7(),
+      tenantId: otherTenantId,
+    })
+    expect(there.status).toBe(200)
+    // this desk may not reset a password the shopkeeper also uses elsewhere, by either door
+    const shopSentence =
+      'This sign-in is not yours alone to reset: the shopkeeper also uses it with another business. Only the shopkeeper can change its password.'
     const reset = await call<SignInBody>(
       app,
       owner,
       'POST',
-      `/retailers/${shopKnown}/sign-in/password`,
-      {
-        idempotencyKey: uuidv7(),
-        id: shopKnown,
-        firstPassword: 'Reset12345',
-      },
+      `/retailers/${shopShared}/sign-in/password`,
+      { idempotencyKey: uuidv7(), id: shopShared, firstPassword: 'Reset12345' },
     )
     expect(reset.status).toBe(409)
-    expect(reset.body.message).toBe(
-      'This sign-in is not yours alone to reset: the shopkeeper also uses it with another business. Only the shopkeeper can change its password.',
-    )
-    const [still] = await userByPhone(phone(21))
-    expect(still?.passwordHash).toBe(knownHash)
-
-    // …nor through the staff screen's door, which reaches the shopkeeper membership this desk just
-    // made (the blind check's major: two calls, then a sign-in at the other distributor)
+    expect(reset.body.message).toBe(shopSentence)
     const staffDoor = await call<{ message?: string }>(
       app,
       owner,
       'POST',
       '/tenancy/staff/set-password',
-      { idempotencyKey: uuidv7(), userId: knownUserId, temporaryPassword: 'Taken12345' },
+      { idempotencyKey: uuidv7(), userId: sharedUserId, temporaryPassword: 'Taken12345' },
     )
     expect(staffDoor.status, JSON.stringify(staffDoor.body)).toBe(409)
-    expect(staffDoor.body.message).toBe(
-      'This sign-in is not yours alone to reset: the shopkeeper also uses it with another business. Only the shopkeeper can change its password.',
-    )
-    const [unmoved] = await userByPhone(phone(21))
+    expect(staffDoor.body.message).toBe(shopSentence)
+    // … nor rename or re-number the person (ruling R3)
+    const rename = await call<{ message?: string }>(app, owner, 'POST', '/tenancy/staff/update', {
+      idempotencyKey: uuidv7(),
+      userId: sharedUserId,
+      name: 'Somebody Else',
+      phone: phone(98),
+    })
+    expect(rename.status, JSON.stringify(rename.body)).toBe(409)
+    const [unmoved] = await userByPhone(phone(22))
     expect(unmoved?.passwordHash).toBe(knownHash)
-    expect(unmoved?.mustChangePassword).toBe(false)
-    const theirs = await login(knownUsername, 'Taken12345')
-    expect(theirs.status).toBe(401)
-    expect((await login(knownUsername, knownPassword)).status).toBe(200)
+    expect(unmoved?.name).toBe('Shared Shopkeeper')
+    expect((await login(sharedUsername, 'Taken12345')).status).toBe(401)
   })
 
   it('refuses a membership id that is already used, in words, and makes nobody', async () => {
@@ -437,6 +657,8 @@ describeDb('retailers.signIn (DATABASE_URL)', () => {
     expect(two.status).toBe(200)
     expect(two.body.outcome).toBe('existing')
     expect(two.body.signIn.username).toBe(one.body.signIn.username)
+    // the twin never chose a password: the desk is not told the shopkeeper uses its own
+    expect(two.body.passwordChosen).toBe(false)
     const people = await userByPhone(phone(41))
     expect(people).toHaveLength(1)
     const links = await db
@@ -551,29 +773,38 @@ describeDb('retailers.signIn (DATABASE_URL)', () => {
     expect(again.status).toBe(200)
     expect(again.body.signIn).toBeNull()
 
-    // the known shopkeeper stopped here keeps the other distributor
-    const known = await call<SignInBody>(
+    // the seed's shared shop stopped here keeps the other distributor (ruling R1: stop for one)
+    const shared = await call<SignInBody>(
       app,
       manager,
       'POST',
-      `/retailers/${shopKnown}/sign-in/stop`,
+      `/retailers/${shopShared}/sign-in/stop`,
       {
         idempotencyKey: uuidv7(),
-        id: shopKnown,
+        id: shopShared,
       },
     )
-    expect(known.status).toBe(200)
+    expect(shared.status).toBe(200)
     const [elsewhere] = await db
       .select()
       .from(memberships)
-      .where(and(eq(memberships.tenantId, otherTenantId), eq(memberships.userId, knownUserId)))
+      .where(and(eq(memberships.tenantId, otherTenantId), eq(memberships.userId, sharedUserId)))
     expect(elsewhere?.status).toBe('active')
-    const [person] = await userByPhone(phone(21))
+    const [person] = await userByPhone(phone(22))
     expect(person?.passwordHash).toBe(knownHash)
+    expect((await login(sharedUsername, knownPassword)).body.tenant).toMatchObject({
+      id: otherTenantId,
+    })
+    // … and, shared with another business, it is not given here again on the strength of the number
+    const refused = await give(owner, shopShared)
+    expect(refused.status, JSON.stringify(refused.body)).toBe(409)
+    expect(refused.body.message).toBe(sharedSentence)
 
-    // given again, the stopped login is the same person: no new user and no new password
+    // given again, the stopped login of this distributor alone is the same person: no new user and
+    // no new password — and the desk is told the first password given before still stands
     const back = await give(owner, twinOne)
     expect(back.body.outcome).toBe('existing')
+    expect(back.body.passwordChosen).toBe(false)
     const [on] = await db
       .select()
       .from(memberships)

@@ -21,6 +21,7 @@ import { MAX_CLOCK_SKEW_MS, uuidv7 } from '@dos/domain'
 import { syncErrors, syncOps, withTenant, type ActorRole, type Db } from '@dos/db'
 import {
   ANY_MEMBER,
+  CHOOSE_YOUR_OWN_PASSWORD,
   currentTenant,
   DB,
   isPrivilegeViolation,
@@ -29,6 +30,7 @@ import {
   requireRole,
   STAFF,
 } from '../../platform/index.js'
+import { mustChooseOwnPassword } from '../tenancy/index.js'
 import { SyncRegistry, SyncRejection, vetoIfStale, type PullResult } from './sync.registry.js'
 
 type In = z.infer<typeof SyncUploadInput>
@@ -92,6 +94,22 @@ export class SyncService {
       rejected: [],
       warnings: [],
       upgradeRequired: false,
+    }
+    // docs/22 §8 (2026-09-29): a session on a desk's first password reaches nothing until the person
+    // chooses their own. Every other procedure says so with a 403; the upload never answers 4xx, so it
+    // sends every op back, runs none and records none (no `sync_ops`, no `sync_errors`): the same ops
+    // go through once the password is changed.
+    if (mustChooseOwnPassword()) {
+      for (const op of input.ops)
+        out.rejected.push(
+          reject(
+            op,
+            SYNC_REJECTION_CODES.passwordChangeRequired,
+            CHOOSE_YOUR_OWN_PASSWORD,
+            'पहले अपना पासवर्ड चुनें: जिस पासवर्ड से आपने साइन इन किया वह किसी और ने दिया था। उसे बदलें, फिर दोबारा कोशिश करें।',
+          ),
+        )
+      return out
     }
     if (input.protocol !== SYNC_PROTOCOL_VERSION) {
       // Old app build: answer 2xx so the device queue is not wedged, but reject everything and ask for an upgrade.

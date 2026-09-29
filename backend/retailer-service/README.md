@@ -4625,7 +4625,8 @@ request.json
   "signIn": {
     "username": "sunil.tarsun",
     "since": "2026-09-04T10:30:00.000Z"
-  }
+  },
+  "passwordChosen": true
 }
 ```
 

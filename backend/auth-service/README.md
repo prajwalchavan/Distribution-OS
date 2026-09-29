@@ -1191,7 +1191,10 @@ request.json
 
 ```json
 {
-  "ok": true
+  "ok": true,
+  "accessToken": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…",
+  "tokenType": "Bearer",
+  "accessExpiresIn": 1
 }
 ```
 

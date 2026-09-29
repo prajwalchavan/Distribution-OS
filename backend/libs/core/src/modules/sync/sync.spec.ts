@@ -4,7 +4,8 @@ import { sql } from 'drizzle-orm'
 import { uuidv7 } from '@dos/domain'
 import { beats, createDb, createPool, memberships, tenants, users } from '@dos/db'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { bootTestApp, call, type Actor } from '../../testing/app.js'
+import { CHOOSE_YOUR_OWN_PASSWORD } from '../../platform/index.js'
+import { bearer, bootTestApp, call, type Actor } from '../../testing/app.js'
 import { SyncModule, SyncRegistry, SyncRejection, tablePull } from './index.js'
 
 const url = process.env.DATABASE_URL
@@ -118,6 +119,71 @@ describeDb('sync upload (ADR 0007)', () => {
       )
     ).rows as { code: string }[]
     expect(errs.map((e) => e.code)).toEqual(['note_required', 'unknown_table'])
+  })
+
+  /**
+   * Ruling R2 (docs/22 §8, 2026-09-29): a session on a desk's first password reaches nothing. The upload
+   * never answers 4xx, so it answers 2xx and sends every op back `password_change_required` — run by
+   * no handler and recorded nowhere, so the SAME ops go through once the password is the person's own.
+   */
+  it('sends every op of a first-password session back unapplied and unrecorded, 2xx, and takes them afterwards', async () => {
+    const walledDevice = `walled-${run}`
+    const ops = [
+      { opId: `w1-${run}`, op: 'PUT', table: 'visits', id: uuidv7(), data: { note: 'first' } },
+      { opId: `w2-${run}`, op: 'DELETE', table: 'visits', id: uuidv7() },
+    ]
+    const res = await app.inject({
+      method: 'POST',
+      url: '/sync/upload',
+      headers: {
+        ...(await bearer(otherRep, { mustChangePassword: true })),
+        'content-type': 'application/json',
+      },
+      payload: JSON.stringify({ protocol: 1, deviceId: walledDevice, ops }),
+    })
+    expect(res.statusCode, res.body).toBe(200)
+    const body = res.json<{
+      accepted: number
+      replayed: number
+      upgradeRequired: boolean
+      rejected: { opId: string; code: string; messageEn: string }[]
+    }>()
+    expect(body.accepted).toBe(0)
+    expect(body.replayed).toBe(0)
+    expect(body.upgradeRequired).toBe(false)
+    expect(body.rejected.map((r) => [r.opId, r.code])).toEqual([
+      [`w1-${run}`, 'password_change_required'],
+      [`w2-${run}`, 'password_change_required'],
+    ])
+    expect(body.rejected[0]?.messageEn).toBe(CHOOSE_YOUR_OWN_PASSWORD)
+    const recorded = (
+      await db.execute(
+        sql`select (select count(*)::int from sync_ops where device_id = ${walledDevice}) as ops,
+                   (select count(*)::int from sync_errors where device_id = ${walledDevice}) as errs`,
+      )
+    ).rows as { ops: number; errs: number }[]
+    expect(recorded[0]).toEqual({ ops: 0, errs: 0 })
+    // every other procedure says the same fact as a 403
+    const pull = await app.inject({
+      method: 'GET',
+      url: '/sync/manifest',
+      headers: await bearer(otherRep, { mustChangePassword: true }),
+    })
+    expect(pull.statusCode).toBe(403)
+    expect(pull.json<{ message: string }>().message).toBe(CHOOSE_YOUR_OWN_PASSWORD)
+
+    // the password chosen, the very same ops are run as if they had never been sent
+    const after = await call<{ accepted: number; replayed: number; rejected: { code: string }[] }>(
+      app,
+      otherRep,
+      'POST',
+      '/sync/upload',
+      { protocol: 1, deviceId: walledDevice, ops },
+    )
+    expect(after.status).toBe(200)
+    expect(after.body.replayed).toBe(0)
+    expect(after.body.accepted).toBe(2)
+    expect(after.body.rejected).toEqual([])
   })
 
   it('replays a retried batch from sync_ops without re-running handlers', async () => {

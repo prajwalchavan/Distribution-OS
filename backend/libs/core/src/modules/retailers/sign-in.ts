@@ -2,6 +2,7 @@ import { and, eq, inArray, isNotNull, isNull, ne } from 'drizzle-orm'
 import { ORPCError } from '@orpc/server'
 import {
   PhoneSchema,
+  SHOP_SIGN_IN_CODES,
   type GiveShopSignInIn,
   type GiveShopSignInOut,
   type ShopSignIn,
@@ -55,6 +56,8 @@ type ShopRow = typeof retailers.$inferSelect
 interface CurrentSignIn {
   userId: string
   signIn: ShopSignIn
+  /** The shopkeeper signs in with a password they chose, not the desk's first one. */
+  passwordChosen: boolean
 }
 
 /** Is this an Indian mobile a login can be known by? A blank or a landline is not. */
@@ -101,12 +104,13 @@ export async function signInsFor(
   const given = await lastAuditAt(tx, { entityType: 'retailer', action: GIVE, entityIds: ids })
   for (const link of links) {
     if (link.userId === null || out.has(link.retailerId)) continue
-    const username = names.get(link.userId)
-    if (username === undefined) continue
+    const login = names.get(link.userId)
+    if (login === undefined) continue
     const since = given.get(link.retailerId) ?? link.createdAt
     out.set(link.retailerId, {
       userId: link.userId,
-      signIn: { username, since: since.toISOString() },
+      signIn: { username: login.username, since: since.toISOString() },
+      passwordChosen: login.passwordChosen,
     })
   }
   return out
@@ -147,10 +151,25 @@ function mobileFor(
   if (typed === undefined) {
     throw new ORPCError('BAD_REQUEST', {
       message: 'This shop has no mobile number. Enter the shopkeeper’s mobile number first.',
-      data: { code: 'mobile_needed' },
+      data: { code: SHOP_SIGN_IN_CODES.mobileNeeded },
     })
   }
   return { phone: typed, newMobile: true }
+}
+
+/**
+ * Where the shop's numbers go when the desk typed a mobile because the shop had none (the second
+ * check's minor): the mobile becomes the shop's number of record — the one the sign-in, the messages
+ * and the matching of shops read — and a LANDLINE it replaces moves to the second number when that is
+ * free. When the second number is taken the landline is not kept on the shop, but the audit row of
+ * the give keeps it (`before.phone`), so nothing is lost without a trace.
+ */
+function numbersFor(shop: ShopRow, mobile: string): { phone: string; altPhone?: string } {
+  const old = shop.phone.trim()
+  const altFree = (shop.altPhone ?? '').trim() === ''
+  return old !== '' && old !== mobile && altFree
+    ? { phone: mobile, altPhone: old }
+    : { phone: mobile }
 }
 
 /** What a new login is called: the shopkeeper's name when the shop has one, else the shop's. */
@@ -222,7 +241,13 @@ export async function giveSignIn(
     idempotent(tx, input.idempotencyKey, withoutSecrets(input, ['firstPassword']), async () => {
       const shop = await lockShop(tx, input.id)
       const current = await currentSignIn(tx, tenancy, shop.id)
-      if (current) return { outcome: 'already' as const, signIn: current.signIn }
+      if (current) {
+        return {
+          outcome: 'already' as const,
+          signIn: current.signIn,
+          passwordChosen: current.passwordChosen,
+        }
+      }
       if (!shop.active) {
         throw new ORPCError('CONFLICT', {
           message: 'This shop is switched off. Switch it on before giving it a sign-in.',
@@ -241,6 +266,7 @@ export async function giveSignIn(
         userId: input.userId,
         passwordHash,
         knownUserId: identity?.userId ?? null,
+        phoneTyped: newMobile,
       })
       const identityId = await withSystem(db, (sys) =>
         claimIdentity(sys, {
@@ -286,22 +312,26 @@ export async function giveSignIn(
           target: [retailerLinks.tenantId, retailerLinks.identityId, retailerLinks.retailerId],
           set: { userId: login.userId, role: 'owner', status: 'active', updatedAt: now },
         })
-      if (shop.identityId !== identityId || newMobile) {
+      const numbers = newMobile ? numbersFor(shop, phone) : null
+      if (shop.identityId !== identityId || numbers !== null) {
         await tx
           .update(retailers)
-          .set({ identityId, ...(newMobile ? { phone } : {}), updatedAt: now })
+          .set({ identityId, ...(numbers ?? {}), updatedAt: now })
           .where(eq(retailers.id, shop.id))
       }
       await writeAudit(tx, {
         action: GIVE,
         entityType: 'retailer',
         entityId: shop.id,
-        before: { signIn: null },
+        before: {
+          signIn: null,
+          ...(numbers !== null ? { phone: shop.phone, altPhone: shop.altPhone } : {}),
+        },
         after: {
           userId: login.userId,
           username: login.username,
           newSignIn: login.made,
-          ...(newMobile ? { phone } : {}),
+          ...(numbers ?? {}),
         },
       })
       // The in-app welcome (notifications) hangs off the same event `linkIdentity` emits.
@@ -327,6 +357,7 @@ export async function giveSignIn(
       return {
         outcome: login.made ? ('created' as const) : ('existing' as const),
         signIn: given.signIn,
+        passwordChosen: login.passwordChosen,
       }
     }),
   )

@@ -9,7 +9,12 @@ export { SupportAccessService } from './support.service.js'
  * the two services can never disagree about whether an ask is still answerable. Plain functions.
  */
 export { statusOf, openGrants, grantStatusPredicate } from './support-status.js'
-export { TenantGuard, PLATFORM_SCOPE, type SupportAwareRequest } from './tenant.guard.js'
+export {
+  TenantGuard,
+  PLATFORM_SCOPE,
+  mustChooseOwnPassword,
+  type SupportAwareRequest,
+} from './tenant.guard.js'
 /**
  * THE WHITE-LABEL BLOCK every printed document and every app's chrome carries (docs/17 §D6). One
  * loader for billing (invoice, credit note), warehouse (challan), receivables (receipt), the worker's

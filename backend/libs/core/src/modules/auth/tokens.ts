@@ -2,7 +2,13 @@ import { createHash, randomBytes } from 'node:crypto'
 import { jwtVerify, SignJWT } from 'jose'
 import { MembershipRoleSchema, PlatformRoleSchema } from '@dos/contracts'
 import { uuidv7 } from '@dos/domain'
-import { AUTH_ALG, AUTH_AUDIENCE, AUTH_ISSUER, type AuthKeys } from '../../platform/index.js'
+import {
+  AUTH_ALG,
+  AUTH_AUDIENCE,
+  AUTH_ISSUER,
+  FIRST_PASSWORD_CLAIM,
+  type AuthKeys,
+} from '../../platform/index.js'
 import type { AuthClaims } from './auth-context.js'
 
 /** Defaults from the founder's design (2026-09-04): 15-minute access tokens, 30-day refresh tokens. */
@@ -57,6 +63,8 @@ export async function signAccessToken(
     role: claims.role,
     sid: claims.sessionId,
     did: claims.deviceId,
+    // Only while the person must choose their own password (platform/first-password.ts).
+    ...(claims.mustChangePassword === true ? { [FIRST_PASSWORD_CLAIM]: true } : {}),
   })
     .setProtectedHeader({ alg: AUTH_ALG, kid: keys.kid, typ: 'JWT' })
     .setSubject(claims.userId)
@@ -96,6 +104,7 @@ export async function verifyAccessToken(token: string, keys: AuthKeys): Promise<
     role: membership.success ? membership.data : platform.success ? platform.data : null,
     sessionId: sid,
     deviceId: did,
+    mustChangePassword: payload[FIRST_PASSWORD_CLAIM] === true,
   }
 }
 

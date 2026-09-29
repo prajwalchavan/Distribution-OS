@@ -1,13 +1,11 @@
-import { and, eq, isNull, ne, sql } from 'drizzle-orm'
+import { and, eq, isNull, sql } from 'drizzle-orm'
 import { ORPCError } from '@orpc/server'
 import { uuidv7 } from '@dos/domain'
 import {
   authEvents,
   authSessions,
   hashPassword,
-  memberships,
   normalizeUsername,
-  platformAdmins,
   users,
   validatePassword,
   validateUsername,
@@ -49,6 +47,8 @@ export interface SignInRow {
   username: string | null
   hasPassword: boolean
   status: 'active' | 'disabled'
+  /** The password in use is one a desk gave, not one the person chose (`must_change_password`). */
+  mustChangePassword: boolean
 }
 
 const signInColumns = {
@@ -56,6 +56,7 @@ const signInColumns = {
   username: users.username,
   passwordHash: users.passwordHash,
   status: users.status,
+  mustChangePassword: users.mustChangePassword,
 }
 
 function toSignIn(row: {
@@ -63,12 +64,14 @@ function toSignIn(row: {
   username: string | null
   passwordHash: string | null
   status: 'active' | 'disabled'
+  mustChangePassword: boolean
 }): SignInRow {
   return {
     id: row.id,
     username: row.username,
     hasPassword: row.passwordHash !== null,
     status: row.status,
+    mustChangePassword: row.mustChangePassword,
   }
 }
 
@@ -167,28 +170,43 @@ export async function setFirstPassword(
 
 /**
  * Is this sign-in used anywhere but this distributor — a membership of ANOTHER distributor (in any
- * role, in any state, since a switched-off one can be switched back on) or a platform console seat?
- * A desk may give a new first password only to a sign-in that is its alone: a password is global, so
- * one set here would open the person's rows at that other business too — as its shopkeeper, as its
- * staff, or as its owner. Both doors that give a new first password ask this, the staff screen
- * (`tenancy.staff.setPassword`) and the shop's page (`retailers.signIn.setPassword`, DOS-400).
+ * role, in any state, since a switched-off one can be switched back on) or a platform console seat
+ * (enabled or not)? A password, a name and a phone are the PERSON's, global, so a desk may change them
+ * only for a sign-in that is its alone: one set here would open, or rename, the person at that other
+ * business too — as its shopkeeper, its staff or its owner — and a shop's sign-in is never shared on
+ * the strength of a phone number (architect's ruling of 2026-09-29, docs/22 §8).
+ *
+ * ONE statement for both questions, always both asked: the answer for a shopkeeper of another
+ * distributor, a member of its staff and a console account takes the same work, so neither the reply
+ * nor its timing tells a desk which of the three a number belongs to.
  */
 export async function usedElsewhere(
   sys: Db,
   input: { userId: string; tenantId: string },
 ): Promise<boolean> {
-  const [elsewhere] = await sys
-    .select({ id: memberships.id })
-    .from(memberships)
-    .where(and(eq(memberships.userId, input.userId), ne(memberships.tenantId, input.tenantId)))
-    .limit(1)
-  if (elsewhere) return true
-  const [consoleSeat] = await sys
-    .select({ id: platformAdmins.id })
-    .from(platformAdmins)
-    .where(eq(platformAdmins.userId, input.userId))
-    .limit(1)
-  return consoleSeat !== undefined
+  const result = await sys.execute(
+    sql`SELECT (
+          EXISTS (SELECT 1 FROM memberships WHERE user_id = ${input.userId} AND tenant_id <> ${input.tenantId})
+          OR EXISTS (SELECT 1 FROM platform_admins WHERE user_id = ${input.userId})
+        ) AS shared`,
+  )
+  const row = result.rows[0] as { shared?: unknown } | undefined
+  return row?.shared === true
+}
+
+/**
+ * THE ONE RULE for every desk write that reaches the PERSON rather than this distributor's membership
+ * (ruling R3): a new password (`tenancy.staff.setPassword`, `retailers.signIn.setPassword`), a new
+ * name or a new mobile (`tenancy.staff.update`). Refused 409 in the caller's words when the person also
+ * belongs to another business or holds a console seat; the membership itself (role, extra roles, on or
+ * off, beat) stays this distributor's to change.
+ */
+export async function refuseIfShared(
+  sys: Db,
+  input: { userId: string; tenantId: string },
+  message: string,
+): Promise<void> {
+  if (await usedElsewhere(sys, input)) throw new ORPCError('CONFLICT', { message })
 }
 
 /**

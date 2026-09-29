@@ -448,6 +448,100 @@ describeDb('tenancy staff (DATABASE_URL)', () => {
     expect(kept?.revokedAt).toBeNull()
   })
 
+  /**
+   * Ruling R3 (docs/22 §8, 2026-09-29): the name and the mobile number are the PERSON's, global, like the
+   * password. A desk of one business may not change them for a person who also belongs to another, or
+   * holds a console seat — one shared rule with the password (`refuseIfShared`). What belongs to the
+   * membership here stays the desk's: the extra roles, on and off.
+   */
+  it('keeps the name and the mobile of a person who also belongs to another business; the membership stays the desk’s', async () => {
+    const theirs = uuidv7() // works here as delivery, and owns the other distributor
+    const shop = uuidv7() // a shopkeeper here and there
+    const seat = uuidv7() // works here, and holds a console seat
+    const ours = uuidv7() // works here alone
+    await db.insert(users).values([
+      { id: theirs, phone: `+917${run}1`, name: 'Their Owner Two', username: `r3${run}.theirs` },
+      { id: shop, phone: `+917${run}2`, name: 'Both Shops', username: `r3${run}.shop` },
+      { id: seat, phone: `+917${run}3`, name: 'Console Two', username: `r3${run}.seat` },
+      { id: ours, phone: `+917${run}4`, name: 'Only Here', username: `r3${run}.ours` },
+    ])
+    await db.insert(memberships).values([
+      { id: uuidv7(), tenantId, userId: theirs, role: 'delivery' },
+      { id: uuidv7(), tenantId: foreignTenantId, userId: theirs, role: 'owner' },
+      { id: uuidv7(), tenantId, userId: shop, role: 'retailer' },
+      {
+        id: uuidv7(),
+        tenantId: foreignTenantId,
+        userId: shop,
+        role: 'retailer',
+        status: 'disabled',
+      },
+      { id: uuidv7(), tenantId, userId: seat, role: 'warehouse' },
+      { id: uuidv7(), tenantId, userId: ours, role: 'salesperson' },
+    ])
+    await db.insert(platformAdmins).values({ id: uuidv7(), userId: seat, role: 'billing' })
+    const sentence =
+      'This person also signs in with another business, so their name and mobile number cannot be changed here. They stay as they are.'
+    const update = (actor: Actor, userId: string, patch: Record<string, unknown>) =>
+      call<{ ok?: boolean; message?: string }>(app, actor, 'POST', '/tenancy/staff/update', {
+        idempotencyKey: uuidv7(),
+        userId,
+        ...patch,
+      })
+    const person = async (id: string) => (await db.select().from(users).where(eq(users.id, id)))[0]
+    for (const [actor, userId] of [
+      [owner, theirs],
+      [manager, theirs], // a delivery hand: the manager's to administer
+      [owner, shop],
+      [owner, seat],
+    ] as const) {
+      const before = await person(userId)
+      for (const patch of [
+        { name: 'Somebody Else' },
+        { phone: `+917${run}9` },
+        { name: before?.name, phone: `+917${run}8` },
+      ]) {
+        const res = await update(actor, userId, patch)
+        expect(res.status, `${actor.role} → ${userId} ${JSON.stringify(patch)}`).toBe(409)
+        expect(res.body.message).toBe(sentence)
+      }
+      const after = await person(userId)
+      expect(after?.name).toBe(before?.name)
+      expect(after?.phone).toBe(before?.phone)
+      // the form sends every field on every save: the same name and phone with a new language pass
+      const same = await update(actor, userId, {
+        name: before?.name,
+        phone: before?.phone,
+        locale: 'mr-IN',
+      })
+      expect(same.status, JSON.stringify(same.body)).toBe(200)
+    }
+    // what belongs to the membership here is still the desk's
+    const extra = await call<{ ok?: boolean }>(app, owner, 'POST', '/tenancy/memberships/update', {
+      idempotencyKey: uuidv7(),
+      userId: theirs,
+      extraRoles: ['warehouse'],
+    })
+    expect(extra.status, JSON.stringify(extra.body)).toBe(200)
+    const off = await call(app, owner, 'POST', '/tenancy/staff/set-status', {
+      idempotencyKey: uuidv7(),
+      userId: theirs,
+      status: 'disabled',
+    })
+    expect(off.status).toBe(200)
+    const on = await call(app, owner, 'POST', '/tenancy/staff/set-status', {
+      idempotencyKey: uuidv7(),
+      userId: theirs,
+      status: 'active',
+    })
+    expect(on.status).toBe(200)
+    // a person who works here alone is renamed as before
+    const renamed = await update(owner, ours, { name: 'Only Here Renamed', phone: `+917${run}7` })
+    expect(renamed.status, JSON.stringify(renamed.body)).toBe(200)
+    expect((await person(ours))?.name).toBe('Only Here Renamed')
+    expect((await person(ours))?.phone).toBe(`+917${run}7`)
+  })
+
   it('refuses a clashing membership id in words, not a 500', async () => {
     const [taken] = await db
       .select({ id: memberships.id })

@@ -10,6 +10,7 @@ import {
   invoices,
   locations,
   memberships,
+  platformAdmins,
   retailerIdentities,
   retailerLinks,
   retailerOutstandingSummary,
@@ -23,7 +24,13 @@ import {
 } from '@dos/db'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { AUTH_AUDIENCE, AUTH_ISSUER, loadAuthKeys } from '../../platform/index.js'
+import {
+  AUTH_AUDIENCE,
+  AUTH_ISSUER,
+  CHOOSE_YOUR_OWN_PASSWORD,
+  loadAuthKeys,
+  SAME_PASSWORD,
+} from '../../platform/index.js'
 import { bootTestApp, call } from '../../testing/app.js'
 import { AuthModule } from './index.js'
 import { signResetToken } from './tokens.js'
@@ -498,6 +505,150 @@ describeDb('auth (DATABASE_URL)', () => {
     })
     expect(again.status).toBe(401)
     expect((await login(carol, 'Another123')).status).toBe(200)
+  })
+
+  /**
+   * Ruling R2 (docs/22 §8, 2026-09-29): a password a desk gave is a first password on the SERVER too. The
+   * fact rides in the access token (`pwc`) from every sign-in, refresh and switch while it holds; this
+   * service then answers only what changing it needs, and the change answers with a token without it.
+   */
+  it('walls a session on a desk’s first password: only me and the change of password answer, and the change hands back a token that carries on', async () => {
+    const daveId = uuidv7()
+    const dave = `dave.${run}`
+    const given = 'Given4321'
+    await db.insert(users).values({
+      id: daveId,
+      phone: `+916${run}7`,
+      name: 'Dave',
+      username: dave,
+      passwordHash: await hashPassword(given),
+      mustChangePassword: true,
+    })
+    await db.insert(memberships).values([
+      { id: uuidv7(), tenantId: tenantA, userId: daveId, role: 'salesperson' },
+      { id: uuidv7(), tenantId: tenantB, userId: daveId, role: 'warehouse' },
+    ])
+    const keys = await loadAuthKeys()
+    const pwc = async (token: string) => (await jwtVerify(token, keys.publicKey)).payload.pwc
+
+    const first = await login(dave, given, { tenantId: tenantA })
+    expect(first.status, JSON.stringify(first.body)).toBe(200)
+    expect(first.body.user.mustChangePassword).toBe(true)
+    expect(await pwc(first.body.accessToken)).toBe(true)
+    // the refresh and the switch of distributor carry it too: it follows the user row, not the device
+    const refreshed = await refresh(first.body.refreshToken)
+    expect(refreshed.status).toBe(200)
+    expect(await pwc(refreshed.body.accessToken)).toBe(true)
+    const switched = await call<Pair & ErrorBody>(app, null, 'POST', '/auth/switch-tenant', {
+      refreshToken: refreshed.body.refreshToken,
+      deviceId: deviceOne,
+      tenantId: tenantB,
+    })
+    expect(switched.status, JSON.stringify(switched.body)).toBe(200)
+    expect(await pwc(switched.body.accessToken)).toBe(true)
+    const token = switched.body.accessToken
+
+    // what the "Change your password" screen needs answers …
+    const me = await bearer<{ user: { mustChangePassword: boolean } }>(token, 'GET', '/auth/me')
+    expect(me.status).toBe(200)
+    expect(me.body.user.mustChangePassword).toBe(true)
+    // … and nothing else does, in words
+    for (const [method, path, payload] of [
+      ['GET', '/auth/sessions', undefined],
+      ['GET', '/auth/memberships/summary', undefined],
+      ['POST', '/auth/sessions/revoke', { sessionId: uuidv7() }],
+    ] as const) {
+      const res = await bearer<ErrorBody>(token, method, path, payload)
+      expect(res.status, `${method} ${path}`).toBe(403)
+      expect(res.body.message).toBe(CHOOSE_YOUR_OWN_PASSWORD)
+    }
+
+    // keeping the desk's password is not choosing one
+    const same = await bearer<ErrorBody>(token, 'POST', '/auth/change-password', {
+      currentPassword: given,
+      newPassword: given,
+    })
+    expect(same.status).toBe(400)
+    expect(same.body.message).toBe(SAME_PASSWORD)
+    const [still] = await db.select().from(users).where(eq(users.id, daveId))
+    expect(still?.mustChangePassword).toBe(true)
+
+    const chosen = 'Chosen9753'
+    const changed = await bearer<{
+      ok: boolean
+      accessToken: string
+      tokenType: string
+      accessExpiresIn: number
+    }>(token, 'POST', '/auth/change-password', { currentPassword: given, newPassword: chosen })
+    expect(changed.status, JSON.stringify(changed.body)).toBe(200)
+    expect(changed.body.ok).toBe(true)
+    expect(changed.body.tokenType).toBe('Bearer')
+    expect(changed.body.accessExpiresIn).toBeGreaterThan(0)
+    expect(await pwc(changed.body.accessToken)).toBeUndefined()
+    const payload = (await jwtVerify(changed.body.accessToken, keys.publicKey)).payload
+    expect(payload).toMatchObject({ sub: daveId, tid: tenantB, role: 'warehouse' })
+    // the new token carries on at once; the one it replaced is still walled until it expires
+    expect((await bearer(changed.body.accessToken, 'GET', '/auth/sessions')).status).toBe(200)
+    expect((await bearer(token, 'GET', '/auth/sessions')).status).toBe(403)
+    // every later token is plain
+    const after = await refresh(switched.body.refreshToken)
+    expect(after.status).toBe(200)
+    expect(await pwc(after.body.accessToken)).toBeUndefined()
+    expect(await pwc((await login(dave, chosen)).body.accessToken)).toBeUndefined()
+
+    // the self-service reset keeps the same rule: not the password the person has now
+    const [row] = await db
+      .select({ hash: users.passwordHash })
+      .from(users)
+      .where(eq(users.id, daveId))
+    const reset = await signResetToken({ userId: daveId, passwordHash: row?.hash ?? null }, keys)
+    const sameAgain = await call<ErrorBody>(app, null, 'POST', '/auth/reset-password', {
+      token: reset.token,
+      newPassword: chosen,
+    })
+    expect(sameAgain.status).toBe(400)
+    expect(sameAgain.body.message).toBe(SAME_PASSWORD)
+    const other = await call<ErrorBody>(app, null, 'POST', '/auth/reset-password', {
+      token: reset.token,
+      newPassword: 'Other8642',
+    })
+    expect(other.status, JSON.stringify(other.body)).toBe(200)
+  })
+
+  it('walls a console account on a first password the same way: platformMe answers, a support pass does not', async () => {
+    const adminId = uuidv7()
+    const admin = `console.${run}`
+    const given = 'Console4321'
+    await db.insert(users).values({
+      id: adminId,
+      phone: `+916${run}8`,
+      name: 'Console',
+      username: admin,
+      passwordHash: await hashPassword(given),
+      mustChangePassword: true,
+    })
+    await db.insert(platformAdmins).values({ id: uuidv7(), userId: adminId, role: 'support' })
+    const pair = await call<{ accessToken: string } & ErrorBody>(
+      app,
+      null,
+      'POST',
+      '/auth/platform/login',
+      { username: admin, password: given, deviceId: uuidv7() },
+    )
+    expect(pair.status, JSON.stringify(pair.body)).toBe(200)
+    const keys = await loadAuthKeys()
+    expect((await jwtVerify(pair.body.accessToken, keys.publicKey)).payload.pwc).toBe(true)
+    expect((await bearer(pair.body.accessToken, 'GET', '/auth/platform/me')).status).toBe(200)
+    const pass = await bearer<ErrorBody>(
+      pair.body.accessToken,
+      'POST',
+      '/auth/platform/support-pass',
+      {
+        grantId: uuidv7(),
+      },
+    )
+    expect(pass.status).toBe(403)
+    expect(pass.body.message).toBe(CHOOSE_YOUR_OWN_PASSWORD)
   })
 
   // -------------------------------------------------------------------------------------------------------------

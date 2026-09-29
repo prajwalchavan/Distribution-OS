@@ -219,16 +219,32 @@ export const LinkIdentityOutput = z.object({
 })
 
 /**
+ * `data.code` of the give's refusals a screen acts on (the sentence is always in `message`):
+ * `mobileNeeded` — the shop has no mobile, ask for one; `numberHasSignIn` — the number already has a
+ * sign-in made at another business (architect's ruling of 2026-09-29, R1), ask for another number.
+ */
+export const SHOP_SIGN_IN_CODES = {
+  mobileNeeded: 'mobile_needed',
+  numberHasSignIn: 'number_has_sign_in',
+} as const
+
+/**
  * GIVE A SHOP ITS SIGN-IN (DOS-400): the owner or the manager, from the shop's own page.
  *
  * The phone is the shop's mobile of record; `phone` is needed only when the shop has none (a blank or
- * a landline), and then becomes the shop's mobile. A person is one user across the platform, known by
- * that phone:
+ * a landline), and then becomes the shop's mobile (a landline it replaces moves to the second number
+ * when that is free, and the audit row keeps it either way). A person is one user across the
+ * platform, known by that phone:
  *  - nobody has it yet → a user is made with `username` (or one made from the shopkeeper's name) and
  *    `firstPassword`, a shopkeeper membership here and the shop's link to that user — answer `created`,
  *    and the shopkeeper must choose its own password at the first sign-in;
- *  - somebody already signs in with it → NO new user and NO new password: that user gets this shop on
- *    its list — answer `existing`, and nothing about where else the number is known;
+ *  - it is already THIS distributor's shopkeeper (two shops, one number) → NO new user and NO new
+ *    password: that login gets this shop on its list — answer `existing`;
+ *  - its sign-in was made at ANOTHER business (another distributor's shopkeeper or staff, or a console
+ *    account) → 409 in words, `data.code` `number_has_sign_in`, nothing written and nothing said about
+ *    where: a sign-in is never shared between businesses on the strength of a phone number until a
+ *    phone can be proven (architect's ruling of 2026-09-29, docs/22 §8, R1);
+ *  - someone who works for this distributor → 409 in words;
  *  - this shop already has a sign-in → nothing is made — answer `already`, with what exists.
  *
  * WHERE THE FIRST PASSWORD COMES FROM: the desk's own device makes it and shows it once; this call
@@ -258,6 +274,13 @@ export type GiveShopSignInOutcome = z.infer<typeof GiveShopSignInOutcomeSchema>
 export const GiveShopSignInOutput = z.object({
   outcome: GiveShopSignInOutcomeSchema,
   signIn: ShopSignInSchema,
+  /**
+   * Expand-only (2026-09-29, ruling R4): the shopkeeper signs in with a password they CHOSE. False
+   * for `created`, and for a login whose first password was never changed (a second shop given the
+   * same number before the first sign-in, or a sign-in given again after a stop) — the desk is then
+   * told the first password given before still stands, and may give a new one.
+   */
+  passwordChosen: z.boolean(),
 })
 export type GiveShopSignInOut = z.infer<typeof GiveShopSignInOutput>
 
