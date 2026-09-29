@@ -28,14 +28,19 @@ function register(rows: readonly CostRow[]): { ctx: Pick<Ctx, 'read'>; reads: st
 
 describe('whose money is where (rule 3b)', () => {
   const T = '01a0eb1e-3c50-74e3-8bdb-c81a7fd0d498'
-  const shop = (n: number): string => `0197${String(n).padStart(4, '0')}-0000-7000-8000-000000000000`
+  const shop = (n: number): string =>
+    `0197${String(n).padStart(4, '0')}-0000-7000-8000-000000000000`
   it("tells the tool's money on account from real money, and real bills from the tool's", async () => {
     const toolOrder = demoId(T, '2026-09-28', 'order', 't1.0')
     const pagesOf = new Map<unknown, unknown[]>([
       [
         contract.receivables.receipts.list,
         [
-          { id: demoId(T, '2026-09-28', 'office', 'upi'), retailerId: shop(1), unallocatedPaise: 700 },
+          {
+            id: demoId(T, '2026-09-28', 'office', 'upi'),
+            retailerId: shop(1),
+            unallocatedPaise: 700,
+          },
           { id: variant(9), retailerId: shop(2), unallocatedPaise: 300 },
         ],
       ],

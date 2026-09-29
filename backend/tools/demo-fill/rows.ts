@@ -180,7 +180,8 @@ export const VIOLATIONS: readonly Violation[] = [
     // The product applies money on account to a shop's oldest open bills by itself (DOS-312), at a new bill, at a
     // receipt's remainder and at a credit note's: the tool never bills a shop holding money it did not put there.
     rule: '3b',
-    holds: 'no real money (a receipt or credit note the tool did not make) is on a bill the tool made',
+    holds:
+      'no real money (a receipt or credit note the tool did not make) is on a bill the tool made',
     what: 'an allocation of money the tool did not make to a bill the tool made',
     sql: `select a.id from allocations a
            where a.tenant_id = $1
@@ -194,7 +195,7 @@ export const VIOLATIONS: readonly Violation[] = [
     // an open bill the tool did not make, or a bill written off (money recovers that first, DOS-311).
     rule: '3b',
     holds:
-      "no money of the tool sits on account with a shop that has an open or written-off bill the tool did not make",
+      'no money of the tool sits on account with a shop that has an open or written-off bill the tool did not make',
     what: 'a receipt or credit note of the tool with money on account at a shop owing on a real bill',
     sql: `with free as (
               select r.retailer_id, r.id from receipts r
