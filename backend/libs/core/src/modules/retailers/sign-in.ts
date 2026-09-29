@@ -132,37 +132,34 @@ async function lockShop(tx: Db, id: string): Promise<ShopRow> {
 }
 
 /**
- * The mobile the shop's sign-in is known by: the shop's own when it has one, else the one the desk
- * typed. A desk that types a different number for a shop that has a mobile is told where to change it.
+ * The mobile the shop's sign-in is known by: the one the desk typed in the dialog, else the shop's own.
+ * The desk types one when the shop has none, or when the shop's own already has a sign-in made at
+ * another business (ruling R1: "use another mobile number of the shop"). The shop page has no other
+ * place where the desk changes a shop's mobile (QA DOS-428), so a typed number different from the
+ * shop's becomes the shop's mobile here (`numbersFor`); it is `newMobile` exactly then.
  */
 function mobileFor(
   shop: ShopRow,
   typed: string | undefined,
 ): { phone: string; newMobile: boolean } {
-  if (isMobile(shop.phone)) {
-    const own = shop.phone.trim()
-    if (typed !== undefined && typed !== own) {
-      throw new ORPCError('BAD_REQUEST', {
-        message: `This shop's mobile number is ${own}. To use another, change it on the shop first.`,
-      })
-    }
-    return { phone: own, newMobile: false }
-  }
-  if (typed === undefined) {
+  const own = isMobile(shop.phone) ? shop.phone.trim() : null
+  if (typed !== undefined) return { phone: typed, newMobile: typed !== own }
+  if (own === null) {
     throw new ORPCError('BAD_REQUEST', {
       message: 'This shop has no mobile number. Enter the shopkeeper’s mobile number first.',
       data: { code: SHOP_SIGN_IN_CODES.mobileNeeded },
     })
   }
-  return { phone: typed, newMobile: true }
+  return { phone: own, newMobile: false }
 }
 
 /**
- * Where the shop's numbers go when the desk typed a mobile because the shop had none (the second
- * check's minor): the mobile becomes the shop's number of record — the one the sign-in, the messages
- * and the matching of shops read — and a LANDLINE it replaces moves to the second number when that is
- * free. When the second number is taken the landline is not kept on the shop, but the audit row of
- * the give keeps it (`before.phone`), so nothing is lost without a trace.
+ * Where the shop's numbers go when the desk typed a mobile that is not the shop's (the second check's
+ * minor, and DOS-428): the typed mobile becomes the shop's number of record — the one the sign-in, the
+ * messages and the matching of shops read — and the number it replaces (a landline, or a mobile whose
+ * sign-in another business made) moves to the second number when that is free. When the second number
+ * is taken the old one is not kept on the shop, but the audit row of the give keeps it
+ * (`before.phone`), so nothing is lost without a trace.
  */
 function numbersFor(shop: ShopRow, mobile: string): { phone: string; altPhone?: string } {
   const old = shop.phone.trim()

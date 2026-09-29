@@ -231,10 +231,11 @@ export const SHOP_SIGN_IN_CODES = {
 /**
  * GIVE A SHOP ITS SIGN-IN (DOS-400): the owner or the manager, from the shop's own page.
  *
- * The phone is the shop's mobile of record; `phone` is needed only when the shop has none (a blank or
- * a landline), and then becomes the shop's mobile (a landline it replaces moves to the second number
- * when that is free, and the audit row keeps it either way). A person is one user across the
- * platform, known by that phone:
+ * The phone is the shop's mobile of record; `phone` is needed when the shop has none (a blank or a
+ * landline), or when its own already has a sign-in made at another business and the desk uses another
+ * mobile of the shopkeeper (R1; QA DOS-428). A typed mobile that is not the shop's becomes the shop's
+ * mobile (the number it replaces moves to the second number when that is free, and the audit row
+ * keeps it either way). A person is one user across the platform, known by that phone:
  *  - nobody has it yet → a user is made with `username` (or one made from the shopkeeper's name) and
  *    `firstPassword`, a shopkeeper membership here and the shop's link to that user — answer `created`,
  *    and the shopkeeper must choose its own password at the first sign-in;
@@ -258,7 +259,10 @@ export const GiveShopSignInInput = MutationBase.extend({
   userId: IdSchema,
   /** Client-generated UUIDv7 of this distributor's shopkeeper membership, used only when one is made. */
   membershipId: IdSchema,
-  /** The shopkeeper's mobile, when the shop has none on its record. */
+  /**
+   * Another mobile of the shopkeeper, typed by the desk: when the shop has none on its record, or its
+   * own already has a sign-in made at another business. It becomes the shop's mobile.
+   */
   phone: PhoneSchema.optional(),
   /**
    * Omitted: made from the shopkeeper's name on the shop (else the shop's name), e.g. `ramesh.gupta`,

@@ -133,6 +133,22 @@ export function isSharedNumber(error: unknown): boolean {
 }
 
 /**
+ * The give dialog after the service refused the number because its sign-in was made at ANOTHER business
+ * (R1): the mobile field is shown, with what the desk can do — enter another mobile of the shopkeeper,
+ * which the give then saves on the shop (QA DOS-428: the desk's shop page has no other place for it).
+ * A number the desk typed stays in the field, so it sees what was refused; the shop's own number is
+ * named in the sentence (`{phone}`) and the field starts empty.
+ */
+export function afterSharedNumber(
+  typedANumber: boolean,
+  typed: string,
+): { mobile: string; problem: 'si.sharedTyped' | 'si.shared' } {
+  return typedANumber
+    ? { mobile: typed, problem: 'si.sharedTyped' }
+    : { mobile: '', problem: 'si.shared' }
+}
+
+/**
  * What the desk is told when the give made no new login (ruling R4). "The shopkeeper uses their own
  * password" only where it is true: a login of this business whose password the person has chosen.
  */

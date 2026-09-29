@@ -12,6 +12,7 @@ import { describe, expect, it } from 'vitest'
 
 import { SHOP_SIGN_IN_STRINGS } from './strings'
 import {
+  afterSharedNumber,
   appSignInCell,
   firstPassword,
   givePayload,
@@ -82,8 +83,27 @@ describe('the shop sign-in forms', () => {
     expect(toldWords('existing', false)).toBe('si.existingFirst')
     expect(SHOP_SIGN_IN_STRINGS['si.existingOwn']).toContain('uses their own password')
     expect(SHOP_SIGN_IN_STRINGS['si.existingFirst']).not.toContain('uses their own password')
-    expect(SHOP_SIGN_IN_STRINGS['si.shared']).toContain('Use another mobile number')
     expect(SHOP_SIGN_IN_STRINGS['si.sharedTyped']).toContain('Enter another mobile number')
+  })
+
+  it('asks for another mobile right in the dialog when the number has a sign-in elsewhere, and never sends the desk to a screen it lacks (R1, DOS-428)', () => {
+    // the shop's own number: named in the sentence, the field starts empty
+    expect(afterSharedNumber(false, '')).toEqual({ mobile: '', problem: 'si.shared' })
+    expect(SHOP_SIGN_IN_STRINGS['si.shared']).toContain('{phone}')
+    // a number the desk typed: it stays in the field, so the desk sees what was refused
+    expect(afterSharedNumber(true, '98765 43210')).toEqual({
+      mobile: '98765 43210',
+      problem: 'si.sharedTyped',
+    })
+    for (const key of ['si.shared', 'si.sharedTyped'] as const) {
+      expect(SHOP_SIGN_IN_STRINGS[key]).toContain('Enter another mobile number of the shopkeeper')
+      expect(SHOP_SIGN_IN_STRINGS[key]).not.toMatch(/change it on the shop/i)
+    }
+    expect(SHOP_SIGN_IN_STRINGS['si.mobileReplaceHelp']).toContain('saved as the shop’s mobile')
+    // the typed mobile goes in the request, which the contract takes for a shop that has one too
+    const payload = givePayload(shopId, newGiveIntent('+919812345678'), key)
+    expect(GiveShopSignInInput.safeParse(payload).success).toBe(true)
+    expect(payload.phone).toBe('+919812345678')
   })
 
   it('says what the register cell is where a phone row has no head, and stays terse under the desk head', () => {

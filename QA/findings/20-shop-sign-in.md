@@ -126,3 +126,8 @@ What happens: when the shop's own mobile already has a sign-in made at another b
 What it should do: the desk's shop page lets the owner and the manager change the shop's mobile, or the sign-in dialog
   takes another number and saves it on the shop (keeping the old one as the second number, as it now does for a landline).
 ```
+Status: FIXED on the lane (repair 3), the second way. When the shop's own mobile is refused (R1) the give dialog shows the
+mobile field with "The shop's mobile number … already has a Distribution OS sign-in, which cannot be shared yet. Enter another
+mobile number of the shopkeeper." and "It will be saved as the shop's mobile number."; the give takes a typed mobile for a shop
+that has one, saves it as the shop's mobile, moves the old number to the second number when that is free and keeps it in the
+audit row. No sentence sends the desk to change it "on the shop" any more.

@@ -66,7 +66,7 @@ export interface ShopLoginRequest {
   passwordHash: string
   /** The login the shop's platform identity already names, which is the shopkeeper whoever linked it. */
   knownUserId: string | null
-  /** The desk typed this number in the dialog (the shop had no mobile), rather than it being the shop's. */
+  /** The desk typed this number in the dialog, and it is not the shop's own mobile (yet). */
   phoneTyped: boolean
 }
 
@@ -90,8 +90,8 @@ const STAFF_PHONE =
  * businesses on the strength of a number: whoever made it may still know its first password.
  */
 const SHARED_NUMBER =
-  'This mobile number already has a Distribution OS sign-in, which cannot be shared yet. Use another mobile number of the shopkeeper: change it on the shop, then give the sign-in.'
-/** The same, when the desk typed the number in the dialog because the shop had no mobile. */
+  'This mobile number already has a Distribution OS sign-in, which cannot be shared yet. Enter another mobile number of the shopkeeper; it will be saved as the shop’s mobile number.'
+/** The same, when the number is one the desk typed in the dialog (the shop had none, or it was this one). */
 const SHARED_NUMBER_TYPED =
   'This mobile number already has a Distribution OS sign-in, which cannot be shared yet. Enter another mobile number of the shopkeeper.'
 /**

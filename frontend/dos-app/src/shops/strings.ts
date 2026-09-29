@@ -27,6 +27,8 @@ export const SHOP_SIGN_IN_STRINGS = {
     'The shop gets a username and a first password. You will see them once, here, to hand to the shopkeeper.',
   'si.mobile': 'Shopkeeper’s mobile number',
   'si.mobileHelp': 'This shop has no mobile number yet. It will be saved on the shop.',
+  /** When the shop's own mobile was refused (R1) and the desk enters another one (DOS-428). */
+  'si.mobileReplaceHelp': 'It will be saved as the shop’s mobile number.',
   'si.mobileBad': 'Enter a 10-digit mobile number, like 98765 43210',
   'si.giveConfirm': 'Give the sign-in',
 
@@ -60,10 +62,10 @@ export const SHOP_SIGN_IN_STRINGS = {
   'si.already': 'This shop already has a sign-in.',
   'si.ok': 'Close',
 
-  // --- a number whose sign-in another business made (ruling R1) -----------------------------------------
-  'si.sharedTitle': 'This number cannot be used',
+  // --- a number whose sign-in another business made (ruling R1): said on the mobile field ---------------
+  /** The shop's own mobile; the desk enters another one of the shopkeeper right there (DOS-428). */
   'si.shared':
-    'This mobile number already has a Distribution OS sign-in, which cannot be shared yet. Use another mobile number of the shopkeeper: change it on the shop, then give the sign-in.',
+    'The shop’s mobile number {phone} already has a Distribution OS sign-in, which cannot be shared yet. Enter another mobile number of the shopkeeper.',
   'si.sharedTyped':
     'This mobile number already has a Distribution OS sign-in, which cannot be shared yet. Enter another mobile number of the shopkeeper.',
 

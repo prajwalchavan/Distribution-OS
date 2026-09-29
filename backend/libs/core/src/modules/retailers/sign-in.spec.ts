@@ -457,10 +457,6 @@ describeDb('retailers.signIn (DATABASE_URL)', () => {
     expect(res.body.signIn.username).toBe(`blank${run}.phone`)
     const [row] = await db.select().from(retailers).where(eq(retailers.id, shopNoMobile))
     expect(row?.phone).toBe(phone(32))
-    // a shop that has a mobile is not given another behind its back
-    const other = await give(owner, twinOne, { phone: phone(99) })
-    expect(other.status).toBe(400)
-    expect(other.body.message).toContain('change it on the shop first')
   })
 
   /** Everything a give could have written for a shop and a number, to prove a refusal wrote none of it. */
@@ -505,7 +501,7 @@ describeDb('retailers.signIn (DATABASE_URL)', () => {
   }
 
   const sharedSentence =
-    'This mobile number already has a Distribution OS sign-in, which cannot be shared yet. Use another mobile number of the shopkeeper: change it on the shop, then give the sign-in.'
+    'This mobile number already has a Distribution OS sign-in, which cannot be shared yet. Enter another mobile number of the shopkeeper; it will be saved as the shop’s mobile number.'
 
   it('gives no sign-in to a number whose sign-in another business made, and says the same about a shopkeeper, a rep and a console account', async () => {
     // Ruling R1 (docs/22 §8, 2026-09-29). Three numbers known elsewhere, three different kinds of seat.
@@ -559,6 +555,52 @@ describeDb('retailers.signIn (DATABASE_URL)', () => {
     const next = await give(owner, shopTypedKnown, { phone: phone(25) })
     expect(next.status, JSON.stringify(next.body)).toBe(200)
     expect(next.body.outcome).toBe('created')
+  })
+
+  it('takes another mobile of the shopkeeper when the shop’s own has a sign-in made elsewhere, and makes it the shop’s (DOS-428)', async () => {
+    // The desk's shop page has no other place to change a shop's mobile, so the dialog asks for
+    // another number and the give saves it on the shop. First the shop's own number, refused (R1).
+    const refused = await give(owner, shopConsole)
+    expect(refused.status, JSON.stringify(refused.body)).toBe(409)
+    expect(refused.body.message).toBe(sharedSentence)
+    expect(refused.body.data?.code).toBe('number_has_sign_in')
+    const consoleBefore = await userByPhone(phone(24))
+    // Another mobile of the shopkeeper goes through and becomes the shop's; the old one is kept.
+    const res = await give(owner, shopConsole, { phone: phone(26) })
+    expect(res.status, JSON.stringify(res.body)).toBe(200)
+    expect(res.body.outcome).toBe('created')
+    expect(res.body.passwordChosen).toBe(false)
+    const [row] = await db.select().from(retailers).where(eq(retailers.id, shopConsole))
+    expect(row?.phone).toBe(phone(26))
+    expect(row?.altPhone).toBe(phone(24))
+    const [audit] = await db
+      .select()
+      .from(auditLog)
+      .where(and(eq(auditLog.entityId, shopConsole), eq(auditLog.action, 'retailer.sign_in.give')))
+    expect(audit?.before).toMatchObject({ phone: phone(24) })
+    expect(audit?.after).toMatchObject({ phone: phone(26) })
+    // The new login is the new number's; the person behind the old number is not touched.
+    const [made] = await userByPhone(phone(26))
+    expect(made?.mustChangePassword).toBe(true)
+    const [link] = await db
+      .select()
+      .from(retailerLinks)
+      .where(and(eq(retailerLinks.retailerId, shopConsole), eq(retailerLinks.status, 'active')))
+    expect(link?.userId).toBe(made?.id)
+    const [identity] = await db
+      .select()
+      .from(retailerIdentities)
+      .where(eq(retailerIdentities.id, row?.identityId ?? ''))
+    expect(identity?.phone).toBe(phone(26))
+    expect(await userByPhone(phone(24))).toEqual(consoleBefore)
+    const consoleHere = await db
+      .select()
+      .from(memberships)
+      .where(and(eq(memberships.userId, consoleId), eq(memberships.tenantId, tenantId)))
+    expect(consoleHere).toHaveLength(0)
+    // Asked again, the shop has its sign-in.
+    const again = await give(owner, shopConsole, { phone: phone(26) })
+    expect(again.body.outcome).toBe('already')
   })
 
   it('keeps a landline the typed mobile replaces: on the second number when it is free, in the audit row always', async () => {

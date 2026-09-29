@@ -4,8 +4,9 @@
  * group may import `src/` and never another group (docs/31 §6.4).
  *
  * With no sign-in: "This shop cannot use the app yet" and "Give this shop a sign-in", which asks for the
- * shopkeeper's mobile first when the shop has none, then shows the username and the first password ONCE,
- * large, with Copy and Share. With one: the username, since when, and two quiet actions — a new first
+ * shopkeeper's mobile first when the shop has none — or, when the shop's own already has a sign-in made
+ * at another business (ruling R1), for another mobile of the shopkeeper, which becomes the shop's (QA
+ * DOS-428) — then shows the username and the first password ONCE, large, with Copy and Share. With one: the username, since when, and two quiet actions — a new first
  * password, and stopping the sign-in — each of which says what will happen and asks once before it acts.
  *
  * `retailers.signIn.*` is the owner's and the manager's alone (PERMISSIONS): for the accountant the row
@@ -26,6 +27,7 @@ import { useState, type ReactNode } from 'react'
 
 import { useMayWrite } from '../pricing/editors'
 import {
+  afterSharedNumber,
   firstPassword,
   givePayload,
   hasMobile,
@@ -42,11 +44,16 @@ import {
 /** What the shown-once dialog says under Copy and Share when nothing could be copied or shared. */
 type HandOver = 'copied' | 'copyRefused' | 'shareFailed' | null
 
+/**
+ * `askMobile`: the dialog shows the mobile field — the shop has no mobile, or its own was refused
+ * because its sign-in was made at another business and the desk enters another one (R1, DOS-428).
+ */
+type GiveStep = { kind: 'give'; mobile: string; problem: string | null; askMobile: boolean }
+
 type Step =
-  | { kind: 'give'; mobile: string; problem: string | null }
+  | GiveStep
   | { kind: 'shown'; username: string; password: string; handOver: HandOver }
   | { kind: 'told'; username: string | null; words: ToldWords }
-  | { kind: 'shared' }
   | { kind: 'password'; password: string }
   | { kind: 'stop' }
   | null
@@ -108,12 +115,13 @@ export function ShopSignInRow({ shop, when, onToast }: ShopSignInRowProps): Reac
     setStep(null)
   }
 
-  const confirmGive = (typed: string): void => {
+  const confirmGive = (asked: GiveStep): void => {
+    const typed = asked.mobile
     let phone: string | null = null
-    if (needsMobile) {
+    if (asked.askMobile) {
       phone = toMobile(typed)
       if (phone === null) {
-        setStep({ kind: 'give', mobile: typed, problem: t('si.mobileBad') })
+        setStep({ ...asked, problem: t('si.mobileBad') })
         return
       }
     }
@@ -140,15 +148,20 @@ export function ShopSignInRow({ shop, when, onToast }: ShopSignInRowProps): Reac
       },
       (error: unknown) => {
         /*
-         * A number whose sign-in another business made (ruling R1): say what the desk can do. A number
-         * the desk TYPED goes back to the field with the sentence, so another one can be entered here;
-         * the shop's own number has to be changed on the shop first. Nothing was written either way.
-         * Every other refusal prints in the dialog, which stays open.
+         * A number whose sign-in another business made (ruling R1): say what the desk can do, on the
+         * mobile field of this same dialog, so another number of the shopkeeper is entered right here
+         * and saved on the shop (DOS-428). Nothing was written. Every other refusal prints in the
+         * dialog, which stays open.
          */
         if (!isSharedNumber(error)) return
         setIntent(null)
-        if (needsMobile) setStep({ kind: 'give', mobile: typed, problem: t('si.sharedTyped') })
-        else setStep({ kind: 'shared' })
+        const next = afterSharedNumber(current.phone !== null, typed)
+        setStep({
+          kind: 'give',
+          mobile: next.mobile,
+          problem: t(next.problem, { phone: shop.phone }),
+          askMobile: true,
+        })
       },
     )
   }
@@ -172,7 +185,7 @@ export function ShopSignInRow({ shop, when, onToast }: ShopSignInRowProps): Reac
               variant="secondary"
               onPress={() => {
                 setIntent(null)
-                setStep({ kind: 'give', mobile: '', problem: null })
+                setStep({ kind: 'give', mobile: '', problem: null, askMobile: needsMobile })
               }}
               testID="shop-sign-in-give"
             />
@@ -223,23 +236,23 @@ export function ShopSignInRow({ shop, when, onToast }: ShopSignInRowProps): Reac
             <Txt field="body" desk="body">
               {t('si.giveBody')}
             </Txt>
-            {needsMobile && step?.kind === 'give' ? (
+            {step?.kind === 'give' && step.askMobile ? (
               <Stack gap={1}>
                 <TextInput
                   label={t('si.mobile')}
                   value={step.mobile}
                   onChange={(value) => {
-                    setStep({ kind: 'give', mobile: value, problem: null })
+                    setStep({ ...step, mobile: value, problem: null })
                   }}
                   keyboard="phone"
                   capitalize="none"
                   error={step.problem ?? undefined}
                   testID="shop-sign-in-mobile"
                 />
-                <Hint>{t('si.mobileHelp')}</Hint>
+                <Hint>{needsMobile ? t('si.mobileHelp') : t('si.mobileReplaceHelp')}</Hint>
               </Stack>
             ) : null}
-            {/* A number known elsewhere is said on the mobile field, or in its own dialog, instead. */}
+            {/* A number known elsewhere is said on the mobile field instead. */}
             <Problem
               text={refusal !== undefined && isSharedNumber(refusal) ? null : refusalText}
               testID="shop-sign-in-refusal"
@@ -249,7 +262,7 @@ export function ShopSignInRow({ shop, when, onToast }: ShopSignInRowProps): Reac
         confirmLabel={t('si.giveConfirm')}
         busy={give.status === 'pending'}
         onConfirm={() => {
-          confirmGive(step?.kind === 'give' ? step.mobile : '')
+          if (step?.kind === 'give') confirmGive(step)
         }}
         testID="shop-sign-in-give-dialog"
       />
@@ -358,23 +371,6 @@ export function ShopSignInRow({ shop, when, onToast }: ShopSignInRowProps): Reac
         cancelLabel={null}
         onConfirm={close}
         testID="shop-sign-in-told-dialog"
-      />
-
-      {/* The shop's number already has a sign-in made at another business (ruling R1): nothing was
-          written, and the desk is told what it can do. Nothing about where the number is known. */}
-      <Dialog
-        open={step?.kind === 'shared'}
-        onClose={close}
-        title={t('si.sharedTitle')}
-        body={
-          <Txt field="body" desk="body" testID="shop-sign-in-shared">
-            {t('si.shared')}
-          </Txt>
-        }
-        confirmLabel={t('si.ok')}
-        cancelLabel={null}
-        onConfirm={close}
-        testID="shop-sign-in-shared-dialog"
       />
 
       {/* A new first password: say what happens, then act, then show it once. */}
