@@ -150,3 +150,16 @@ number it answered 200 and made a platform identity for the number. Beside the g
 elsewhere from staff or a console account elsewhere. Status: FIXED on the lane — the procedure stays in the contract
 (expand-only) and PERMISSIONS closes it to every role (`NOBODY`): every caller gets the gate's 403 before any handler, the same
 body whatever the number; the give links a shop to its number itself.
+
+### DOS-429 — A sign-in request that fails validation is written to the API's log with its password
+Category: security | Priority: P2 | Role: all | Platform: API | Found by: the main session, 2026-09-29, while proving the plain tester logins on main
+
+```
+What happens: a POST /auth/login whose body is not valid (here: no deviceId) answers 400, and the API's log holds the
+  rejected input as `data: { username: '…', password: '…' }`.
+How it was seen: local all-in-one API (NODE_ENV=development) over a test database; three malformed sign-ins by the main
+  session's own probe left three such lines. Whether NODE_ENV=production logs the same was NOT checked.
+What it should do: a rejected request is logged without the values of password, token and key fields, in every mode.
+Status: OPEN. Not fixed. The dummy activity tool and its checks wrote no password anywhere but the logins file.
+```
+
