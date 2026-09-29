@@ -321,11 +321,7 @@ export class RegistersService {
   async invoiceLinesForPeriod(tx: Db, filter: PeriodFilter): Promise<InvoiceLineForPeriod[]> {
     const { tenantId } = currentTenant()
     const limit = Math.min(filter.limit ?? 5000, 20_000)
-    const result = await tx.execute(sql`
-      WITH ${invoiceRulesGiven(sql`
-        SELECT i.id AS invoice_id, i.invoice_no, i.invoice_date, i.retailer_id,
-               l.id AS line_id, l.line_no, l.order_line_id, l.variant_id, l.hsn_code, l.qty_pcs,
-               l.free_qty_pcs, l.rate_paise, l.discount_paise, l.taxable_paise, l.applied_rules
+    const scope = sql`
           FROM invoice_lines l
           JOIN invoices i ON i.id = l.invoice_id
           JOIN product_variants v ON v.id = l.variant_id
@@ -335,9 +331,22 @@ export class RegistersService {
            AND i.invoice_date BETWEEN ${filter.from} AND ${filter.to}
            AND (${filter.retailerId ?? null}::text IS NULL OR i.retailer_id = ${filter.retailerId ?? null})
            AND (${filter.variantId ?? null}::text IS NULL OR l.variant_id = ${filter.variantId ?? null})
-           AND (${filter.brandId ?? null}::text IS NULL OR p.brand_id = ${filter.brandId ?? null})
-         ORDER BY i.invoice_date ASC, i.id ASC, l.line_no ASC
-         LIMIT ${limit}`)}
+           AND (${filter.brandId ?? null}::text IS NULL OR p.brand_id = ${filter.brandId ?? null})`
+    // The read is bounded by `limit` lines, but it is cut at a BILL's edge, never inside one (blind check 1, minor):
+    // an old bill's whole-rule copies are counted once over the batch lines of their order line, so a cut between
+    // those batch lines would read the whole rule on the part that made it in. The last bill is read to its end.
+    const result = await tx.execute(sql`
+      WITH ${invoiceRulesGiven(sql`
+        SELECT i.id AS invoice_id, i.invoice_no, i.invoice_date, i.retailer_id,
+               l.id AS line_id, l.line_no, l.order_line_id, l.variant_id, l.hsn_code, l.qty_pcs,
+               l.free_qty_pcs, l.rate_paise, l.discount_paise, l.taxable_paise, l.applied_rules
+        ${scope}
+           AND l.invoice_id IN (
+                 SELECT cut.invoice_id FROM (
+                   SELECT l.invoice_id ${scope}
+                    ORDER BY i.invoice_date ASC, i.id ASC, l.line_no ASC
+                    LIMIT ${limit}) cut)
+         ORDER BY i.invoice_date ASC, i.id ASC, l.line_no ASC`)}
       SELECT rl.invoice_id, rl.invoice_no, rl.invoice_date, rl.retailer_id, rl.line_id, rl.variant_id,
              rl.hsn_code, rl.qty_pcs, rl.free_qty_pcs, rl.rate_paise, rl.discount_paise, rl.taxable_paise,
              coalesce((SELECT jsonb_agg(g.given_rule ORDER BY g.ord)

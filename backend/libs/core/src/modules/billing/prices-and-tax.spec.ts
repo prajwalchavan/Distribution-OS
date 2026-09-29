@@ -44,7 +44,7 @@ import { ReceivablesModule } from '../receivables/index.js'
 import { recountSchemeSpendDays, ReportingModule } from '../reporting/index.js'
 import { SyncModule } from '../sync/index.js'
 import { WarehouseModule } from '../warehouse/index.js'
-import { BillingModule } from './index.js'
+import { BillingModule, RegistersService } from './index.js'
 
 /**
  * PRICES AND TAX FROM QUOTE TO BILL (docs/22 §8, 2026-09-28, "Architect rulings, prices and tax"; QA phase 8,
@@ -1498,13 +1498,18 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
    * carried it once per batch line (QA's 28 Sep: the owner's series Rs 1,488.96 / Rs 3,930.44, the register Rs 385.44
    * / Rs 2,463.70), and nothing rolls a past day again. The worker's tenant job now recounts such a day once.
    */
-  it('M1: a past day rolled before DOS-330 has its scheme spend recounted once, and the owner’s series then agrees with the register', async () => {
-    const shop = await newShop('M1')
-    const tenPct = uuidv7()
+  /**
+   * A 10 % company scheme on 10 soap for a fresh shop (₹10.25 given), billed today, and the SAME order line billed
+   * on `day` the way a bill was written before DOS-330: three batch lines (4, 3, 3), each carrying the order line's
+   * whole rule (INV/9047's shape). Returns the scheme, what it gave and the old bill.
+   */
+  async function oldShapeBillOn(tag: string, day: string) {
+    const shop = await newShop(tag)
+    const schemeId = uuidv7()
     const made = await call(app, owner, 'POST', '/pricing/schemes', {
-      idempotencyKey: `m1-scheme-${run}`,
-      id: tenPct,
-      name: `M1 10 % ${run}`,
+      idempotencyKey: `${tag}-scheme-${run}`,
+      id: schemeId,
+      name: `${tag} 10 % ${run}`,
       scope: { variantIds: [v.t18at1025] },
       applicability: { retailerIds: [shop] },
       triggerKind: 'qty',
@@ -1517,24 +1522,20 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
       fundingSource: 'company',
     })
     expect(made.status, JSON.stringify(made.body)).toBe(200)
-    const order = await placeOrder(shop, [{ variantId: v.t18at1025, qtyPcs: 10 }], 'm1')
+    const order = await placeOrder(shop, [{ variantId: v.t18at1025, qtyPcs: 10 }], tag)
     const orderLine = order.lines[0]
     const given = orderLine?.discountPaise ?? 0
     expect(given).toBe(1025) // 10 % of 10 × ₹10.25
-    const bill = await pack(order.id, 'm1')
-
-    // The same order line billed on a PAST day before the ruling: three batch lines, each carrying the order
-    // line's whole rule (INV/9047's shape), and the owner's day rolled the old way — the rule three times.
-    const past = new Date(Date.parse(`${today}T00:00:00Z`) - 5 * 86_400_000).toISOString().slice(0, 10)
+    const bill = await pack(order.id, tag)
     const oldId = uuidv7()
     const [issued] = await db.select().from(invoices).where(eq(invoices.id, bill.id))
     if (!issued) throw new Error('bill not found')
     await db.insert(invoices).values({
       ...issued,
       id: oldId,
-      invoiceNo: `OLD-M1/${run}`,
-      seriesCode: 'OLDM1',
-      invoiceDate: past,
+      invoiceNo: `OLD-${tag}/${run}`,
+      seriesCode: `OLD${tag}`,
+      invoiceDate: day,
       orderId: null,
       upiQrPayload: null,
     })
@@ -1553,6 +1554,16 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
         appliedRules: orderLine?.appliedRules ?? [],
       })),
     )
+    return { schemeId, given, oldId }
+  }
+  const daysAgo = (k: number): string =>
+    new Date(Date.parse(`${today}T00:00:00Z`) - k * 86_400_000).toISOString().slice(0, 10)
+
+  it('M1: a past day rolled before DOS-330 has its scheme spend recounted once, and the owner’s series then agrees with the register', async () => {
+    // The same order line billed on a PAST day before the ruling, and the owner's day rolled the old way — the
+    // rule three times.
+    const past = daysAgo(5)
+    const { schemeId: tenPct, given } = await oldShapeBillOn('M1', past)
     await db.execute(sql`
       insert into daily_owner_stats (tenant_id, day, scheme_spend_company_paise, scheme_spend_distributor_paise)
       values (${tenantId}, ${past}, ${3 * given}, 0)`)
@@ -1591,6 +1602,27 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
     expect(row?.once).toBe(true)
     // once: the next tick finds nothing for that day
     expect(await recountSchemeSpendDays(db, tenantId)).not.toContain(past)
+  })
+
+  /*
+   * Blind check 1, minor: the brand claim's source (`invoiceLinesForPeriod`) is bounded by a number of LINES; the cut
+   * fell inside a bill, and an old bill's whole-rule copies, counted once over the batch lines of their order line,
+   * were then read whole on the part of those batch lines that made it in.
+   */
+  it('minor: the claim source is cut at a bill’s edge, so an old bill’s whole rule is never read on part of its batch lines', async () => {
+    const day = daysAgo(9)
+    const { schemeId, given, oldId } = await oldShapeBillOn('CUT', day)
+    const registers = app.get(RegistersService)
+    const read = await asOwner((tx) =>
+      registers.invoiceLinesForPeriod(tx, { from: day, to: day, limit: 2 }),
+    )
+    // the whole bill, its three batch lines, although the bound is two lines
+    expect(read.filter((l) => l.invoiceId === oldId).map((l) => l.qtyPcs)).toEqual([4, 3, 3])
+    const amount = read
+      .flatMap((l) => l.appliedRules)
+      .filter((r) => r.ruleId === schemeId)
+      .reduce((sum, r) => sum + (r.amountPaise ?? 0), 0)
+    expect(amount).toBe(given)
   })
 
   it('ruling 8: a shop’s final rate blocks schemes, not a rate request approved for it (QA O07)', async () => {
