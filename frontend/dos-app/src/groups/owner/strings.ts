@@ -9,10 +9,13 @@
  * state the next action rather than the problem, never "Oops", never "!" and never an emoji.
  */
 import { PRICING_STRINGS } from '../../pricing/strings'
+import { SHOP_SIGN_IN_STRINGS } from '../../shops/strings'
 
 export const strings = {
   /* DOS-212 / DOS-214: the desk's credit and pricing editors, one copy for both desks. */
   ...PRICING_STRINGS,
+  /* DOS-400: a shop's app sign-in on the shop's page, one copy for both desks. */
+  ...SHOP_SIGN_IN_STRINGS,
 
   // --- chrome, sign-in, account (X1–X4) -----------------------------------------------------------
   'app.signIn': 'Sign in',

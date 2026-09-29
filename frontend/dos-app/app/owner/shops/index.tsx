@@ -41,6 +41,7 @@ import { instantWithClock, longDate, today, shiftDays } from '../../../src/group
 import { useHotkeys, useRegisterKeys } from '../../../src/groups/owner/lib/keys'
 import { useWord } from '../../../src/groups/owner/lib/words'
 import { CreditDialog, useMayWrite } from '../../../src/pricing/editors'
+import { ShopSignInRow } from '../../../src/shops/sign-in'
 
 export default function Shops(): React.JSX.Element {
   const t = useStrings()
@@ -154,6 +155,8 @@ export default function Shops(): React.JSX.Element {
       ),
     },
     textColumn('phone', t('o6.phone'), (row) => row.phone),
+    /* DOS-400: whether the shop signs in to the app, as whom; the panel carries the actions. */
+    textColumn('app', t('si.title'), (row) => row.appSignIn?.username ?? t('si.noneShort')),
   ]
 
   useRegisterKeys({
@@ -251,6 +254,7 @@ export default function Shops(): React.JSX.Element {
               <Field label={t('o6.phone')}>{current.phone ?? '—'}</Field>
               <Field label={t('o6.beat')}>{names.beat(current.beatId)}</Field>
               <Field label={t('o6.gstin')}>{current.gstin ?? '—'}</Field>
+              <ShopSignInRow shop={current} when={instantWithClock} onToast={setToast} />
 
               <Panel title={t('o10.dues')}>
                 <Stack gap={2}>

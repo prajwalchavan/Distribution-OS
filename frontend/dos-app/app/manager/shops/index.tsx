@@ -49,7 +49,13 @@ import {
   useCan,
   useNames,
 } from '../../../src/groups/manager/lib/ui'
-import { longDate, shiftDays, shortInstant, today } from '../../../src/groups/manager/lib/dates'
+import {
+  instantWithClock,
+  longDate,
+  shiftDays,
+  shortInstant,
+  today,
+} from '../../../src/groups/manager/lib/dates'
 import {
   SHOP_COLUMNS,
   overdueAmount,
@@ -60,6 +66,7 @@ import {
 import { useHotkeys, useRegisterKeys } from '../../../src/groups/manager/lib/keys'
 import { useWord } from '../../../src/groups/manager/lib/words'
 import { CreditDialog } from '../../../src/pricing/editors'
+import { ShopSignInRow } from '../../../src/shops/sign-in'
 
 export default function Shops(): React.JSX.Element {
   const t = useStrings()
@@ -196,6 +203,9 @@ export default function Shops(): React.JSX.Element {
       ),
     }),
     phone: (at) => textColumn('phone', t('m14.phone'), (row) => row.phone, at),
+    /* DOS-400: whether the shop signs in to the app, as whom; the panel carries the actions. */
+    app: (at) =>
+      textColumn('app', t('si.title'), (row) => row.appSignIn?.username ?? t('si.noneShort'), at),
   }
   const columns: readonly RegisterColumn<Retailer>[] = SHOP_COLUMNS.map((spec) =>
     cellOf[spec.key]({ priority: spec.priority }),
@@ -290,6 +300,7 @@ export default function Shops(): React.JSX.Element {
               <Field label={t('px.terms')}>{word(current.paymentTerms)}</Field>
               <Field label={t('m14.phone')}>{current.phone ?? t('app.none')}</Field>
               <Field label={t('m14.gstin')}>{current.gstin ?? t('app.none')}</Field>
+              <ShopSignInRow shop={current} when={instantWithClock} onToast={setToast} />
 
               <Panel title={t('m14.owes')}>
                 <Stack gap={2}>
