@@ -15,7 +15,7 @@ import type { World } from './world.js'
 
 /** The bill a door of today's van carries (null when the door or its bill is not there). */
 async function doorBill(ctx: Ctx, date: string, driver: 'driver1' | 'driver2', sequence: number) {
-  const trip = await readTrip(ctx, ctx.id(date, 'trip', driver))
+  const trip = await readTrip(ctx, ctx.tripId(date, driver))
   const stop = trip?.stops.find((s) => s.sequence === sequence)
   const d = stop?.deliveries[0]
   if (!stop || !d) return null

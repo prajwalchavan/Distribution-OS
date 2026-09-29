@@ -77,19 +77,65 @@ async function finishTrips(ctx: Ctx, date: string): Promise<void> {
   const open = await pages((cursor) =>
     ctx.read(contract.delivery.trips.list, {
       states: ['planned', 'loading', 'active', 'closing'],
-      to: addDays(date, -1),
+      to: date,
       limit: 200,
       ...(cursor ? { cursor } : {}),
     }),
   )
-  for (const t of open) {
-    if (!isDemoId(t.id) || t.tripDate >= date) continue
-    const driver: DriverKey = t.driverId === ctx.userIds.get('driver2') ? 'driver2' : 'driver1'
+  // Oldest first: a van's earlier trip is settled before a later one of it is loaded (a van carries one trip).
+  const ordered = [...open].sort(
+    (a, b) => a.tripDate.localeCompare(b.tripDate) || a.id.localeCompare(b.id),
+  )
+  for (const t of ordered) {
+    if (!isDemoId(t.id)) continue
+    const driver = ctx.crewDriverOf(t.driverId)
+    if (!driver) {
+      await finishFormerTrip(ctx, t, date)
+      continue
+    }
+    if (t.tripDate >= date) continue
     if (t.state === 'planned' || t.state === 'loading') await loadAndDepart(ctx, t.id, driver, date)
     await workDoors(ctx, t.id, driver, date, true)
     await returnTrip(ctx, t.id, driver, date)
     await settleTrip(ctx, t.id, date)
   }
+}
+
+/**
+ * D6: a trip of a driver the tool no longer has (a former tester login). No procedure hands a trip to another
+ * driver, so the desk does what the driver would have: a trip that has not left is CANCELLED (its draft sheet with
+ * it) and its bills go back on the planning board, where today's vans carry them; a trip on the road of an earlier
+ * date has its last doors delivered and is checked in by the manager, and the accountant settles it. A trip of
+ * `date` itself that has left belongs to a date the former logins made: the next run finishes it.
+ */
+async function finishFormerTrip(
+  ctx: Ctx,
+  t: { id: string; tripDate: string; state: string; vehicleId: string },
+  date: string,
+): Promise<void> {
+  const desk = (): ReturnType<Ctx['as']> => ctx.as('manager')
+  const van: DriverKey = ctx.vanOfVehicle(t.vehicleId) ?? 'driver1'
+  if (t.state === 'planned' || t.state === 'loading') {
+    const cancelled = await ctx.write(
+      'yesterday',
+      "trip of a former driver cancelled, its bills back on the board",
+      desk,
+      contract.delivery.trips.cancel,
+      {
+        idempotencyKey: demoKey(date, 'trip', t.id, 'cancel'),
+        id: t.id,
+        reason: 'The driver has left: the bills go out on another van',
+      },
+    )
+    if (cancelled || !ctx.commit) return
+    // Loaded already (the product cancels no loaded trip): the desk takes it out and brings it back.
+    await loadAndDepart(ctx, t.id, van, date, desk)
+  } else if (t.tripDate >= date) {
+    return
+  }
+  await workDoors(ctx, t.id, van, date, true, desk)
+  await returnTrip(ctx, t.id, van, date, desk)
+  await settleTrip(ctx, t.id, date)
 }
 
 // ------------------------------------------------------------------------------------------- waves

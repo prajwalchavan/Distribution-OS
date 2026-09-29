@@ -1,9 +1,10 @@
 /**
  * `pnpm check:demo-coverage` — does every role open on work? (brief docs/plans/demo-activity-fill.md, the
- * second table). Signs in as the owner and as every tester login of the logins file, reads through the API
- * what each role's screens read (`demo-fill/coverage.ts`), and prints one line per feature of the brief's
- * table: `ok` or `GAP`, with a detail made of counts only — never a shop's name, a phone, a GSTIN or an
- * address, never a password.
+ * second table). Signs in as the owner, finds the tool's tester logins by the tool's mark (as the tool does),
+ * signs each in with the demo password — a tester asked to change it is a gap — checks that the logins file lists
+ * it, reads through the API what each role's screens read (`demo-fill/coverage.ts`), and prints one line per
+ * feature of the brief's table: `ok` or `GAP`, with a detail made of counts and usernames only — never a shop's
+ * name, a phone, a GSTIN or an address, never a password.
  *
  *   pnpm check:demo-coverage --api http://127.0.0.1:3100 --tenant tarsun \
  *     --owner-password-file /opt/dos/env/live-owner.pw --logins-file /opt/dos/env/tester-logins.txt \
@@ -20,7 +21,15 @@ import { parseArgs } from 'node:util'
 import { COMMON_OPTIONS, checkCommonArgs } from './demo-fill/args.js'
 import { Api, ApiRefusal, type Session } from './demo-fill/client.js'
 import { allRows, type CoverageSessions } from './demo-fill/coverage.js'
-import { readLogins, readPasswordFile, testersFor, type TesterKey } from './demo-fill/people.js'
+import { contract } from '@dos/contracts'
+import {
+  DEMO_PASSWORD,
+  TESTERS,
+  readLogins,
+  readPasswordFile,
+  sortStaff,
+  type TesterKey,
+} from './demo-fill/people.js'
 import { KNOWN_GAPS } from './demo-fill/summary.js'
 
 const HELP = `usage: check-demo-coverage.mts --api <url> --tenant <slug> --owner-password-file <path> --logins-file <path>
@@ -87,19 +96,44 @@ const signIn = async (username: string, password: string): Promise<Session> => {
 }
 
 let failed = 0
+const gap = (line: string): void => {
+  say(`GAP  people      ${line}`)
+  failed++
+}
 try {
-  const sessions: CoverageSessions = { owner: await signIn(args.ownerUsername, ownerPassword) }
-  for (const t of testersFor(args.loginSuffix)) {
-    const line = logins.get(t.username)
-    if (!line) {
-      say(`GAP  people      ${t.username}: not in the logins file`)
-      failed++
+  const owner = await signIn(args.ownerUsername, ownerPassword)
+  const sessions: CoverageSessions = { owner }
+  const staff = await api.call(owner, contract.tenancy.staff.list, {})
+  const { crew } = sortStaff(owner.tenantId, staff.items, args.loginSuffix)
+  for (const t of TESTERS) {
+    const member = crew.get(t.key)
+    if (!member?.username) {
+      gap(`${t.key}: no tester login of the tool`)
       continue
     }
-    const s = await signIn(t.username, line.password)
+    const username = member.username
+    const line = logins.get(username)
+    if (!line) gap(`${username}: not in the logins file`)
+    else if (line.role !== t.role) gap(`${username}: the logins file says ${line.role}, not ${t.role}`)
+    else if (line.password !== DEMO_PASSWORD)
+      gap(`${username}: the logins file does not give the demo password`)
+    if (member.status !== 'active') {
+      gap(`${username}: the login is ${member.status}`)
+      continue
+    }
+    let s: Session
+    try {
+      s = await api.signIn(username, DEMO_PASSWORD, args.tenant)
+      opened.push(s)
+    } catch (e) {
+      gap(
+        `${username}: does not sign in with the demo password (${e instanceof ApiRefusal ? e.label : 'no answer'})`,
+      )
+      continue
+    }
+    if (s.mustChangePassword) gap(`${username}: is asked to change the password at sign-in`)
     if (s.role !== t.role) {
-      say(`GAP  people      ${t.username}: signs in as ${s.role}, not ${t.role}`)
-      failed++
+      gap(`${username}: signs in as ${s.role}, not ${t.role}`)
       continue
     }
     sessions[SESSION_OF[t.key]] = s

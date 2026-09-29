@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
-import { mkdtempSync, readFileSync, rmSync, statSync, unlinkSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, unlinkSync } from 'node:fs'
 import { createServer, request } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -11,17 +11,26 @@ import { createAllInOne, type AllInOne } from '@dos/core'
 import {
   createDb,
   createPool,
+  hashPassword,
   invoiceCancelFootprints,
   receiptReferenceReport,
   stockBelowZero,
+  users,
 } from '@dos/db'
 import { uuidv7 } from '@dos/domain'
 import { buildLookalikeTenant, databaseName } from '../testing/lookalike.js'
 import { Api, type Session } from './client.js'
 import { allRows, type CoverageSessions } from './coverage.js'
 import { paymentReference } from './helpers.js'
-import { addDays, demoId, demoIdDate, isDemoId, todayIst } from './ids.js'
-import { newPassword, readLogins, testersFor, type TesterKey } from './people.js'
+import { addDays, demoId, demoIdDate, isDemoId, stopIdOf, todayIst, tripIdOf } from './ids.js'
+import {
+  DEMO_PASSWORD,
+  TESTERS,
+  newPassword,
+  readLogins,
+  sortStaff,
+  type TesterKey,
+} from './people.js'
 import { DEMO_ID_LIKE, DERIVED_KINDS, TOOL_KINDS, VIOLATIONS, expectedFromReports } from './rows.js'
 import { runFill, type RunResult } from './run.js'
 import { KNOWN_GAPS } from './summary.js'
@@ -38,8 +47,16 @@ import { KNOWN_GAPS } from './summary.js'
  * still made, and the next run makes what was refused; an API that stops answering in the middle of the
  * standing pieces still leaves a summary, and the next run finishes the day; a tester whose password was
  * changed by hand, a lost logins file, and a stand-in shop that stops being one are all put right by the
- * next run; the existing staff's passwords are never touched. The failures are made by a doorway between
- * the tool and the API that cuts or refuses the requests a case names.
+ * next run; the owner's and the existing staff's passwords are never touched. The failures are made by a
+ * doorway between the tool and the API that cuts or refuses the requests a case names.
+ *
+ * The tester logins as the founder decided them on 2026-09-29: plain usernames, every one signing in with the
+ * demo password and never asked to change it (D1, D2); a plain username the distributor's own staff holds, or a
+ * person of another distributor holds (the API cannot show that one), is never taken — the next free plain one
+ * is (D5); and a crew of testers the tool no longer uses (here a crew of another login suffix, as the
+ * `tester.<role>` logins of the tool before that day are) is healed in one run: its logins switched off, its
+ * trips finished or cancelled by the desk with their bills carried by today's vans, its reps' beats carried to
+ * the new reps, and nothing made twice (D6).
  *
  * Runs only on a database whose name begins `dos_test_` (or in CI): it builds a distributor, and the
  * founder's own database is never one to build one in.
@@ -138,9 +155,24 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
   const slug = `look-${run}`
   const ownerUsername = `owner.look${run}`
   const ownerPassword = `Own3r${randomBytes(8).toString('hex')}`
-  const staffUsername = `staff.look${run}`
-  const staffPassword = newPassword()
   const suffix = run
+  /** The distributor's own godown man, whose username is the godown tester's plain one (D5). */
+  const staffUsername = `godown.${suffix}`
+  const staffPassword = newPassword()
+  /** A person of ANOTHER distributor who holds the accountant tester's plain username: the API cannot show it (D5). */
+  const strangerUsername = `accounts.${suffix}`
+  /** The crew the tool had before (D6): its logins carry another suffix. */
+  const formerSuffix = `o${run.slice(0, 5)}`
+  /** Today's crew: plain usernames, the two that are someone else's replaced by the next free plain ones. */
+  const USERNAME: Record<TesterKey, string> = {
+    manager: `manager.${suffix}`,
+    accounts: `accounts2.${suffix}`,
+    sales1: `sales1.${suffix}`,
+    sales2: `sales2.${suffix}`,
+    godown: `godown2.${suffix}`,
+    driver1: `driver1.${suffix}`,
+    driver2: `driver2.${suffix}`,
+  }
   const today = todayIst()
   const yesterday = addDays(today, -1)
   /** `n` days before today: the healing cases run on the days before yesterday, one day each. */
@@ -164,7 +196,7 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     (r.summary.made.get('driver:trip planned') ?? 0) +
     (r.summary.found.get('driver:trip planned') ?? 0)
 
-  const fill = (date: string, commit: boolean, through = api) =>
+  const fill = (date: string, commit: boolean, through = api, crew = suffix) =>
     runFill({
       api: through,
       tenant: slug,
@@ -173,7 +205,7 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
       loginsFile,
       date,
       commit,
-      loginSuffix: suffix,
+      loginSuffix: crew,
       log: (line) => printed.push(line),
     }).then((r) => {
       printed.push(...r.summary.lines())
@@ -196,15 +228,90 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
   const passwordHashes = async (): Promise<Map<string, string>> => {
     const r = await pool.query<{ username: string; password_hash: string }>(
       `select username, password_hash from users where username = any($1)`,
-      [[ownerUsername, staffUsername]],
+      [[ownerUsername, staffUsername, strangerUsername]],
     )
     return new Map(r.rows.map((x) => [x.username, x.password_hash]))
   }
 
-  const tester = (key: TesterKey) => {
-    const t = testersFor(suffix).find((x) => x.key === key)
-    if (!t) throw new Error(`no tester ${key}`)
-    return t
+  /** A user's id by username. */
+  const userIdOf = async (username: string): Promise<string> => {
+    const r = await pool.query<{ id: string }>(`select id from users where username = $1`, [
+      username,
+    ])
+    const id = r.rows[0]?.id
+    if (!id) throw new Error(`no user ${username}`)
+    return id
+  }
+
+  /** The distributor's staff as the owner reads them: username → status. */
+  const staffStatus = async (): Promise<Map<string, string>> => {
+    const owner = await client.signIn(ownerUsername, ownerPassword, slug)
+    const staff = await client.call(owner, contract.tenancy.staff.list, {})
+    await client.signOut(owner)
+    return new Map(staff.items.map((m) => [m.username ?? m.userId, m.status]))
+  }
+
+  /** Every tester of today's crew signs in with the demo password and is not asked to change it (D2). */
+  const signInCrew = async (): Promise<Map<TesterKey, Session>> => {
+    const out = new Map<TesterKey, Session>()
+    for (const t of TESTERS) {
+      const s = await client.signIn(USERNAME[t.key], DEMO_PASSWORD, slug)
+      expect(s.mustChangePassword, USERNAME[t.key]).toBe(false)
+      expect(s.role).toBe(t.role)
+      out.set(t.key, s)
+    }
+    return out
+  }
+
+  /** Rows the tool must never make twice, by what they are and an id (never a name). */
+  const duplicates = async (): Promise<string[]> => {
+    const q = async (what: string, sql: string): Promise<string[]> =>
+      (await pool.query<{ id: string }>(sql, [tenantId, DEMO_ID_LIKE])).rows.map(
+        (r) => `${what}: ${r.id}`,
+      )
+    return [
+      ...(await q(
+        'an order with two live bills',
+        `select order_id as id from invoices where tenant_id = $1 and order_id like $2
+          and state not in ('cancelled', 'draft') group by 1 having count(*) > 1`,
+      )),
+      ...(await q(
+        'a bill delivered twice',
+        `select invoice_id as id from deliveries where tenant_id = $1 and trip_id like $2
+          and outcome in ('delivered', 'partial') group by 1 having count(*) > 1`,
+      )),
+      ...(await q(
+        'a shop twice on one trip',
+        `select trip_id || '/' || retailer_id as id from trip_stops where tenant_id = $1 and trip_id like $2
+          group by trip_id, retailer_id having count(*) > 1`,
+      )),
+      ...(await q(
+        'a van on two open trips',
+        `select vehicle_id as id from trips where tenant_id = $1 and id like $2
+          and state in ('loading', 'active', 'closing') group by 1 having count(*) > 1`,
+      )),
+    ]
+  }
+
+  /** What each role opens on, signed in as today's crew. */
+  const coverageGaps = async (date: string): Promise<string[]> => {
+    const owner = await client.signIn(ownerUsername, ownerPassword, slug)
+    const crew = await signInCrew()
+    const sessions: CoverageSessions = {
+      owner,
+      manager: crew.get('manager'),
+      accountant: crew.get('accounts'),
+      sales1: crew.get('sales1'),
+      sales2: crew.get('sales2'),
+      godown: crew.get('godown'),
+      driver1: crew.get('driver1'),
+      driver2: crew.get('driver2'),
+    }
+    const read = await allRows(client, sessions, date)
+    for (const s of [owner, ...crew.values()]) await client.signOut(s)
+    return read.seen
+      .filter((s) => !s.ok && !KNOWN_GAPS[`${s.row}:${s.feature}`])
+      .map((g) => `${g.row}/${g.feature}: ${g.detail}`)
   }
 
   /** The tool's live offer, read as the owner: its id and the shops it is for. */
@@ -243,7 +350,8 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     const address = all.server.address()
     api = `http://127.0.0.1:${String(typeof address === 'object' && address ? address.port : 0)}`
     client = new Api(api, 'spec')
-    // One staff login of the distributor's own, the way the real one has five: the tool must never touch it.
+    // One staff login of the distributor's own, the way the real one has five — its username the godown tester's
+    // plain one: the tool must never touch it, nor take its name (D3, D5).
     const owner = await client.signIn(ownerUsername, ownerPassword, slug)
     const temporary = newPassword()
     await client.call(owner, contract.tenancy.staff.create, {
@@ -253,9 +361,24 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
       username: staffUsername,
       name: 'Rakesh More',
       phone: `+9198${String(randomBytes(4).readUInt32BE(0) % 100_000_000).padStart(8, '0')}`,
-      role: 'manager',
+      role: 'warehouse',
       temporaryPassword: temporary,
     })
+    // A person of another distributor with the accountant tester's plain username (no membership here, so no
+    // read of this distributor shows them).
+    await createDb(pool)
+      .insert(users)
+      .values({
+        id: uuidv7(),
+        phone: `+9196${String(randomBytes(4).readUInt32BE(0) % 100_000_000).padStart(8, '0')}`,
+        name: 'Mahesh Pawar',
+        locale: 'en-IN',
+        username: strangerUsername,
+        passwordHash: await hashPassword(newPassword()),
+        passwordChangedAt: new Date(),
+        mustChangePassword: false,
+        status: 'active',
+      })
     const staff = await client.signIn(staffUsername, temporary, slug)
     await client.authCall(staff, authContract.changePassword, {
       currentPassword: temporary,
@@ -264,6 +387,7 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     await client.signOut(staff)
     await client.signOut(owner)
     for (const [k, v] of await passwordHashes()) hashesBefore.set(k, v)
+    expect(hashesBefore.size).toBe(3)
   }, 240_000)
 
   afterAll(async () => {
@@ -278,15 +402,134 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     expect(dry.summary.totals().made).toBe(0)
     expect(dry.summary.totals().would).toBeGreaterThan(20)
     expect(await counts()).toEqual(before)
+    // It already says which plain username is someone else's in this distributor (D5).
+    expect(dry.summary.notes).toContain(
+      `the plain username godown.${suffix} belongs to someone the tool did not make: its godown is godown2.${suffix}`,
+    )
+    expect(existsSync(loginsFile)).toBe(false)
   }, 120_000)
 
-  it('makes the first day with the day before it', async () => {
-    const first = await fill(daysAgo(6), true)
-    expect(first.leadIn).toBe(daysAgo(7))
+  it('makes the first day with the day before it, its testers signing in with the demo password (D1, D2)', async () => {
+    // The crew the tool will no longer use from the next case on (D6): the logins of another suffix.
+    const first = await fill(daysAgo(8), true, api, formerSuffix)
+    expect(first.leadIn).toBe(daysAgo(9))
     expect(first.exitCode).toBe(0)
     expect(first.summary.totals().refused).toBe(0)
     expect(statSync(loginsFile).mode & 0o777).toBe(0o600)
-    expect(readLogins(loginsFile).size).toBe(7)
+    const lines = readLogins(loginsFile)
+    expect([...lines.keys()].sort()).toEqual(
+      TESTERS.map((t) => `${t.key}.${formerSuffix}`).sort(),
+    )
+    for (const [username, line] of lines) {
+      expect(line.password === DEMO_PASSWORD, username).toBe(true)
+      const s = await client.signIn(username, DEMO_PASSWORD, slug)
+      expect(s.mustChangePassword, username).toBe(false)
+      await client.signOut(s)
+    }
+  }, 240_000)
+
+  it('replaces a crew the tool no longer uses in one run, and never takes a plain username that is someone else’s (D5, D6)', async () => {
+    const formerIds = await Promise.all(
+      TESTERS.map((t) => userIdOf(`${t.key}.${formerSuffix}`)),
+    )
+    const formerBeats = await pool.query<{ beat_id: string }>(
+      `select beat_id from beat_assignments where tenant_id = $1 and user_id = any($2) and valid_to is null order by beat_id`,
+      [tenantId, formerIds],
+    )
+    expect(formerBeats.rows).toHaveLength(2)
+    const vanLoad = await pool.query<{ id: string }>(
+      `select id from trips where tenant_id = $1 and trip_date = $2 and state = 'planned' and driver_id = any($3)`,
+      [tenantId, daysAgo(7), formerIds],
+    )
+    expect(vanLoad.rows).toHaveLength(1)
+    const onVanLoad = await pool.query<{ invoice_id: string }>(
+      `select invoice_id from deliveries where tenant_id = $1 and trip_id = $2`,
+      [tenantId, vanLoad.rows[0]?.id],
+    )
+    expect(onVanLoad.rows.length).toBeGreaterThan(0)
+
+    const heal = await fill(daysAgo(7), true)
+    expect(heal.leadIn).toBeNull()
+    expect(heal.exitCode).toBe(0)
+    expect(heal.summary.totals().refused).toBe(0)
+    // Seven testers made (one more login the API gave the stranger, switched off at once), seven former switched off.
+    expect(heal.summary.made.get('people:tester login')).toBe(8)
+    expect(heal.summary.made.get('people:login given to someone else switched off')).toBe(1)
+    expect(heal.summary.made.get('people:password set')).toBe(7)
+    expect(heal.summary.made.get('people:former tester login switched off')).toBe(7)
+    expect(heal.summary.notes).toEqual(
+      expect.arrayContaining([
+        `the plain username godown.${suffix} belongs to someone the tool did not make: its godown is godown2.${suffix}`,
+        `the username accounts.${suffix} belongs to someone the tool did not make: the API gave them the new accounts login, which the tool switched off at once`,
+        `the plain username accounts.${suffix} belongs to someone the tool did not make: its accounts is accounts2.${suffix}`,
+      ]),
+    )
+    const status = await staffStatus()
+    for (const t of TESTERS) {
+      expect(status.get(`${t.key}.${formerSuffix}`), t.key).toBe('disabled')
+      expect(status.get(USERNAME[t.key]), t.key).toBe('active')
+    }
+    expect(status.get(staffUsername)).toBe('active')
+    expect(status.get(strangerUsername)).toBe('disabled')
+
+    // The former crew's trips: none left open; the van load planned for today was cancelled by the desk and every
+    // one of its bills rides one of today's vans.
+    const open = await pool.query<{ n: number }>(
+      `select count(*)::int as n from trips where tenant_id = $1 and driver_id = any($2)
+          and state in ('planned', 'loading', 'active', 'closing')`,
+      [tenantId, formerIds],
+    )
+    expect(open.rows[0]?.n).toBe(0)
+    const cancelled = await pool.query<{ state: string }>(
+      `select state::text as state from trips where tenant_id = $1 and id = $2`,
+      [tenantId, vanLoad.rows[0]?.id],
+    )
+    expect(cancelled.rows[0]?.state).toBe('cancelled')
+    const today1 = tripIdOf(tenantId, daysAgo(7), 'driver1', await userIdOf(USERNAME.driver1))
+    const today2 = tripIdOf(tenantId, daysAgo(7), 'driver2', await userIdOf(USERNAME.driver2))
+    const carried = await pool.query<{ n: number }>(
+      `select count(distinct invoice_id)::int as n from deliveries where tenant_id = $1 and trip_id = any($2) and invoice_id = any($3)`,
+      [tenantId, [today1, today2], onVanLoad.rows.map((r) => r.invoice_id)],
+    )
+    expect(carried.rows[0]?.n).toBe(onVanLoad.rows.length)
+    // The former reps' beats are the new reps' from today; the former reps' end the day before.
+    const beats = await pool.query<{ beat_id: string }>(
+      `select beat_id from beat_assignments where tenant_id = $1 and user_id = any($2) and valid_to is null order by beat_id`,
+      [tenantId, [await userIdOf(USERNAME.sales1), await userIdOf(USERNAME.sales2)]],
+    )
+    expect(beats.rows).toEqual(formerBeats.rows)
+    const ended = await pool.query<{ valid_to: string }>(
+      `select valid_to::text as valid_to from beat_assignments where tenant_id = $1 and user_id = any($2)`,
+      [tenantId, formerIds],
+    )
+    expect(ended.rows.map((r) => r.valid_to)).toEqual([daysAgo(8), daysAgo(8)])
+    // The former crew's waves are on nobody's floor any more.
+    const waves = await pool.query<{ n: number }>(
+      `select count(*)::int as n from picklists where tenant_id = $1 and id like $2 and status in ('open', 'picking', 'picked')
+          and pick_date < $3`,
+      [tenantId, DEMO_ID_LIKE, daysAgo(7)],
+    )
+    expect(waves.rows[0]?.n).toBe(0)
+    // Nothing twice: one active login per tester, one live bill per order, no bill delivered twice, no shop twice
+    // on a trip, no van on two open trips.
+    const roles = await pool.query<{ role: string; n: number }>(
+      `select role::text as role, count(*)::int as n from memberships
+        where tenant_id = $1 and user_id like $2 and status = 'active' group by 1 order by 1`,
+      [tenantId, DEMO_ID_LIKE],
+    )
+    expect(roles.rows).toEqual([
+      { role: 'accountant', n: 1 },
+      { role: 'delivery', n: 2 },
+      { role: 'manager', n: 1 },
+      { role: 'salesperson', n: 2 },
+      { role: 'warehouse', n: 1 },
+    ])
+    expect(await duplicates()).toEqual([])
+    // Every role opens on work, signed in as today's crew with the demo password.
+    expect(await coverageGaps(daysAgo(7))).toEqual([])
+    // The logins file lists today's crew and nobody else.
+    expect([...readLogins(loginsFile).keys()].sort()).toEqual(Object.values(USERNAME).sort())
+    expect(statSync(loginsFile).mode & 0o777).toBe(0o600)
   }, 240_000)
 
   it('a stand-in shop that is sent real money on account is billed no more (rule 3b)', async () => {
@@ -294,7 +537,7 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     // did not name a bill for, larger than all it owes, arrives for one of the stand-in shops: from now on the tool
     // must not bill that shop, or the real money would settle the tool's bill.
     const owner = await client.signIn(ownerUsername, ownerPassword, slug)
-    const offer = await toolOffer(owner, daysAgo(6))
+    const offer = await toolOffer(owner, daysAgo(7))
     plantedShop = [...offer.shops].sort()[2] ?? ''
     expect(plantedShop).not.toBe('')
     const dues = await client.call(owner, contract.receivables.outstanding.get, {
@@ -320,7 +563,7 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     const door = await doorway(api, (method, path) =>
       method === 'POST' && path === '/manager/procurement/supplier-invoices' ? 'refuse' : 'pass',
     )
-    const date = daysAgo(5)
+    const date = daysAgo(6)
     const hurt = await fill(date, true, door.url).finally(door.close)
     // The run after the real money arrived says it leaves that one shop out (rule 3b), in counts only.
     expect(
@@ -357,7 +600,7 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     const door = await doorway(api, (method, path) =>
       method === 'GET' && path.startsWith('/owner/pricing/schemes') ? 'drop' : 'pass',
     )
-    const date = daysAgo(4)
+    const date = daysAgo(5)
     const cut = await fill(date, true, door.url).finally(door.close)
     expect(door.stopped).toBeGreaterThan(0)
     expect([...cut.summary.refused.keys()].some((k) => k.endsWith('0 NO_RESPONSE'))).toBe(true)
@@ -374,39 +617,37 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
 
   it('a password changed by hand, then a lost logins file, are put right by the next run', async () => {
     const before = readFileSync(loginsFile)
-    const driver = tester('driver1')
-    const line = readLogins(loginsFile).get(driver.username)
-    const s = await client.signIn(driver.username, line?.password ?? '', slug)
+    const driver = USERNAME.driver1
+    const s = await client.signIn(driver, DEMO_PASSWORD, slug)
     await client.authCall(s, authContract.changePassword, {
-      currentPassword: line?.password ?? '',
+      currentPassword: DEMO_PASSWORD,
       newPassword: newPassword(),
     })
     await client.signOut(s)
 
-    const date = daysAgo(3)
+    const date = daysAgo(4)
     const first = await fill(date, true)
     expect(first.summary.made.get('people:password reset')).toBe(1)
     expect(first.summary.made.get('people:password set')).toBe(1)
     expect(first.exitCode).toBe(0)
     expect(readFileSync(loginsFile).equals(before)).toBe(true)
-    const back = await client.signIn(driver.username, line?.password ?? '', slug)
+    const back = await client.signIn(driver, DEMO_PASSWORD, slug)
     expect(back.mustChangePassword).toBe(false)
     await client.signOut(back)
 
+    // The file is only a list of who exists: lost, it is written again and no password is touched.
     unlinkSync(loginsFile)
     const lost = await fill(date, true)
-    expect(lost.summary.made.get('people:password reset')).toBe(7)
-    expect(lost.summary.made.get('people:password set')).toBe(7)
-    expect(lost.summary.totals().made).toBe(14)
+    expect(lost.summary.totals().made).toBe(0)
     expect(lost.summary.totals().refused).toBe(0)
     expect(statSync(loginsFile).mode & 0o777).toBe(0o600)
-    expect(readLogins(loginsFile).size).toBe(7)
+    expect(readFileSync(loginsFile).equals(before)).toBe(true)
   }, 240_000)
 
   it('a stand-in shop that stops being one: the offer moves to the shop that takes its place', async () => {
     const owner = await client.signIn(ownerUsername, ownerPassword, slug)
-    const made = daysAgo(3)
-    const date = daysAgo(2)
+    const made = daysAgo(4)
+    const date = daysAgo(3)
     const was = await toolOffer(owner, made)
     expect(was.shops).toHaveLength(3)
     const gone = was.shops[0] ?? ''
@@ -459,7 +700,8 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     // one the tool gave before the fixes and its first try now (DOS-310: a UTR is used once): the tool takes its
     // next reference instead of being refused.
     const owner = await client.signIn(ownerUsername, ownerPassword, slug)
-    const stop = demoId(tenantId, yesterday, 'stop', 'driver1', '2')
+    const driver1 = await userIdOf(USERNAME.driver1)
+    const stop = stopIdOf(tenantId, yesterday, tripIdOf(tenantId, yesterday, 'driver1', driver1), 2)
     const collection = demoId(tenantId, yesterday, 'collection', stop)
     const before = (BigInt(`0x${collection.replace(/-/g, '').slice(-15)}`) % 1_000_000_000_000n)
       .toString()
@@ -516,7 +758,7 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
       `select trip_id, approved_at from load_sheets where tenant_id = $1 and id = $2`,
       [tenantId, demoId(tenantId, today, 'sheet', 'van-to-load')],
     )
-    expect(sheet.rows[0]?.trip_id).toBe(demoId(tenantId, addDays(today, 1), 'trip', 'driver1'))
+    expect(sheet.rows[0]?.trip_id).toBe(tripIdOf(tenantId, addDays(today, 1), 'driver1', driver1))
     expect(sheet.rows[0]?.approved_at).toBeNull()
     // UPI money of the days before is confirmed at Day-end (DOS-256): none of the tool's is still in clearing.
     const upi = await pool.query<{ id: string; status: string }>(
@@ -542,32 +784,21 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     await expect(fill(addDays(yesterday, -3), true)).rejects.toThrow(/already made/)
   })
 
-  it('leaves every role, signed in as its tester, on work', async () => {
-    const owner = await client.signIn(ownerUsername, ownerPassword, slug)
-    const sessions: CoverageSessions = { owner }
+  it('leaves every role, signed in as its tester with the demo password, on work', async () => {
     const logins = readLogins(loginsFile)
-    const opened: Session[] = [owner]
-    const key: Record<TesterKey, keyof CoverageSessions> = {
-      manager: 'manager',
-      accounts: 'accountant',
-      sales1: 'sales1',
-      sales2: 'sales2',
-      godown: 'godown',
-      driver1: 'driver1',
-      driver2: 'driver2',
+    for (const t of TESTERS) {
+      const line = logins.get(USERNAME[t.key])
+      expect(line?.role, t.key).toBe(t.role)
+      expect(line?.password === DEMO_PASSWORD, t.key).toBe(true)
     }
-    for (const t of testersFor(suffix)) {
-      const line = logins.get(t.username)
-      expect(line, t.username).toBeDefined()
-      const s = await client.signIn(t.username, line?.password ?? '', slug)
-      expect(s.role).toBe(t.role)
-      sessions[key[t.key]] = s
-      opened.push(s)
-    }
-    const read = await allRows(client, sessions, today)
-    const gaps = read.seen.filter((s) => !s.ok && !KNOWN_GAPS[`${s.row}:${s.feature}`])
-    expect(gaps.map((g) => `${g.row}/${g.feature}: ${g.detail}`)).toEqual([])
-    for (const s of opened) await client.signOut(s)
+    // The tool finds them the same way, by its mark, whatever their usernames.
+    const owner = await client.signIn(ownerUsername, ownerPassword, slug)
+    const staff = await client.call(owner, contract.tenancy.staff.list, {})
+    await client.signOut(owner)
+    const { crew } = sortStaff(tenantId, staff.items, suffix)
+    expect(Object.fromEntries([...crew].map(([k, m]) => [k, m.username]))).toEqual(USERNAME)
+    expect(await coverageGaps(today)).toEqual([])
+    expect(await duplicates()).toEqual([])
   }, 120_000)
 
   it('finds exactly the rows the runs made, and every rule of the books holds', async () => {
@@ -632,19 +863,28 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     expect(JSON.parse(stranded.stdout) as unknown[]).toEqual([])
   }, 120_000)
 
-  it("leaves the distributor's own logins and their passwords alone", async () => {
+  it("leaves the owner's and the distributor's own logins and their passwords alone (D3, D5)", async () => {
     expect(await passwordHashes()).toEqual(hashesBefore)
-    expect(hashesBefore.size).toBe(2)
+    expect(hashesBefore.size).toBe(3)
     const r = await pool.query<{ n: number }>(
-      `select count(*)::int as n from users where username like 'tester.owner%'`,
+      `select count(*)::int as n from users where username like 'tester.%' or username = 'owner'`,
     )
     expect(r.rows[0]?.n).toBe(0)
     const staff = await client.signIn(staffUsername, staffPassword, slug)
     expect(staff.mustChangePassword).toBe(false)
     await client.signOut(staff)
+    const status = await staffStatus()
+    expect(status.get(staffUsername)).toBe('active')
+    // The stranger's own user is as it was; only the membership the API gave them here is off.
+    const stranger = await pool.query<{ status: string; must_change_password: boolean }>(
+      `select status::text as status, must_change_password from users where username = $1`,
+      [strangerUsername],
+    )
+    expect(stranger.rows[0]).toEqual({ status: 'active', must_change_password: false })
+    expect(status.get(strangerUsername)).toBe('disabled')
   })
 
-  it('prints no shop name, phone, GSTIN or address', async () => {
+  it('prints no shop name, phone, GSTIN or address, and no password (rule 5, D4)', async () => {
     const shops = await pool.query<{
       name: string
       phone: string
@@ -656,6 +896,11 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     )
     const text = printed.join('\n')
     expect(printed.length).toBeGreaterThan(50)
+    expect(text.includes(DEMO_PASSWORD)).toBe(false)
+    expect(text.includes(ownerPassword)).toBe(false)
+    expect(text.includes(staffPassword)).toBe(false)
+    const reports = JSON.stringify(results.map((x) => x.summary.toJSON()))
+    expect(reports.includes(DEMO_PASSWORD)).toBe(false)
     for (const s of shops.rows) {
       expect(text).not.toContain(s.name)
       if (s.phone) expect(text).not.toContain(s.phone.replace(/^\+91/, ''))

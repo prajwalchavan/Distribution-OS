@@ -18,9 +18,22 @@ const BANKS = ['Saraswat Bank', 'Cosmos Bank', 'TJSB Sahakari Bank', 'Kalyan Jan
 const TERMINAL_STOPS = new Set(['delivered', 'partial', 'failed', 'skipped'])
 
 type Trip = NonNullable<Awaited<ReturnType<typeof readTrip>>>
-export function readTrip(ctx: Ctx, id: string) {
+/** A trip as the owner reads it; null when it is not there (or the crew has no driver for it yet: `id` null). */
+export function readTrip(ctx: Ctx, id: string | null) {
+  if (!id) return Promise.resolve(null)
   return maybe(ctx.read(contract.delivery.trips.get, { id })).then((r) => r?.item ?? null)
 }
+
+/**
+ * Who does a trip's doorstep work: its driver — or, for a trip whose driver the tool no longer has (a former tester
+ * login, D6), the desk: the product gives the owner and the manager every doorstep step of any trip (DOORSTEP) and
+ * the money (MONEY_COLLECTORS), and no procedure hands a trip to another driver.
+ */
+export type Actor = () => ReturnType<Ctx['as']>
+const driverOf =
+  (ctx: Ctx, driver: DriverKey): Actor =>
+  () =>
+    ctx.as(driver)
 
 /** The outcome a door of a van ends the day with, by its place on the route. */
 export function doorOutcome(driver: DriverKey, sequence: number): DoorOutcome {
@@ -37,6 +50,7 @@ export async function loadAndDepart(
   tripId: string,
   driver: DriverKey,
   date: string,
+  actor: Actor = driverOf(ctx, driver),
 ): Promise<void> {
   let trip = await readTrip(ctx, tripId)
   if (!trip) return
@@ -99,7 +113,7 @@ export async function loadAndDepart(
 
   trip = (await readTrip(ctx, tripId)) ?? trip
   if (trip.state !== 'loading') return
-  await ctx.write('driver', 'departed', () => ctx.as(driver), contract.delivery.trips.depart, {
+  await ctx.write('driver', 'departed', actor, contract.delivery.trips.depart, {
     idempotencyKey: demoKey(date, 'trip', tripId, 'depart'),
     id: tripId,
     occurredAt: new Date().toISOString(),
@@ -146,6 +160,7 @@ export async function workDoors(
   driver: DriverKey,
   date: string,
   finish = false,
+  actor: Actor = driverOf(ctx, driver),
 ): Promise<void> {
   const trip = await readTrip(ctx, tripId)
   if (!trip || trip.state !== 'active') return
@@ -155,10 +170,10 @@ export async function workDoors(
     const planned = doorOutcome(driver, stop.sequence)
     const outcome: DoorOutcome = finish && planned === 'pending' ? 'credit' : planned
     if (outcome === 'pending') continue
-    if (!TERMINAL_STOPS.has(stop.state)) await deliverDoor(ctx, trip, stop, driver, outcome, date)
+    if (!TERMINAL_STOPS.has(stop.state)) await deliverDoor(ctx, trip, stop, outcome, date, actor)
     if (outcome === 'cash' || outcome === 'upi' || outcome === 'cheque') {
       const id = ctx.id(date, 'collection', stop.id)
-      if (!collected.has(id)) await takeMoney(ctx, trip, stop, driver, outcome, date)
+      if (!collected.has(id)) await takeMoney(ctx, trip, stop, driver, outcome, date, actor)
     }
   }
 }
@@ -167,11 +182,10 @@ async function deliverDoor(
   ctx: Ctx,
   trip: Trip,
   stop: Trip['stops'][number],
-  driver: DriverKey,
   outcome: Exclude<DoorOutcome, 'pending'>,
   date: string,
+  as: Actor,
 ): Promise<void> {
-  const as = (): ReturnType<Ctx['as']> => ctx.as(driver)
   if (stop.state === 'pending')
     await ctx.write('driver', 'door started', as, contract.delivery.stops.start, {
       idempotencyKey: demoKey(date, 'stop', stop.id, 'start'),
@@ -229,6 +243,7 @@ async function takeMoney(
   driver: DriverKey,
   mode: 'cash' | 'upi' | 'cheque',
   date: string,
+  actor: Actor,
 ): Promise<void> {
   // Only the bills on THIS door, and only what each still owes: the money never touches another bill.
   const allocations: { id: string; invoiceId: string; amountPaise: number }[] = []
@@ -250,7 +265,7 @@ async function takeMoney(
   await ctx.writeReceipt(
     'driver',
     `paid ${mode}`,
-    () => ctx.as(driver),
+    actor,
     contract.delivery.collections.record,
     (attempt) => ({
       idempotencyKey: demoKey(date, 'collection', stop.id),
@@ -282,10 +297,11 @@ export async function returnTrip(
   tripId: string,
   driver: DriverKey,
   date: string,
+  actor: Actor = driverOf(ctx, driver),
 ): Promise<void> {
   const trip = await readTrip(ctx, tripId)
   if (!trip || trip.state !== 'active') return
-  await ctx.write('driver', 'checked in', () => ctx.as(driver), contract.delivery.trips.return, {
+  await ctx.write('driver', 'checked in', actor, contract.delivery.trips.return, {
     idempotencyKey: demoKey(date, 'trip', tripId, 'return'),
     id: tripId,
     occurredAt: new Date().toISOString(),

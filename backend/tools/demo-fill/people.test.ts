@@ -1,15 +1,27 @@
-import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, it } from 'vitest'
+import { validatePassword } from '@dos/db'
 import { checkCommonArgs } from './args.js'
+import { demoId } from './ids.js'
 import {
+  DEMO_PASSWORD,
+  SHOP_USERNAMES,
   TESTERS,
+  TESTER_KEYS,
+  crewKeyOf,
+  formerKeyOf,
+  loginsText,
   newPassword,
+  personId,
+  plainUsername,
   readLogins,
   readPasswordFile,
+  sortStaff,
   testerPhone,
-  testersFor,
+  usernameCandidates,
   writeLogins,
 } from './people.js'
 import { expectedFromReports, TOOL_KINDS, VIOLATIONS } from './rows.js'
@@ -20,64 +32,156 @@ afterAll(() => {
   rmSync(dir, { recursive: true, force: true })
 })
 
-describe('the tester people', () => {
-  it("are the brief's usernames, no owner and no shopkeeper, with names of real-sounding people", () => {
-    expect(TESTERS.map((t) => t.username)).toEqual([
-      'tester.manager',
-      'tester.accounts',
-      'tester.sales1',
-      'tester.sales2',
-      'tester.godown',
-      'tester.driver1',
-      'tester.driver2',
+const TENANT = '0199a0c0-0000-7000-8000-000000000001'
+
+describe('the tester people (founder, 2026-09-29: plain usernames, the demo password)', () => {
+  it('are plain usernames, no owner and no shopkeeper, with names of real-sounding people', () => {
+    expect(TESTER_KEYS.map((k) => plainUsername(k))).toEqual([
+      'manager',
+      'accounts',
+      'sales1',
+      'sales2',
+      'godown',
+      'driver1',
+      'driver2',
     ])
+    expect([...SHOP_USERNAMES]).toEqual(['shop1', 'shop2', 'shop3'])
     for (const t of TESTERS) {
       expect(t.name).toMatch(/^[A-Z][a-z]+ [A-Z][a-z]+$/)
       expect(t.name.toLowerCase()).not.toMatch(/tester|demo|test/)
     }
     expect(TESTERS.map((t) => t.role)).not.toContain('owner')
+    expect(TESTER_KEYS.map((k) => plainUsername(k)).join(' ')).not.toContain('tester')
   })
 
   it('carry a suffix for a second distributor on the same database, and refuse a bad one', () => {
-    expect(testersFor('sai').map((t) => t.username)[0]).toBe('tester.manager.sai')
-    expect(testersFor().map((t) => t.username)).toEqual(TESTERS.map((t) => t.username))
-    expect(() => testersFor('Bad Suffix')).toThrow()
-    for (const t of testersFor('abcd1234')) expect(t.username.length).toBeLessThanOrEqual(32)
+    expect(plainUsername('manager', 'sai')).toBe('manager.sai')
+    expect(() => plainUsername('manager', 'Bad Suffix')).toThrow()
+    for (const k of TESTER_KEYS)
+      for (const u of usernameCandidates(k, 'abcd1234', new Set()))
+        expect(u.length).toBeLessThanOrEqual(32)
+  })
+
+  it('sign in with the demo password of the seed, which the product takes as a password', () => {
+    expect(typeof DEMO_PASSWORD).toBe('string')
+    expect(validatePassword(DEMO_PASSWORD)).toBeNull()
+  })
+
+  it('take the next free plain username when the plain one is someone else’s (D5)', () => {
+    expect(usernameCandidates('manager', undefined, new Set())[0]).toBe('manager')
+    expect(usernameCandidates('manager', undefined, new Set(['manager'])).slice(0, 2)).toEqual([
+      'manager2',
+      'manager3',
+    ])
+    // Never another tester's own plain name: sales1 goes to sales3, not sales2.
+    expect(usernameCandidates('sales1', undefined, new Set(['sales1']))[0]).toBe('sales3')
+    expect(usernameCandidates('sales2', undefined, new Set(['sales2', 'sales3']))[0]).toBe('sales4')
+    expect(usernameCandidates('driver1', 'x', new Set(['driver1.x']))[0]).toBe('driver3.x')
+    expect(usernameCandidates('godown', 'x', new Set(['godown.x']))[0]).toBe('godown2.x')
+    expect(usernameCandidates('accounts', undefined, new Set())).toHaveLength(5)
+  })
+
+  it('are found again by the mark they were made with, never by the username', () => {
+    const id = personId(TENANT, '2026-09-20', 'driver2')
+    expect(crewKeyOf(TENANT, id)).toBe('driver2')
+    // The crew of a suffix is its own; another distributor's id is not this one's.
+    expect(crewKeyOf(TENANT, id, 'x')).toBeNull()
+    expect(crewKeyOf(TENANT, personId(TENANT, '2026-09-20', 'driver2', 'x'), 'x')).toBe('driver2')
+    expect(crewKeyOf('0199a0c0-0000-7000-8000-000000000002', id)).toBeNull()
+    // The id the tool before 2026-09-29 gave `tester.manager` is not the crew's.
+    expect(crewKeyOf(TENANT, demoId(TENANT, '2026-09-20', 'person', 'tester.manager'))).toBeNull()
+    expect(crewKeyOf(TENANT, '0199a0c0-1111-7abc-8def-000000000003')).toBeNull()
+  })
+
+  it('tell the former testers apart from the crew, and leave everyone else out (D5, D6)', () => {
+    const d = '2026-09-25'
+    const staff = [
+      { userId: '0199a0c0-2222-7abc-8def-000000000004', username: 'owner.look', role: 'owner', status: 'active' },
+      // The distributor's own godown, whose username is a tester's plain one: not the tool's.
+      { userId: '0199a0c0-3333-7abc-8def-000000000005', username: 'godown', role: 'warehouse', status: 'active' },
+      { userId: personId(TENANT, d, 'manager'), username: 'manager', role: 'manager', status: 'active' },
+      { userId: personId(TENANT, d, 'godown'), username: 'godown2', role: 'warehouse', status: 'active' },
+      // A second manager the tool made on a later date (a run that could not see the first): former.
+      { userId: personId(TENANT, '2026-09-26', 'manager'), username: 'manager2', role: 'manager', status: 'active' },
+      // The tool before 2026-09-29.
+      {
+        userId: demoId(TENANT, '2026-09-10', 'person', 'tester.sales1'),
+        username: 'tester.sales1',
+        role: 'salesperson',
+        status: 'active',
+      },
+      // A crew of another suffix.
+      { userId: personId(TENANT, d, 'driver1', 'old'), username: 'driver1.old', role: 'delivery', status: 'disabled' },
+    ]
+    const { crew, former } = sortStaff(TENANT, staff)
+    expect([...crew.keys()].sort()).toEqual(['godown', 'manager'])
+    expect(crew.get('manager')?.username).toBe('manager')
+    expect(crew.get('godown')?.username).toBe('godown2')
+    // Oldest first (a user id carries the date it was made for).
+    expect(former.map((f) => [f.member.username, f.key])).toEqual([
+      ['tester.sales1', 'sales1'],
+      ['driver1.old', 'driver1'],
+      ['manager2', 'manager'],
+    ])
+    expect(formerKeyOf('tester.driver2.x')).toBe('driver2')
+    expect(formerKeyOf('manager3.x')).toBe('manager')
+    expect(formerKeyOf('sales3')).toBeNull()
+    expect(formerKeyOf(null)).toBeNull()
   })
 
   it('get a phone of the +91 70 block that is nobody else in the distributor', () => {
-    const first = testerPhone('t', 'tester.manager', new Set())
+    const first = testerPhone('t', 'manager', new Set())
     expect(first).toMatch(/^\+9170\d{8}$/)
-    expect(testerPhone('t', 'tester.manager', new Set([first]))).not.toBe(first)
+    expect(testerPhone('t', 'manager', new Set([first]))).not.toBe(first)
   })
 
-  it('get passwords the policy takes: 16 letters and digits, with both, never the same twice', () => {
+  it('get temporary passwords the policy takes: 16 letters and digits, never the same twice', () => {
     const seen = new Set<string>()
     for (let n = 0; n < 50; n++) {
       const p = newPassword()
       expect(p).toMatch(/^[A-Za-z0-9]{16}$/)
-      expect(p).toMatch(/\d/)
-      expect(p).toMatch(/[A-Za-z]/)
+      expect(validatePassword(p)).toBeNull()
       seen.add(p)
     }
     expect(seen.size).toBe(50)
   })
 
-  it('keep their passwords in a file of mode 600 that reads back the same', () => {
+  it('are listed in a file of mode 600 that reads back the same, rewritten only when it changes', () => {
     const path = join(dir, 'logins.txt')
     writeFileSync(path, 'x', { mode: 0o644 })
-    writeLogins(path, 'tarsun', [
-      { username: 'tester.manager', password: 'Abcdefgh12345678', role: 'manager' },
-      { username: 'tester.driver1', password: 'Zyxwvuts98765432', role: 'delivery' },
-    ])
+    const lines = [
+      { username: 'manager', password: DEMO_PASSWORD, role: 'manager' },
+      { username: 'driver1', password: DEMO_PASSWORD, role: 'delivery' },
+    ]
+    expect(writeLogins(path, 'tarsun', lines)).toBe(true)
     expect(statSync(path).mode & 0o777).toBe(0o600)
     const back = readLogins(path)
-    expect(back.get('tester.driver1')?.password).toBe('Zyxwvuts98765432')
+    expect(back.get('driver1')?.password).toBe(DEMO_PASSWORD)
     expect(back.size).toBe(2)
+    expect(writeLogins(path, 'tarsun', lines)).toBe(false)
+    expect(readFileSync(path, 'utf8')).toBe(loginsText('tarsun', lines))
     expect(readLogins(join(dir, 'absent.txt')).size).toBe(0)
     writeFileSync(join(dir, 'pw'), '\n  S3cretPassw0rd  \n')
     expect(readPasswordFile(join(dir, 'pw'))).toBe('S3cretPassw0rd')
     expect(readFileSync(path, 'utf8')).toContain('username<TAB>password<TAB>role')
+  })
+
+  it("never write the demo password in the tool's own files: it is taken from the seed (D2)", () => {
+    const tools = fileURLToPath(new URL('..', import.meta.url))
+    const files = [
+      ...readdirSync(join(tools, 'demo-fill')).map((f) => join(tools, 'demo-fill', f)),
+      ...readdirSync(join(tools, 'testing')).map((f) => join(tools, 'testing', f)),
+      ...[
+        'fill-demo-activity.mts',
+        'check-demo-coverage.mts',
+        'check-demo-rows.mts',
+        'README.md',
+        '../infra/oracle-vm/fill-demo.sh',
+      ].map((f) => join(tools, f)),
+    ]
+    expect(files.length).toBeGreaterThan(20)
+    const holding = files.filter((f) => readFileSync(f, 'utf8').includes(DEMO_PASSWORD))
+    expect(holding).toEqual([])
   })
 })
 

@@ -108,7 +108,7 @@ export const TRIP_DOORS: Record<'driver1' | 'driver2', readonly DoorOutcome[]> =
 }
 
 /**
- * The three shops that stand for `tester.shop1…3`: each has one bill delivered on credit (dues) and one on
+ * The three shops that stand for `shop1…3`: each has one bill delivered on credit (dues) and one on
  * the way, on the two vans. [driver, door index] pairs.
  */
 export const SLOT_DOORS: readonly {
@@ -180,7 +180,7 @@ export interface PlannedDoor {
    * bills), never the same shop twice on one route.
    */
   alsoCarried: CarriedBill[]
-  /** Stands for tester.shop<n+1>. */
+  /** Stands for shop<n+1>. */
   shopSlot: 0 | 1 | 2 | null
 }
 
@@ -268,7 +268,7 @@ export function creditLimitFor(outstandingPaise: number): number {
 }
 
 /**
- * The three shops that stand for `tester.shop1…3`: shops with no shopkeeper login (and a phone when there
+ * The three shops that stand for `shop1…3`: shops with no shopkeeper login (and a phone when there
  * are enough), in a stable order of the tenant, never a credit shop. The same three every day.
  */
 export function chooseSlotShops(

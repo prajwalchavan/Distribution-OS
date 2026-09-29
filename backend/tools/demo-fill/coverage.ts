@@ -1,7 +1,8 @@
 import { contract } from '@dos/contracts'
 import type { Api, Session } from './client.js'
 import { maybe } from './helpers.js'
-import { addDays, demoId, isDemoId, todayIst } from './ids.js'
+import { addDays, demoId, isDemoId, todayIst, tripIdOf } from './ids.js'
+import type { TesterKey } from './people.js'
 import { SLOT_DOORS } from './plan.js'
 import type { Row } from './summary.js'
 
@@ -29,8 +30,24 @@ export interface CoverageSessions {
   godown?: Session | undefined
   driver1?: Session | undefined
   driver2?: Session | undefined
-  /** The reps' user ids, for a read as the owner (the tool's own read-back, which signs no rep in). */
-  repUserIds?: Partial<Record<'sales1' | 'sales2', string>> | undefined
+  /**
+   * The testers' user ids, for a read as the owner (the tool's own read-back, which signs no tester in): a rep's
+   * orders are found by its id, and a van's trip of the day carries its driver's id (`tripIdOf`).
+   */
+  userIds?: Partial<Record<TesterKey, string>> | undefined
+}
+
+/** The user id of a tester: its session's, else the one the caller named. */
+function userIdOf(s: CoverageSessions, key: 'sales1' | 'sales2' | 'driver1' | 'driver2') {
+  return s[key]?.userId ?? s.userIds?.[key]
+}
+
+/** A van's trip of `date`, by its driver (null when that driver is unknown or the trip is not there). */
+function dayTrip(api: Api, s: CoverageSessions, session: Session, date: string, van: 'driver1' | 'driver2') {
+  const driver = userIdOf(s, van)
+  return driver
+    ? tripOf(api, session, tripIdOf(s.owner.tenantId, date, van, driver))
+    : Promise.resolve(null)
 }
 
 function seen(row: Row, feature: string, ok: boolean, detail: string): Seen {
@@ -49,8 +66,8 @@ function tripOf(api: Api, s: Session, id: string) {
 // ------------------------------------------------------------------------------------------- shopkeeper
 
 /**
- * The shopkeeper row, read as the owner for the three shops that stand for `tester.shop1…3` (no shopkeeper
- * login can be made through the API: DOS-400). Which shops they are is read off today's vans: the doors the
+ * The shopkeeper row, read as the owner for the three shops that stand for `shop1…3` (no shopkeeper login can
+ * be made through the API: DOS-400). Which shops they are is read off today's vans: the doors the
  * plan gives them (`SLOT_DOORS`).
  */
 export async function shopkeeperRow(api: Api, s: CoverageSessions, date: string): Promise<Seen[]> {
@@ -58,8 +75,8 @@ export async function shopkeeperRow(api: Api, s: CoverageSessions, date: string)
     seen('shopkeeper', 'login', false, 'no shopkeeper login can be made through the API (DOS-400)'),
   ]
   const trips = {
-    driver1: await tripOf(api, s.owner, demoId(s.owner.tenantId, date, 'trip', 'driver1')),
-    driver2: await tripOf(api, s.owner, demoId(s.owner.tenantId, date, 'trip', 'driver2')),
+    driver1: await dayTrip(api, s, s.owner, date, 'driver1'),
+    driver2: await dayTrip(api, s, s.owner, date, 'driver2'),
   }
   const stopAt = (driver: 'driver1' | 'driver2', index: number) =>
     trips[driver]?.stops.find((x) => x.sequence === index + 1) ?? null
@@ -124,7 +141,7 @@ export async function salesRow(api: Api, s: CoverageSessions, date: string): Pro
   for (const rep of ['sales1', 'sales2'] as const) {
     const session = s[rep] ?? s.owner
     const as = s[rep] ? '' : ' (read as the owner: no rep signed in)'
-    const userId = s[rep]?.userId ?? s.repUserIds?.[rep]
+    const userId = userIdOf(s, rep)
     const assignments = await api.call(session, contract.retailers.beats.assignments.list, {
       on: date,
       currentOnly: true,
@@ -302,7 +319,8 @@ export async function driverRow(api: Api, s: CoverageSessions, date: string): Pr
       ...(own ? { mine: true } : {}),
       limit: 20,
     })
-    const tripId = demoId(s.owner.tenantId, date, 'trip', driver)
+    const driverId = userIdOf(s, driver)
+    const tripId = driverId ? tripIdOf(s.owner.tenantId, date, driver, driverId) : null
     const row = list.items.find((t) => t.id === tripId && t.state === 'active')
     const trip = row ? await tripOf(api, session, row.id) : null
     const stops = trip?.stops ?? []

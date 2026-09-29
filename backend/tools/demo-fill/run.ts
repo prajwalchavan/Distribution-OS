@@ -6,9 +6,9 @@ import { makeDay } from './day.js'
 import { finishEarlier } from './finish.js'
 import { pages } from './helpers.js'
 import { addDays, isDemoId } from './ids.js'
+import { TESTER_KEYS } from './people.js'
 import { leftOutNote, planCounts } from './plan.js'
-import { readTrip } from './road.js'
-import { ensureStanding, type Standing } from './setup.js'
+import { ensureStanding, switchOffFormer, vanRegNo, type Standing } from './setup.js'
 import { KNOWN_GAPS, Summary, type Section } from './summary.js'
 import { readWorld } from './world.js'
 
@@ -68,20 +68,37 @@ async function prepare(
       }),
     5,
   )
-  // A trip only PLANNED for a later date is the van load the night before planned (`vanToLoad`), not a later day.
-  const madeLater = later.find((t) => isDemoId(t.id) && t.state !== 'planned')
+  // A trip only PLANNED for a later date is the van load the night before planned (`vanToLoad`), not a later day;
+  // a cancelled one carried nothing.
+  const madeLater = later.find(
+    (t) => isDemoId(t.id) && t.state !== 'planned' && t.state !== 'cancelled',
+  )
   if (madeLater)
     throw new Error(
       `the tool has already made ${madeLater.tripDate}: run it for that date or a later one`,
     )
   // The day before has no van of the tool (the first run, or a night the server was down): make it and
   // finish it first, so today opens with "yesterday's trip settled". Van 1's trip of the day before only planned
-  // (the van load of the night before it) is not a day made.
+  // (the van load of the night before it) is not a day made, nor is a cancelled trip. Whichever driver the tool had
+  // then counts: a day its former tester logins made is a day made (D6).
   const yesterday = addDays(date, -1)
-  const van1 = await readTrip(ctx, ctx.id(yesterday, 'trip', 'driver1'))
-  const hadYesterday =
-    (van1 !== null && van1.state !== 'planned') ||
-    (await readTrip(ctx, ctx.id(yesterday, 'trip', 'driver2'))) !== null
+  const van1 = world.vehicles.find((v) => v.regNo === vanRegNo(ctx.tenantId, 1))?.id
+  const dayBefore = await pages(
+    (cursor) =>
+      ctx.read(contract.delivery.trips.list, {
+        from: yesterday,
+        to: yesterday,
+        limit: 200,
+        ...(cursor ? { cursor } : {}),
+      }),
+    5,
+  )
+  const hadYesterday = dayBefore.some(
+    (t) =>
+      isDemoId(t.id) &&
+      t.state !== 'cancelled' &&
+      !(t.state === 'planned' && t.vehicleId === van1),
+  )
   const leadIn = hadYesterday ? null : yesterday
   const standing = await ensureStanding(ctx, world, date, leadIn ?? date)
   ctx.log(
@@ -133,21 +150,23 @@ export async function runFill(opts: RunOptions): Promise<RunResult> {
         counts = planCounts(await makeDay(ctx, date, standing))
       })
       if (!opts.commit) summary.note(`the day's plan: ${JSON.stringify(counts)}`)
-      // Every tester login signs in with the password of the logins file: a login whose password someone
-      // changed, or a file that was lost, is healed here (the owner sets it again), so the file is always
-      // a complete, working list after a run.
+      // Every tester login signs in with the demo password: a login whose password someone changed is healed
+      // here (the owner sets a temporary one, the tester sets the demo password again), so the logins file is a
+      // complete, working list after a run.
       if (opts.commit)
         await guard(ctx, 'people', 'logins', async () => {
-          for (const t of ctx.testers) await ctx.as(t.key)
+          for (const key of TESTER_KEYS) await ctx.as(key)
         })
+      // D6: the logins the tool used for testers before are switched off, now that their open work is finished
+      // or carried by today's testers.
+      await guard(ctx, 'people', 'former logins', () => switchOffFormer(ctx, date))
     }
 
-    const repUserIds: Partial<Record<'sales1' | 'sales2', string>> = {}
-    for (const rep of ['sales1', 'sales2'] as const) {
-      const userId = ctx.userIds.get(rep)
-      if (userId) repUserIds[rep] = userId
-    }
-    const read = await allRows(ctx.api, { owner: ctx.owner, repUserIds }, date).catch(
+    const read = await allRows(
+      ctx.api,
+      { owner: ctx.owner, userIds: Object.fromEntries(ctx.userIds) },
+      date,
+    ).catch(
       (e: unknown) => {
         summary.note(
           `could not read the result back: ${e instanceof ApiRefusal ? e.label : String(e)}`,
