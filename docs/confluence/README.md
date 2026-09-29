@@ -44,6 +44,12 @@ Two titles were renamed in the 2026-09-05 pass: "Home 0.1" → "Distribution OS 
 
 All 22 pages were verified after publishing: title, first heading and last line of the source file were confirmed present in the page body read back via `getConfluencePage`. Folder placement for all 22 was independently confirmed via `searchConfluenceUsingCql` (`parent = <folderId>`), since `getConfluencePage` does not surface `parentId` directly in its response.
 
+## The rule since 2026-09-29: app documentation only
+
+Founder, 2026-09-29 (docs/22 §8): **a Confluence page describes the product and nothing else.** No dated decisions ("Decided …"), no mention of the founder or of who decided, no build or test status, no plans and dates, no open questions, no to-do for anybody, no costs of accounts, no path of a file in the repository. Where a rule below says otherwise (rule 4's "Decided [date]" in the changed sentence), this one wins. Decisions, status and open questions stay in the repository.
+
+Done: `space-overview.md` → page 295181, version 8, 2026-09-29. It was published as HTML: Confluence refuses a markdown replacement of a page that holds smart links ("would cause data loss"), so a page with links to other pages is sent with `contentFormat: "html"` and the links as `<a href="…" data-card-appearance="inline"></a>`.
+
 ## Keeping this space true
 
 1. `docs/22-source-of-truth.md` in the repository is the single source of truth for product shape and founder decisions. This Confluence space, and every file in `docs/confluence/`, mirrors it.
