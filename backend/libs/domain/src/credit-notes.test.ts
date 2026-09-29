@@ -3,8 +3,10 @@ import {
   creditableTaxable,
   creditedPiecesByLine,
   creditedTaxableByLine,
+  creditOrderLine,
   piecesLeftToCredit,
 } from './credit-notes.js'
+import { lineTax } from './gst.js'
 
 describe('piecesLeftToCredit', () => {
   it('DOS-021: piecesLeftToCredit counts free pieces and earlier credits — 40 pc leaves 40, 48 + 2 free leaves 50, 288 + 12 free with 6 credited leaves 294, 60 with 30 credited leaves 30', () => {
@@ -106,5 +108,62 @@ describe('creditableTaxable (QA DOS-242)', () => {
       { state: 'cancelled', lines: [{ invoiceLineId: 'a', taxablePaise: 999 }] },
     ])
     expect(credited.get('a')).toBe(150)
+  })
+})
+
+describe('creditOrderLine — returned pieces valued on the order line (QA DOS-337, ruling 10)', () => {
+  // F04 as billed before the ruling: 120 Glucose + 10 free at ₹7.44, 5 % off, over three batches with every free
+  // piece on the last: taxable ₹339.26 / ₹459.42 / ₹49.48 (48 / 65 / 7 + 10 pieces).
+  const rate = { gstBps: 1200, cessBps: 0 }
+  const old = [
+    { id: 'a', qtyPcs: 48, freeQtyPcs: 0, taxablePaise: 33_926 },
+    { id: 'b', qtyPcs: 65, freeQtyPcs: 0, taxablePaise: 45_942 },
+    { id: 'c', qtyPcs: 7, freeQtyPcs: 10, taxablePaise: 4_948 },
+  ].map((l) => {
+    const t = lineTax(l.taxablePaise, rate, false)
+    return { ...l, cgstPaise: t.cgstPaise, sgstPaise: t.sgstPaise, igstPaise: 0, cessPaise: 0 }
+  })
+  const taxable = 33_926 + 45_942 + 4_948
+
+  it('a returned piece is worth the same whichever batch line the crew marks', () => {
+    const third = creditOrderLine(old, rate, false, { pcs: 0, taxablePaise: 0 }, [
+      { invoiceLineId: 'a', qtyPcs: 16 },
+      { invoiceLineId: 'b', qtyPcs: 21 },
+      { invoiceLineId: 'c', qtyPcs: 4 },
+    ])
+    const perPiece = third.map((l) => l.taxablePaise / l.qtyPcs)
+    // ₹848.16 over 130 pieces = ₹6.52 a piece on every line (the last line used to credit ₹2.91)
+    for (const value of perPiece) expect(Math.abs(value - taxable / 130)).toBeLessThan(1)
+    expect(third.reduce((s, l) => s + l.taxablePaise, 0)).toBe(Math.floor((taxable * 41) / 130))
+  })
+
+  it('returning every piece, in any order and any number of notes, credits exactly what was billed — never more', () => {
+    const first = creditOrderLine(old, rate, false, { pcs: 0, taxablePaise: 0 }, [
+      { invoiceLineId: 'c', qtyPcs: 17 },
+      { invoiceLineId: 'a', qtyPcs: 5 },
+    ])
+    const done = {
+      pcs: 22,
+      taxablePaise: first.reduce((s, l) => s + l.taxablePaise, 0),
+    }
+    const rest = creditOrderLine(old, rate, false, done, [
+      { invoiceLineId: 'a', qtyPcs: 43 },
+      { invoiceLineId: 'b', qtyPcs: 65 },
+    ])
+    const all = [...first, ...rest]
+    expect(all.reduce((s, l) => s + l.taxablePaise, 0)).toBe(taxable)
+    const billedCgst = old.reduce((s, l) => s + l.cgstPaise, 0)
+    expect(all.reduce((s, l) => s + l.cgstPaise, 0)).toBe(billedCgst)
+    expect(all.reduce((s, l) => s + l.sgstPaise, 0)).toBe(billedCgst)
+    // the 17 pieces of the free-goods batch are credited at the item's value, not 2.4× less
+    expect(first[0]?.taxablePaise).toBe(Math.floor((taxable * 17) / 130))
+  })
+
+  it('a rate-difference note keeps its own ceiling', () => {
+    const [line] = creditOrderLine(old, rate, false, { pcs: 0, taxablePaise: 0 }, [
+      { invoiceLineId: 'a', qtyPcs: 10, ceilingPaise: 10 * 50 },
+    ])
+    expect(line?.taxablePaise).toBe(500)
+    expect(line?.cgstPaise).toBe(lineTax(500, rate, false).cgstPaise)
   })
 })

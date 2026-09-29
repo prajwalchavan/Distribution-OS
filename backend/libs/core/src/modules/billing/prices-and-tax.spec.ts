@@ -1,7 +1,7 @@
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { businessDate, lineTax, uuidv7 } from '@dos/domain'
+import { businessDate, lineTax, shareOut, uuidv7 } from '@dos/domain'
 import {
   bootstrapTenant,
   brands,
@@ -148,6 +148,8 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
     marie: uuidv7(),
     /** QA's priority probe: Garam Masala at ₹74.54. */
     masala: uuidv7(),
+    /** QA F04: Sunbake Glucose at ₹7.44 with 12 + 1 and 5 % off, in batches of 48, 65 and 17. */
+    glucose: uuidv7(),
   }
   const RATE = {
     ghee: 31_738,
@@ -160,6 +162,7 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
     t18at1050: 1050,
     marie: 2245,
     masala: 7454,
+    glucose: 744,
   }
   const MARIE_LANDED = 2037
   /** A fresh shop per case, so no credit decision or earlier order of another case reaches it. */
@@ -360,6 +363,7 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
         ...v.t18at1050.map((id, i) => variant(id, `Biscuit ${String(i + 1)}`, hsn.g18)),
         variant(v.marie, 'Marie 250 g', hsn.g18),
         variant(v.masala, 'Garam Masala 100 g', hsn.g18),
+        variant(v.glucose, 'Glucose 55 g', hsn.g12),
       ])
     const listId = uuidv7()
     await db
@@ -385,6 +389,7 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
         ...v.t18at1050.map((id) => item(id, RATE.t18at1050)),
         item(v.marie, RATE.marie),
         item(v.masala, RATE.masala),
+        item(v.glucose, RATE.glucose),
       ])
     await db.insert(tenantProductCosts).values({
       id: uuidv7(),
@@ -446,6 +451,23 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
     const inventory = app.get(InventoryService)
     await asOwner(async (tx) => {
       // X05: the ghee stands in five batches of 1, 3, 3, 3 and 2 pieces, so FEFO picks 12 from all five.
+      for (const [i, qty] of [48, 65, 17].entries()) {
+        const { lot } = await inventory.findOrCreateLot(tx, {
+          variantId: v.glucose,
+          batchNo: `GL${String(i)}-${run}`,
+          mrpPaise: 1_000,
+          expiryDate: `2027-0${String(i + 1)}-20`,
+        })
+        await inventory.post(tx, [
+          {
+            lotId: lot.id,
+            locationId: godown,
+            qtyDelta: qty,
+            reason: 'opening',
+            idempotencyKey: `open-glucose-${String(i)}-${run}`,
+          },
+        ])
+      }
       const gheeLots = [1, 3, 3, 3, 2]
       for (const [i, qty] of gheeLots.entries()) {
         const { lot } = await inventory.findOrCreateLot(tx, {
@@ -1216,6 +1238,168 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
     expect(bill.discountPaise).toBe(2358 + 100)
   })
 
+  // ---------------------------------------------------------------------------------------------------------------
+  // DOS-337 (ruling 10): returned pieces are valued on the order line
+
+  it('DOS-337: free pieces follow the batches; a returned piece is worth the same on every batch line; all of them credit exactly what was billed', async () => {
+    const shop = await newShop('F04')
+    const base = {
+      scope: { variantIds: [v.glucose] },
+      triggerKind: 'qty',
+      triggerUnit: 'pcs',
+      applicability: { retailerIds: [shop] },
+      validFrom: '2020-01-01',
+      validTo: '2099-12-31',
+      fundingSource: 'distributor',
+    }
+    for (const body of [
+      {
+        id: uuidv7(),
+        name: `F04 12 + 1 ${run}`,
+        triggerMin: 12,
+        rewardKind: 'free_qty',
+        rewardValue: 1,
+      },
+      {
+        id: uuidv7(),
+        name: `F04 5 % ${run}`,
+        triggerMin: 1,
+        rewardKind: 'line_pct',
+        rewardValue: 500,
+      },
+    ]) {
+      const made = await call(app, owner, 'POST', '/pricing/schemes', {
+        idempotencyKey: `f04-${body.name}`,
+        ...base,
+        ...body,
+      })
+      expect(made.status, JSON.stringify(made.body)).toBe(200)
+    }
+    const order = await placeOrder(shop, [{ variantId: v.glucose, qtyPcs: 120 }], 'f04')
+    const bill = await pack(order.id, 'f04')
+    const lines = bill.lines.filter((l) => l.variantId === v.glucose)
+    // the pack took 48, 65 and 17 pieces; the 10 free now follow them in proportion (4, 5, 1), not all on the last
+    expect(lines.map((l) => [l.qtyPcs, l.freeQtyPcs])).toEqual([
+      [44, 4],
+      [60, 5],
+      [16, 1],
+    ])
+    const creditAll = await call<{
+      item: { taxablePaise: number; cgstPaise: number; sgstPaise: number }
+    }>(app, manager, 'POST', '/credit-notes', {
+      idempotencyKey: `f04-cn-all-${run}`,
+      id: uuidv7(),
+      invoiceId: bill.id,
+      reason: 'return_saleable',
+      lines: lines.map((l) => ({
+        id: uuidv7(),
+        invoiceLineId: l.id,
+        qtyPcs: l.qtyPcs + l.freeQtyPcs,
+      })),
+    })
+    expect(creditAll.status, JSON.stringify(creditAll.body)).toBe(200)
+    expect(creditAll.body.item.taxablePaise).toBe(bill.taxablePaise)
+    expect(creditAll.body.item.cgstPaise).toBe(bill.cgstPaise)
+    expect(creditAll.body.item.sgstPaise).toBe(bill.sgstPaise)
+
+    // The same order line billed BEFORE the ruling: all ten free on the last batch, each batch's tax its own.
+    const oldId = uuidv7()
+    const [issued] = await db.select().from(invoices).where(eq(invoices.id, bill.id))
+    if (!issued) throw new Error('bill not found')
+    const oldShape = [
+      { qty: 48, free: 0 },
+      { qty: 65, free: 0 },
+      { qty: 7, free: 10 },
+    ]
+    const discounts = shareOut(
+      lines.reduce((s, l) => s + l.discountPaise, 0),
+      oldShape.map((o) => o.qty),
+    )
+    const oldLines = oldShape.map((o, i) => {
+      const taxable = o.qty * RATE.glucose - (discounts[i] ?? 0)
+      const tax = lineTax(taxable, { gstBps: 1200, cessBps: 0 }, false)
+      const template = lines[i]
+      return {
+        id: uuidv7(),
+        tenantId,
+        invoiceId: oldId,
+        lineNo: i + 1,
+        orderLineId: template?.orderLineId ?? null,
+        variantId: v.glucose,
+        description: 'Glucose 55 g',
+        hsnCode: hsn.g12,
+        qtyPcs: o.qty,
+        freeQtyPcs: o.free,
+        ratePaise: RATE.glucose,
+        discountPaise: discounts[i] ?? 0,
+        taxablePaise: taxable,
+        gstBps: 1200,
+        cgstPaise: tax.cgstPaise,
+        sgstPaise: tax.sgstPaise,
+        lineTotalPaise: taxable + tax.taxPaise,
+        appliedRules: [],
+      }
+    })
+    await db.insert(invoices).values({
+      ...issued,
+      id: oldId,
+      invoiceNo: `OLD-F04/${run}`,
+      seriesCode: 'OLD',
+      orderId: null,
+      upiQrPayload: null,
+      taxablePaise: oldLines.reduce((s, l) => s + l.taxablePaise, 0),
+    })
+    await db.insert(invoiceLines).values(oldLines)
+    const groupTaxable = oldLines.reduce((s, l) => s + l.taxablePaise, 0)
+    // QA's return: a third of each batch line — 16 of 48, 21 of 65, 2 paid + 2 free of the last
+    const third = await call<{
+      item: { lines: { invoiceLineId: string; qtyPcs: number; taxablePaise: number }[] }
+    }>(app, manager, 'POST', '/credit-notes', {
+      idempotencyKey: `f04-cn-third-${run}`,
+      id: uuidv7(),
+      invoiceId: oldId,
+      reason: 'return_saleable',
+      lines: [
+        { id: uuidv7(), invoiceLineId: oldLines[0]?.id, qtyPcs: 16 },
+        { id: uuidv7(), invoiceLineId: oldLines[1]?.id, qtyPcs: 21 },
+        { id: uuidv7(), invoiceLineId: oldLines[2]?.id, qtyPcs: 4 },
+      ],
+    })
+    expect(third.status, JSON.stringify(third.body)).toBe(200)
+    // one value a piece whichever batch the crew marked (CN/9005 credited ₹7.07 and ₹2.91)
+    for (const l of third.body.item.lines)
+      expect(Math.abs(l.taxablePaise / l.qtyPcs - groupTaxable / 130)).toBeLessThan(1)
+    // the rest of every piece: all together exactly what was billed, never more
+    const rest = await call<{ item: { taxablePaise: number; cgstPaise: number } }>(
+      app,
+      manager,
+      'POST',
+      '/credit-notes',
+      {
+        idempotencyKey: `f04-cn-rest-${run}`,
+        id: uuidv7(),
+        invoiceId: oldId,
+        reason: 'return_saleable',
+        lines: [
+          { id: uuidv7(), invoiceLineId: oldLines[0]?.id, qtyPcs: 32 },
+          { id: uuidv7(), invoiceLineId: oldLines[1]?.id, qtyPcs: 44 },
+          { id: uuidv7(), invoiceLineId: oldLines[2]?.id, qtyPcs: 13 },
+        ],
+      },
+    )
+    expect(rest.status, JSON.stringify(rest.body)).toBe(200)
+    const thirdTaxable = third.body.item.lines.reduce((s, l) => s + l.taxablePaise, 0)
+    expect(thirdTaxable + rest.body.item.taxablePaise).toBe(groupTaxable)
+    const billedCgst = oldLines.reduce((s, l) => s + l.cgstPaise, 0)
+    const thirdCgst = (
+      (
+        await db.execute(sql`select coalesce(sum(cgst_paise), 0)::bigint as c from credit_notes
+                              where invoice_id = ${oldId}`)
+      ).rows[0] as { c: string }
+    ).c
+    expect(Number(thirdCgst)).toBe(billedCgst)
+  })
+
   it('the release check is clean for this distributor’s bills written now', async () => {
     const faults = await schemeAmountFaults(db, tenantId)
     expect(faults.filter((f) => f.status === 'differs')).toEqual([])
@@ -1234,6 +1418,6 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
           .from(invoices)
           .where(and(eq(invoices.tenantId, tenantId), eq(invoices.seriesCode, 'OLD')))
       ).length,
-    ).toBe(1)
+    ).toBe(2)
   })
 })

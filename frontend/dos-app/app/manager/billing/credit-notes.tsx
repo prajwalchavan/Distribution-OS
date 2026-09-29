@@ -11,9 +11,9 @@
  * coming back and whether they are saleable. Nothing is retyped and nothing is derived.
  *
  * QA DOS-242: a returned piece is worth what the shop PAID for it — the line's taxable after its scheme,
- * pro rata — never the list rate the bill prints. The server prices it (`creditableTaxable` in
- * @dos/domain); this screen no longer sends the list rate with every line, and shows the same figure
- * under each line before anything is drafted.
+ * pro rata — never the list rate the bill prints. The server prices it (`creditOrderLine` in @dos/domain,
+ * on the item's order line, QA DOS-337); this screen no longer sends the list rate with every line, and
+ * shows the same figure under each line before anything is drafted.
  *
  * How many pieces are LEFT to credit on a line is the server's own rule (`piecesLeftToCredit` in
  * @dos/domain): billed plus free, less every note on the bill that is not cancelled. The field says
@@ -30,9 +30,9 @@ import {
 } from '@dos/contracts'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
 import {
-  creditableTaxable,
   creditedPiecesByLine,
   creditedTaxableByLine,
+  creditOrderLine,
   paise,
   piecesLeftToCredit,
 } from '@dos/domain'
@@ -249,20 +249,37 @@ export default function CreditNotes(): React.JSX.Element {
       : parsed.reason === 'unparseable'
         ? t('m8.wholePieces')
         : undefined
-    // What these pieces give back before GST: the server's own rule, so the figure here is the note's.
-    const worth =
-      error === undefined && pieces > 0
-        ? creditableTaxable(
-            line,
-            {
-              pcs: credited.get(line.id) ?? 0,
-              taxablePaise: creditedValue.get(line.id) ?? 0,
-            },
-            pieces,
-          )
-        : null
-    return { line, left, text, pieces, error, worth }
+    return { line, left, text, pieces, error, worth: null as number | null }
   })
+  /*
+   * What these pieces give back before GST: the server's own rule (`creditOrderLine`, QA DOS-337), so the figure
+   * here is the note's. A piece is valued on its ORDER LINE — all the bill's batch lines of the item together —
+   * so it is worth the same whichever batch line it is typed against, and all of them give back exactly what
+   * was billed.
+   */
+  const lines = bill.data?.item.lines ?? []
+  const groupOf = (l: { id: string; orderLineId: string | null }): string => l.orderLineId ?? l.id
+  for (const key of new Set(entries.map((entry) => groupOf(entry.line)))) {
+    const asked = entries.filter(
+      (entry) => groupOf(entry.line) === key && entry.error === undefined && entry.pieces > 0,
+    )
+    const source = lines.filter((l) => groupOf(l) === key)
+    const first = source[0]
+    if (asked.length === 0 || first === undefined) continue
+    const worths = creditOrderLine(
+      source,
+      { gstBps: first.gstBps, cessBps: first.cessBps },
+      bill.data?.item.isInterState ?? false,
+      {
+        pcs: source.reduce((n, l) => n + (credited.get(l.id) ?? 0), 0),
+        taxablePaise: source.reduce((n, l) => n + (creditedValue.get(l.id) ?? 0), 0),
+      },
+      asked.map((entry) => ({ invoiceLineId: entry.line.id, qtyPcs: entry.pieces })),
+    )
+    asked.forEach((entry, i) => {
+      entry.worth = worths[i]?.taxablePaise ?? null
+    })
+  }
   /*
    * One id per bill line, made the first time that line is drafted and kept while this bill's sheet is
    * open, so pressing "Draft the credit note" again sends the same lines (DOS-136).

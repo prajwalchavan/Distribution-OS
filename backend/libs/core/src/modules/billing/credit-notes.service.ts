@@ -18,13 +18,13 @@ import type {
 } from '@dos/contracts'
 import { isSaleableCreditNoteReason } from '@dos/contracts'
 import {
-  creditableTaxable,
+  creditOrderLine,
   financialYear,
   paise,
-  percentOf,
   piecesLeftToCredit,
   roundToRupee,
   uuidv7,
+  type CreditedLine,
 } from '@dos/domain'
 import {
   creditNoteLines,
@@ -381,13 +381,9 @@ export class CreditNotesService {
         })
     }
 
-    let taxable = 0
-    let cgst = 0
-    let sgst = 0
-    let igst = 0
-    let cess = 0
-    const values: (typeof creditNoteLines.$inferInsert)[] = []
-    for (const line of input.lines) {
+    // Every asked line is checked first — it belongs to the bill, it has pieces left, its rate is no higher
+    // than billed, a damaged return is not saleable — so a refusal names the line before any money is worked.
+    const checked = input.lines.map((line) => {
       const source = byId.get(line.invoiceLineId)
       if (!source)
         throw new ORPCError('BAD_REQUEST', {
@@ -408,13 +404,6 @@ export class CreditNotesService {
           message: `a credit note may not exceed the invoiced rate of ${String(source.ratePaise)} paise`,
           data: { invoiceLineId: source.id, invoicedRatePaise: source.ratePaise },
         })
-      // QA DOS-242: what the shop was CHARGED for these pieces — the line's taxable after its schemes and
-      // discounts, pro rata over its pieces, the last piece taking the remainder — is the ceiling of every
-      // note. `rate` is the pre-scheme list rate (`rate_paise`): crediting `rate × pieces` gave the shop the
-      // scheme money back on top of the goods. A rate-difference note below that value keeps its own figure.
-      const worth = creditableTaxable(source, already, line.qtyPcs)
-      const lineTaxable = Math.min(rate * line.qtyPcs, worth)
-      const creditedRate = line.qtyPcs > 0 ? Math.round(lineTaxable / line.qtyPcs) : rate
       // DOS-116: an omitted flag follows the reason, and a damaged return never goes back on sale — the
       // credit-note side of the doorstep rule (DOS-058), read from the one list in @dos/contracts.
       const saleable = line.saleable ?? isSaleableCreditNoteReason(input.reason)
@@ -423,31 +412,101 @@ export class CreditNotesService {
           message: `${source.description}: damaged goods go to the damaged bin, not back on sale`,
           data: { code: 'return_not_saleable', invoiceLineId: source.id, reason: input.reason },
         })
-      // Intra-state halves are each `percentOf(taxable, bps/2)`, so the two are exact and their sum is
-      // what the line prints — never `percentOf(taxable, bps)`, which can differ by a paisa.
-      const half = invoice.isInterState ? 0 : percentOf(paise(lineTaxable), source.gstBps / 2)
-      const lineIgst = invoice.isInterState ? percentOf(paise(lineTaxable), source.gstBps) : 0
-      const gstPaise = half + half + lineIgst
-      const cessPaise = percentOf(paise(lineTaxable), source.cessBps)
-      cgst += half
-      sgst += half
-      igst += lineIgst
-      taxable += lineTaxable
-      cess += cessPaise
-      values.push({
-        id: line.id,
-        tenantId,
-        creditNoteId: input.id,
-        invoiceLineId: source.id,
-        qtyPcs: line.qtyPcs,
-        saleable,
-        ratePaise: creditedRate,
-        taxablePaise: lineTaxable,
-        gstBps: source.gstBps,
-        taxPaise: gstPaise + cessPaise,
-        lineTotalPaise: lineTaxable + gstPaise + cessPaise,
+      return { line, source, rate, saleable }
+    })
+
+    /*
+     * QA DOS-242 + DOS-337 (docs/22 §8, 2026-09-28, ruling 10): what the shop was CHARGED for these pieces is the
+     * ceiling of every note — the taxable after schemes and discounts, never `rate × pieces` (which handed the
+     * scheme money back on top of the goods) — and it is valued on the ORDER LINE, all its batch lines together
+     * (`creditOrderLine`): a returned piece of an item is worth the same whichever batch line the crew marks, and
+     * returning every piece credits exactly what was billed for them, never more. The tax is the one rule
+     * (`lineTax`) cumulative over the notes, so the last piece takes exactly what is left of the bill's own tax.
+     */
+    const groupOf = (l: { id: string; orderLineId: string | null }): string => l.orderLineId ?? l.id
+    const members = new Map<string, typeof lineRows>()
+    for (const row of lineRows) {
+      const key = groupOf(row)
+      members.set(key, [...(members.get(key) ?? []), row])
+    }
+    const askedByGroup = new Map<string, number[]>()
+    checked.forEach((c, index) => {
+      const key = groupOf(c.source)
+      askedByGroup.set(key, [...(askedByGroup.get(key) ?? []), index])
+    })
+    const money = new Map<number, CreditedLine>()
+    for (const [key, indexes] of askedByGroup) {
+      const source = members.get(key) ?? []
+      const first = source[0]
+      if (!first) continue
+      const before = source.reduce(
+        (acc, l) => {
+          const c = credited.get(l.id)
+          return {
+            pcs: acc.pcs + (c?.pcs ?? 0),
+            taxablePaise: acc.taxablePaise + (c?.taxablePaise ?? 0),
+          }
+        },
+        { pcs: 0, taxablePaise: 0 },
+      )
+      const results = creditOrderLine(
+        source.map((l) => ({
+          id: l.id,
+          qtyPcs: l.qtyPcs,
+          freeQtyPcs: l.freeQtyPcs,
+          taxablePaise: l.taxablePaise,
+          cgstPaise: l.cgstPaise,
+          sgstPaise: l.sgstPaise,
+          igstPaise: l.igstPaise,
+          cessPaise: l.cessPaise,
+        })),
+        { gstBps: first.gstBps, cessBps: first.cessBps },
+        invoice.isInterState,
+        before,
+        indexes.map((i) => {
+          const c = checked[i]
+          return {
+            invoiceLineId: c?.source.id ?? '',
+            qtyPcs: c?.line.qtyPcs ?? 0,
+            ceilingPaise: (c?.rate ?? 0) * (c?.line.qtyPcs ?? 0),
+          }
+        }),
+      )
+      indexes.forEach((i, j) => {
+        const r = results[j]
+        if (r) money.set(i, r)
       })
     }
+
+    let taxable = 0
+    let cgst = 0
+    let sgst = 0
+    let igst = 0
+    let cess = 0
+    const values: (typeof creditNoteLines.$inferInsert)[] = checked.map((c, index) => {
+      const m = money.get(index)
+      const lineTaxable = m?.taxablePaise ?? 0
+      const gstPaise = (m?.cgstPaise ?? 0) + (m?.sgstPaise ?? 0) + (m?.igstPaise ?? 0)
+      const cessPaise = m?.cessPaise ?? 0
+      cgst += m?.cgstPaise ?? 0
+      sgst += m?.sgstPaise ?? 0
+      igst += m?.igstPaise ?? 0
+      taxable += lineTaxable
+      cess += cessPaise
+      return {
+        id: c.line.id,
+        tenantId,
+        creditNoteId: input.id,
+        invoiceLineId: c.source.id,
+        qtyPcs: c.line.qtyPcs,
+        saleable: c.saleable,
+        ratePaise: c.line.qtyPcs > 0 ? Math.round(lineTaxable / c.line.qtyPcs) : c.rate,
+        taxablePaise: lineTaxable,
+        gstBps: c.source.gstBps,
+        taxPaise: gstPaise + cessPaise,
+        lineTotalPaise: lineTaxable + gstPaise + cessPaise,
+      }
+    })
 
     const { rounded, roundOff } = roundToRupee(paise(taxable + cgst + sgst + igst + cess))
     const [row] = await tx
