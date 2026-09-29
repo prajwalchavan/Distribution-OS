@@ -261,7 +261,11 @@ export const strings = {
   'o4.speed': 'Speed',
   'o4.stops': 'Stops',
   'o4.noPositions': 'No vehicle has reported a position today',
-  'o4.mapNote': 'Where each van is now, as its driver’s phone last reported it.',
+  // docs/22 §8 (2026-09-29): a screen never says how the product is built or what it is waiting for.
+  'o4.mapNote': 'Where each van is now, as its driver last reported it.',
+  // Android shows the vans as a list (DOS-017): the note says what is on the screen, and no more.
+  'o4.mapNoteList':
+    'Where each van is now, as its driver last reported it. On Android the vans are a list.',
   'o4.noFix': 'No vehicle has reported a position to put on the map',
   'o4.openInMaps': 'Open in maps',
   'o4.trace': 'Trip trace',
