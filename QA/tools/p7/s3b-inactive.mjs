@@ -11,15 +11,16 @@ const rec = cur.item ?? cur
 const body = { ...L.key(), id: shop.id, name: rec.name, ownerName: rec.ownerName, phone: rec.phone, address: rec.address, beatId: rec.beatId, stateCode: rec.stateCode, gstRegType: rec.gstRegType, paymentTerms: rec.paymentTerms, cashDiscountBps: rec.cashDiscountBps, cashDiscountDays: rec.cashDiscountDays, active: false }
 const de = await L.tryCall(owner.retailers.upsert(body))
 step('deactivated', de.ok ? L.q1(`select active, beat_id is not null has_beat, credit_mode::text from retailers where id = '${shop.id}'`) : de.message)
-const o = await F.placeOrder(shop.id, [{ variantId: 'f71bf137-50de-7182-a0d9-c83f1a613a57', qty: 12 }])
-step('rep order on the inactive shop: create + submit', o.submitted.ok ? { state: o.submitted.value.item.state, no: o.submitted.value.item.orderNo } : `${o.submitted.status} ${o.submitted.message}`)
-expect('an inactive shop cannot be sold to on credit (order refused or held)', !o.submitted.ok || o.submitted.value.item.state !== 'confirmed', o.submitted.ok ? `state ${o.submitted.value.item.state}` : 'refused')
+// Architect ruling 6 of 2026-09-28 on money and credit (DOS-315): a shop that was deactivated takes no new order, from
+// any door — the rep's create is refused 409 shop_inactive in words and nothing is drafted. This scenario expected the
+// order to be drafted and then refused or held at submit; it now expects the refusal at create the ruling asks for.
+const m = L.mk()
+const o = await L.tryCall(rep.orders.create({ ...m, retailerId: shop.id, source: 'salesperson', lines: [{ id: L.uuidv7(), variantId: 'f71bf137-50de-7182-a0d9-c83f1a613a57', enteredQty: 12, enteredUnit: 'piece' }] }))
+step('rep order on the inactive shop: create', o.ok ? { state: o.value.item.state } : `${o.status} ${o.data?.code ?? ''} ${o.message}`)
+expect('a deactivated shop takes no new order (409 shop_inactive, nothing drafted)', !o.ok && o.status === 409 && o.data?.code === 'shop_inactive' && !L.q1(`select id from sales_orders where id = '${m.id}'`), o.ok ? `ACCEPTED ${o.value.item.state}` : `${o.status} ${o.data?.code}`)
 const cc = await L.tryCall(rep.receivables.creditCheck({ retailerId: shop.id, orderTotalPaise: 10000 }))
 step('credit check on the inactive shop', cc.ok ? { breached: cc.value.breached, reasons: cc.value.reasons } : cc.message)
-if (o.submitted.ok && o.submitted.value.item.state === 'confirmed') {
-  const pp = await F.pickAndPack([o.orderId])
-  step('billed while inactive', pp.invoices.map((i) => `${i.invoiceNo} ${i.totalPaise}`))
-}
+if (o.ok && o.value.item.state === 'draft') await L.tryCall(rep.orders.cancel({ ...L.key(), id: o.value.item.id, reason: 'QA p7' }))
 const re = await L.tryCall(owner.retailers.upsert({ ...body, ...L.key(), active: true }))
 step('reactivated', re.ok ? L.q1(`select active, beat_id is not null has_beat from retailers where id = '${shop.id}'`) : re.message)
 recon('S3-C4b-inactive')
