@@ -96,11 +96,7 @@ describe('DOS-038 — on a phone a shop row carries the shop name', () => {
   it('keeps the credit policy beside the name and leaves the limit to the panel', () => {
     // "R-0046 · Blocked · 0.00" told a manager nothing: a code, a policy and a bare credit limit.
     expect(phoneRow(SHOP_COLUMNS).secondary).toBe('mode')
-    expect(phoneRow(SHOP_COLUMNS).trailing).not.toBe('limit')
-  })
-
-  it('says on a phone row whether the shop signs in to the app (DOS-400, the second check’s minor)', () => {
-    expect(phoneRow(SHOP_COLUMNS).trailing).toBe('app')
+    expect(phoneRow(SHOP_COLUMNS).trailing).toBeUndefined()
   })
 
   it('still lists the code and the limit on a desk', () => {

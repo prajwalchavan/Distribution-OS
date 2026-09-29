@@ -118,10 +118,11 @@ export const SHOP_COLUMNS: readonly ShopColumnSpec[] = [
   { key: 'mode', priority: 'chip' },
   { key: 'phone', priority: 'detail' },
   /*
-   * DOS-400: the shop's app sign-in (its username). The row's `value`, so a PHONE row shows it too
-   * ("App: ramesh.gupta" / "No app sign-in yet", the second check's minor); the panel carries the actions.
+   * DOS-400: the shop's app sign-in (its username), a desk column; the panel carries the actions. A
+   * PHONE row says it too, beside the credit chip under the name ("App: ramesh.gupta" / "No app sign-in
+   * yet", the second check's minor) — not as the trailing figure, which would squeeze the name.
    */
-  { key: 'app', priority: 'value' },
+  { key: 'app', priority: 'detail' },
 ]
 
 /** What a phone shows of a row: the kit's rule (`@dos/ui` web/list.tsx and native/list.tsx). */

@@ -189,19 +189,36 @@ export default function Shops(): React.JSX.Element {
       key: 'mode',
       head: t('m14.creditMode'),
       priority: at.priority,
-      cell: (row) => (
-        <StatusChip
-          label={word(row.creditMode)}
-          family={
-            row.creditMode === 'stop' ? 'brick' : row.creditMode === 'strict' ? 'ochre' : 'neutral'
-          }
-        />
-      ),
+      cell: (row) => {
+        const chip = (
+          <StatusChip
+            label={word(row.creditMode)}
+            family={
+              row.creditMode === 'stop'
+                ? 'brick'
+                : row.creditMode === 'strict'
+                  ? 'ochre'
+                  : 'neutral'
+            }
+          />
+        )
+        // A phone row has no "App sign-in" column: it says it here, under the name (DOS-400).
+        return cards ? (
+          <Row gap={2} wrap>
+            {chip}
+            <Txt field="label" desk="meta" color={colors.text.secondary}>
+              {appSignInCell(t, row.appSignIn, true)}
+            </Txt>
+          </Row>
+        ) : (
+          chip
+        )
+      },
     }),
     phone: (at) => textColumn('phone', t('m14.phone'), (row) => row.phone, at),
     /* DOS-400: whether the shop signs in to the app, as whom; the panel carries the actions. */
     app: (at) =>
-      textColumn('app', t('si.title'), (row) => appSignInCell(t, row.appSignIn, cards), at),
+      textColumn('app', t('si.title'), (row) => appSignInCell(t, row.appSignIn, false), at),
   }
   const columns: readonly RegisterColumn<Retailer>[] = SHOP_COLUMNS.map((spec) =>
     cellOf[spec.key]({ priority: spec.priority }),

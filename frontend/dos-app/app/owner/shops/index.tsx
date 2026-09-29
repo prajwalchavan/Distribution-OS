@@ -18,10 +18,12 @@ import {
   Search,
   Sheet,
   Sparkline,
+  Row,
   Stack,
   StatusChip,
   Toast,
   Txt,
+  useColors,
   useStrings,
   useTheme,
   type RegisterColumn,
@@ -48,6 +50,7 @@ import { appSignInCell } from '../../../src/shops/sign-in-forms'
 
 export default function Shops(): React.JSX.Element {
   const t = useStrings()
+  const colors = useColors()
   const density = useTheme().density
   /** Where `<Register>` draws one row per shop instead of a table: a phone, or any native build. */
   const cards = platform.kind === 'native' || density !== 'desk'
@@ -143,7 +146,18 @@ export default function Shops(): React.JSX.Element {
       key: 'tier',
       head: t('o6.tier'),
       priority: 'chip',
-      cell: (row) => <StatusChip label={row.tier} family="neutral" />,
+      // A phone row has no "App sign-in" column: it says it here, under the name (DOS-400).
+      cell: (row) =>
+        cards ? (
+          <Row gap={2} wrap>
+            <StatusChip label={row.tier} family="neutral" />
+            <Txt field="label" desk="meta" color={colors.text.secondary}>
+              {appSignInCell(t, row.appSignIn, true)}
+            </Txt>
+          </Row>
+        ) : (
+          <StatusChip label={row.tier} family="neutral" />
+        ),
     },
     moneyColumn('limit', t('o6.limit'), (row) => row.creditLimitPaise),
     textColumn('terms', t('o6.terms'), (row) => word(row.paymentTerms)),
@@ -161,13 +175,8 @@ export default function Shops(): React.JSX.Element {
       ),
     },
     textColumn('phone', t('o6.phone'), (row) => row.phone),
-    /*
-     * DOS-400: whether the shop signs in to the app, as whom; the panel carries the actions. The row's
-     * `value`, so a phone row shows it too (the second check's minor).
-     */
-    textColumn('app', t('si.title'), (row) => appSignInCell(t, row.appSignIn, cards), {
-      priority: 'value',
-    }),
+    /* DOS-400: whether the shop signs in to the app, as whom; the panel carries the actions. */
+    textColumn('app', t('si.title'), (row) => appSignInCell(t, row.appSignIn, false)),
   ]
 
   useRegisterKeys({
