@@ -257,10 +257,7 @@ async function issueReturns(ctx: Ctx, date: string): Promise<void> {
     // by the product's own hand (DOS-312). When that could reach a bill the tool did not make, the manager does
     // not issue the return: it is cancelled, and the tool's credit never touches a real bill (rule 3b).
     const bill = await ctx.read(contract.billing.invoices.get, { id: n.invoiceId })
-    if (
-      bill.item.amountDuePaise < n.totalPaise &&
-      !(await ownMoneyStaysOwn(ctx, n.retailerId))
-    ) {
+    if (bill.item.amountDuePaise < n.totalPaise && !(await ownMoneyStaysOwn(ctx, n.retailerId))) {
       await ctx.write(
         'yesterday',
         'return not accepted',
@@ -407,7 +404,7 @@ async function payOldBills(ctx: Ctx, date: string): Promise<void> {
         retailerId,
         mode: 'bank_transfer' as const,
         amountPaise: amount,
-        reference: paymentReference('bank_transfer', date, id, attempt),
+        reference: paymentReference('bank_transfer', date, id, null, attempt),
         strategy: 'explicit' as const,
         allocations: bills.map((b) => ({
           id: ctx.id(date, 'transfer', retailerId, b.id),

@@ -455,13 +455,17 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     const owner = await client.signIn(ownerUsername, ownerPassword, slug)
     const stop = demoId(tenantId, yesterday, 'stop', 'driver1', '2')
     const collection = demoId(tenantId, yesterday, 'collection', stop)
-    const before = (
-      BigInt(`0x${collection.replace(/-/g, '').slice(-15)}`) % 1_000_000_000_000n
-    )
+    const before = (BigInt(`0x${collection.replace(/-/g, '').slice(-15)}`) % 1_000_000_000_000n)
       .toString()
       .padStart(12, '1')
       .replace(/^0/, '7')
-    const now = paymentReference('upi', yesterday, demoId(tenantId, yesterday, 'receipt', stop), 0)
+    const now = paymentReference(
+      'upi',
+      yesterday,
+      demoId(tenantId, yesterday, 'receipt', stop),
+      'driver1',
+      0,
+    )
     // Paid by a shop with no phone and no bill: never a stand-in (enough shops have a phone) nor a credit shop.
     const quiet = await pool.query<{ id: string }>(
       `select r.id from retailers r
@@ -489,9 +493,9 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     expect(first.exitCode).toBe(0)
     expect(first.summary.totals().refused).toBe(0)
     expect(first.summary.made.get('driver:paid upi')).toBe(2)
-    expect(first.summary.notes.some((n) => /payment reference\(s\) the product named/.test(n))).toBe(
-      true,
-    )
+    expect(
+      first.summary.notes.some((n) => /payment reference\(s\) the product named/.test(n)),
+    ).toBe(true)
     expect(first.summary.made.get('masters:offer moved')).toBeUndefined()
     const second = await fill(today, true)
     expect(second.leadIn).toBeNull()
@@ -603,12 +607,12 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     // product can carry on; none of it may read as stranded (rule 7b).
     const db = createDb(pool)
     expect(await stockBelowZero(db, tenantId)).toEqual([])
-    expect((await receiptReferenceReport(db, tenantId)).duplicates.filter((d) => d.failing)).toEqual(
-      [],
-    )
-    expect((await invoiceCancelFootprints(db, tenantId)).filter((f) => f.status === 'open')).toEqual(
-      [],
-    )
+    expect(
+      (await receiptReferenceReport(db, tenantId)).duplicates.filter((d) => d.failing),
+    ).toEqual([])
+    expect(
+      (await invoiceCancelFootprints(db, tenantId)).filter((f) => f.status === 'open'),
+    ).toEqual([])
     const stranded = spawnSync(
       process.execPath,
       ['--import', 'tsx', 'check-stranded.mts', '--tenant', slug, '--json'],

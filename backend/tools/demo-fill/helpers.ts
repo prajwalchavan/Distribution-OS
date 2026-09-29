@@ -66,7 +66,9 @@ export function istTime(date: string, hour: number, minute = 0): string {
 
 /** Whole days from 2020-01-01 to `date`: the part of a payment reference that never repeats across days. */
 export function dayNumber(date: string): number {
-  return Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse('2020-01-01T00:00:00Z')) / 86_400_000)
+  return Math.round(
+    (Date.parse(`${date}T00:00:00Z`) - Date.parse('2020-01-01T00:00:00Z')) / 86_400_000,
+  )
 }
 
 /** `n` decimal digits from a hash of `seed`. */
@@ -79,26 +81,40 @@ function hashDigits(seed: string, n: number): string {
 export type ReferenceMode = 'upi' | 'cheque' | 'bank_transfer'
 
 /**
- * The payment reference of one receipt of the tool, try `attempt` (0 first). A payment reference is used once
- * (DOS-310): the product refuses a UPI or bank-transfer reference already on a live receipt of the distributor and
- * a cheque number already on one of the same shop, and asks before taking another shop's cheque number. So the
- * tool's references are its own: the business date is in each (a 12-digit UTR starts with the five-digit day
- * number, a bank transfer's with it after `NEFT`, a six-digit cheque number with its last four digits — the same
- * for 27 years), so no two days ever share one; the rest is a digest of the receipt's id and the try, and when
- * the product still names one as taken (a real payment happened to carry it, or two of the day's collided) the
- * next try gives another.
+ * Where on its day a cheque or a UPI payment of the tool is taken — van 1's door, van 2's door, the desk — each
+ * with a digit of its own in the reference, so two of the day's receipts of the tool never share one (a van has
+ * one cheque door and one UPI door a day, the desk one cheque and one payment to match). A bank transfer (one per
+ * shop paying its old bills) has no place: `null`.
+ */
+export const REFERENCE_PLACE = { driver1: 1, driver2: 2, desk: 3 } as const
+export type ReferencePlace = keyof typeof REFERENCE_PLACE
+
+/**
+ * The payment reference of one receipt of the tool, try `attempt` (0 first, at most 9). A payment reference is
+ * used once (DOS-310): the product refuses a UPI or bank-transfer reference already on a live receipt of the
+ * distributor and a cheque number already on one of the same shop, and asks before taking another shop's cheque
+ * number. So the tool's references are its own BY CONSTRUCTION, and never repeat across shops or days:
+ *   - the business date is in each (the five-digit day number at the head of a 12-digit UTR and after `NEFT`, its
+ *     last four digits at the head of a six-digit cheque number — the same for 27 years): no two days share one;
+ *   - within the day, a cheque number is the date, the place and the try (`dddd` `p` `t`) and a UTR the date, the
+ *     place and seven digits of a digest of the receipt's id and the try: the day's cheques and UPI payments are
+ *     apart by their place, and a try by its digit or digest;
+ *   - a bank transfer is the date and seven digits of that digest (a handful a day, one per shop);
+ * and when the product still names one as taken (a real payment happened to carry it) the next try gives another.
  */
 export function paymentReference(
   mode: ReferenceMode,
   date: string,
   receiptId: string,
+  place: ReferencePlace | null,
   attempt = 0,
 ): string {
   const day = dayNumber(date)
+  const at = place === null ? '0' : String(REFERENCE_PLACE[place])
   const seed = `demo-fill:reference:${mode}:${receiptId}:${String(attempt)}`
-  if (mode === 'upi') return `${String(day).padStart(5, '0')}${hashDigits(seed, 7)}`
-  if (mode === 'bank_transfer') return `NEFT${String(day).padStart(5, '0')}${hashDigits(seed, 5)}`
-  return `${String(day % 10_000).padStart(4, '0')}${hashDigits(seed, 2)}`
+  if (mode === 'upi') return `${String(day).padStart(5, '0')}${at}${hashDigits(seed, 6)}`
+  if (mode === 'bank_transfer') return `NEFT${String(day).padStart(5, '0')}${hashDigits(seed, 7)}`
+  return `${String(day % 10_000).padStart(4, '0')}${at}${String(attempt % 10)}`
 }
 
 /** The refusals that say a payment reference is taken (DOS-310): the tool answers each with its next reference. */

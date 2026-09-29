@@ -261,10 +261,12 @@ async function takeMoney(
       retailerId: stop.retailerId,
       mode,
       amountPaise: amount,
-      ...(mode === 'upi' ? { reference: paymentReference('upi', date, receiptId, attempt) } : {}),
+      ...(mode === 'upi'
+        ? { reference: paymentReference('upi', date, receiptId, driver, attempt) }
+        : {}),
       ...(mode === 'cheque'
         ? {
-            reference: paymentReference('cheque', date, receiptId, attempt),
+            reference: paymentReference('cheque', date, receiptId, driver, attempt),
             chequeDate: date,
             bankName: BANKS[Math.floor(unit(id) * BANKS.length)] ?? 'Saraswat Bank',
           }
