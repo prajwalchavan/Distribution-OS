@@ -110,6 +110,7 @@ day's 119 invoices to the paisa; `documentCount` reads 77 (DOS-317, money lane, 
 > **Judged by the main session, 2026-09-28.** DOS-330 is CONFIRMED in SQL on `dos_test_p8_pricing`: INV/9047 carries ₹200.00 of discount on its lines and ₹1,200.00 of rule amounts; INV/9059 ₹228.51 against ₹1,142.55. DOS-331 on live, read over SSH (global rate table only): all 84 listed items resolve to rows dated 2025-09-22 (5 % for 69, 40 % for 15) that came from the founder's own ERP list; none resolves to a 2017 row, so no live bill is on a 2017 rate today. The demo seed is what carries the old rates. The legal rates themselves are the CA's to confirm. Rulings for every finding and question of this file: docs/22 §8, row "Architect rulings, prices and tax". Nothing is fixed yet.
 
 ### DOS-330 — A bill split across batches repeats every scheme's full amount on each batch line: brand claims and the scheme-spend register are multiplied (₹1,341.90 claimed for ₹268.38 given)
+**Status (2026-09-29): FIXED on main (merge of `fix/prices-and-tax`), not yet on the live server.** Proven by three blind checks, the last on speed; details in `QA/13-change-log.md`, 29 Sep.
 Category: business-logic | Priority: P0 | Role: Owner / Accountant (claims), Owner (scheme spend) | Platform: API
 
 User: Owner (sunil.tarsun)
@@ -148,6 +149,7 @@ the pieces) and `freeQty` over the batch lines as `discountPaise` already is, or
 pointer on the others; add a spec that Σ rule amounts over a bill = Σ `discount_paise`.
 
 ### DOS-331 — The HSN rate table carries only its 2017 rates; project documents say several changed on 22 Sep 2025 — question for the founder and his CA
+**Status (2026-09-29): OPEN, the CA's to confirm.** The demo seed now carries dated rows of 22 Sep 2025 from the project's own research; no live rate was changed.
 Category: business-logic | Priority: P1 (pending the CA's answer) | Role: Owner / Accountant | Platform: API (global data)
 
 User: Owner
@@ -184,6 +186,7 @@ catalog-extra rows. Also check `dos_live` / `dos_demo` for headings whose only r
 databases.
 
 ### DOS-332 — The order shows one tax figure and the bill another; at a rupee boundary the bill total differs from the order total by ₹1
+**Status (2026-09-29): FIXED on main (merge of `fix/prices-and-tax`), not yet on the live server.** Proven by three blind checks, the last on speed; details in `QA/13-change-log.md`, 29 Sep.
 Category: business-logic | Priority: P1 | Role: Salesperson, Owner, Retailer (order screen) vs every reader of the bill | Platform: API
 
 User: Salesperson (rahul.deshmukh)
@@ -213,6 +216,7 @@ either split batch lines' tax from the order line's already-rounded CGST/SGST by
 from the order. Pin it with a quote = order = bill spec over half-paisa cases.
 
 ### DOS-333 — The brand's cash-discount offer the quote reports never reaches the bill; the shop's own cash-discount terms reach the bill but not the quote
+**Status (2026-09-29): OPEN, left out on purpose.** It needs a schema change (the order stores no offer) and two product decisions; founder, 4 Sep: not important now.
 Category: business-logic | Priority: P1 | Role: Salesperson / Retailer / Accountant | Platform: API
 
 User: Salesperson; Owner reading the bill
@@ -238,6 +242,7 @@ Suggested fix: decide which source rules (scheme offer, shop terms, or the bette
 and the bill, and print it.
 
 ### DOS-334 — The owner cannot set which scheme applies first; `priority` is silently dropped and the stacking order falls to creation order
+**Status (2026-09-29): FIXED on main (merge of `fix/prices-and-tax`), not yet on the live server.** Proven by three blind checks, the last on speed; details in `QA/13-change-log.md`, 29 Sep.
 Category: missing-feature | Priority: P2 | Role: Owner | Platform: API
 
 User: Owner
@@ -260,6 +265,7 @@ Suggested fix: add `priority` to the upsert input and to `SchemeSchema`, default
 state a fixed rule (for example, money schemes by kind) and document it.
 
 ### DOS-335 — No floor on an approved rate: ₹0.01 a piece bills goods listed at ₹112.25 for ₹0.00, and below-cost rates pass with no warning
+**Status (2026-09-29): FIXED on main (merge of `fix/prices-and-tax`), not yet on the live server.** Proven by three blind checks, the last on speed; details in `QA/13-change-log.md`, 29 Sep.
 Category: business-logic | Priority: P2 | Role: Owner / Manager | Platform: API
 
 User: Owner (also Manager, the same endpoint)
@@ -286,6 +292,7 @@ Suggested fix: refuse or double-confirm an approved rate below landed cost or be
 margin (back office only) on the approval.
 
 ### DOS-336 — The accountant, the godown and the delivery crew can file rate requests; the order gate they raise names the rep and shows neither item nor rate, and approving it applies their discount
+**Status (2026-09-29): FIXED on main (merge of `fix/prices-and-tax`), not yet on the live server.** Proven by three blind checks, the last on speed; details in `QA/13-change-log.md`, 29 Sep.
 Category: security | Priority: P2 | Role: Accountant, Warehouse, Delivery | Platform: API
 
 User: Delivery (ganesh.more)
@@ -313,6 +320,7 @@ Suggested fix: narrow `pricing.bargains.request` to owner, manager, salesperson 
 asked rate on the gate payload. Stop mounting pricing on the warehouse service, or say it does.
 
 ### DOS-337 — Returned pieces of a free-goods item are credited at a different value depending on which batch line they come from
+**Status (2026-09-29): FIXED on main (merge of `fix/prices-and-tax`), not yet on the live server.** Proven by three blind checks, the last on speed; details in `QA/13-change-log.md`, 29 Sep.
 Category: business-logic | Priority: P2 | Role: Delivery (doorstep return) / Accountant | Platform: API
 
 User: Delivery (mahesh.sutar)
@@ -335,6 +343,7 @@ Suggested fix: spread free pieces over the batch lines in proportion (or keep th
 the order line's paid value per piece.
 
 ### DOS-338 — "GST on free goods" does nothing, and the free line carries 0 % on the order but 28 % on the bill
+**Status (2026-09-29): FIXED on main (merge of `fix/prices-and-tax`), not yet on the live server.** Proven by three blind checks, the last on speed; details in `QA/13-change-log.md`, 29 Sep.
 Category: bug | Priority: P3 | Role: Owner | Platform: API
 
 User: Owner
