@@ -8,6 +8,7 @@ import {
 import { loadAuthKeys } from '../../platform/index.js'
 import {
   readAccessToken,
+  refuseFirstPasswordToken,
   SIGN_IN_REQUIRED,
   type AuthClaims,
   type AuthenticatedRequest,
@@ -46,6 +47,7 @@ export class PlatformTokenGuard implements CanActivate {
         'this endpoint belongs to the Distribution OS console; sign in at POST /auth/platform/login',
       )
     }
+    refuseFirstPasswordToken(context, claims)
     req.auth = claims
     return true
   }

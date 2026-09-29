@@ -109,6 +109,7 @@ describe('DOS-038 — on a phone a shop row carries the shop name', () => {
       'limit',
       'mode',
       'phone',
+      'app',
     ])
   })
 })

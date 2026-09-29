@@ -15,6 +15,12 @@ export function isUniqueViolation(err: unknown): boolean {
   return pgCode(err) === '23505'
 }
 
+/** The name of the constraint the database refused on, when it named one. */
+export function pgConstraint(err: unknown): string | undefined {
+  const e = err as PgError | null
+  return e?.cause?.constraint ?? e?.constraint
+}
+
 /** 42501 — a policy or a guard trigger refused the actor (`insufficient_privilege`). */
 export function isPrivilegeViolation(err: unknown): boolean {
   return pgCode(err) === '42501'

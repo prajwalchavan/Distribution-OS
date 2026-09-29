@@ -7,6 +7,7 @@ import {
 import { loadAuthKeys } from '../../platform/index.js'
 import {
   readAccessToken,
+  refuseFirstPasswordToken,
   SIGN_IN_REQUIRED,
   type AuthClaims,
   type AuthenticatedRequest,
@@ -31,6 +32,8 @@ export class AccessTokenGuard implements CanActivate {
     } catch {
       throw new UnauthorizedException(SIGN_IN_REQUIRED)
     }
+    // A password a desk gave is a first password on the server too (docs/22 §8, 2026-09-29).
+    refuseFirstPasswordToken(context, claims)
     req.auth = claims
     return true
   }

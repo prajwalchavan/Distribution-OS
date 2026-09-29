@@ -245,6 +245,49 @@ describe('the rest of the session', () => {
     expect(c.session.accessToken).toBe('a2')
   })
 
+  it('carries on with the token a change of password answers with (a desk’s first password is walled on the server)', async () => {
+    const walledPair = tokenPair('walled-1', 'r1') as { user: Record<string, unknown> }
+    walledPair.user.mustChangePassword = true
+    const seen: (string | null)[] = []
+    stubFetch((call) => {
+      if (call.path === '/auth/login') return json(walledPair)
+      if (call.path === '/auth/change-password') {
+        seen.push(call.authorization)
+        return json({
+          ok: true,
+          accessToken: 'chosen-1',
+          tokenType: 'Bearer',
+          accessExpiresIn: 900,
+        })
+      }
+      if (call.path === '/auth/me') {
+        seen.push(call.authorization)
+        const me = tokenPair('x', 'y') as Record<string, unknown>
+        return json({
+          ...me,
+          session: {
+            id: 's',
+            deviceId: DEVICE,
+            deviceName: null,
+            platform: 'web',
+            createdAt: new Date().toISOString(),
+            lastUsedAt: new Date().toISOString(),
+          },
+        })
+      }
+      return json({}, 404)
+    })
+    const c = client()
+    await c.signIn({ username: 'new.shop', password: 'kpmtr4827' })
+    expect(c.session.getSnapshot().session?.user.mustChangePassword).toBe(true)
+    await c.changePassword('kpmtr4827', 'MyOwn9753')
+    // the change went out on the walled token, everything after it on the one it answered with
+    expect(seen).toEqual(['Bearer walled-1', 'Bearer chosen-1'])
+    expect(c.session.accessToken).toBe('chosen-1')
+    expect(c.session.refreshToken).toBe('r1')
+    expect(c.session.getSnapshot().session?.user.mustChangePassword).toBe(false)
+  })
+
   it('signs out locally even when the network call fails', async () => {
     stubFetch((call) => {
       if (call.path === '/auth/login') return json(tokenPair('a1', 'r1'))

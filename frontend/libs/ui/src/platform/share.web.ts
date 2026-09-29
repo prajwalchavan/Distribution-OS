@@ -38,4 +38,5 @@ export const share: PlatformShare = {
     }
   },
   available: typeof navigator !== 'undefined',
+  sheet: canShare(),
 }

@@ -31,7 +31,9 @@ import {
   AUTH_ALG,
   AUTH_AUDIENCE,
   AUTH_ISSUER,
+  CHOOSE_YOUR_OWN_PASSWORD,
   createSupportPassVerifier,
+  FIRST_PASSWORD_CLAIM,
   loadAuthKeys,
   passAllowsMethod,
   tenantStorage,
@@ -62,6 +64,25 @@ export interface AccessClaims {
   did: string | null
   jti: string | null
   expiresAt: Date
+  /**
+   * `pwc`: signed in with a password a desk gave and not yet changed (platform/first-password.ts).
+   * Every procedure refuses such a token except `sync.upload`, which answers in its own way.
+   */
+  mustChangePassword: boolean
+}
+
+/**
+ * The one procedure a first-password token passes this guard on: the upload never answers 4xx
+ * (ADR 0007), so it answers the wall itself — 2xx, every op sent back `password_change_required`.
+ */
+const SYNC_UPLOAD_ROUTE = 'POST /sync/upload'
+
+/**
+ * True when the current request came with a token whose person must still choose their own password
+ * (`sync.upload` asks, to send every op back unapplied). False outside a guarded request.
+ */
+export function mustChooseOwnPassword(): boolean {
+  return accessClaimsStorage.getStore()?.mustChangePassword === true
 }
 
 /**
@@ -85,6 +106,8 @@ export function currentAccessClaims(): AccessClaims {
  *   1. the handler must map to a contract procedure with a line in PERMISSIONS (else 500);
  *   2. 'public' passes without a token;
  *   3. the token must verify against the auth public key (401 'sign in required' / 'token expired');
+ *   3a. a token whose person must still choose their own password (`pwc`, docs/22 §8 2026-09-29) is
+ *      refused 403 in words on every procedure but `sync.upload` (platform/first-password.ts);
  *   4. a `platform_admin` token takes the console path below;
  *   5. 'authenticated' needs nothing more (tenant context is entered when the token carries one);
  *   6. a role list needs an active tenant + role, then this SERVICE must serve the role (403), then
@@ -154,6 +177,11 @@ export class TenantGuard implements CanActivate, OnModuleInit {
     if (!token) throw new UnauthorizedException('sign in required')
     const claims = this.verifier.verify(token)
     accessClaimsStorage.enterWith(claims)
+    // A password a desk gave is a first password on the server too: nothing but changing it, which is
+    // auth-service's. Before every role check, so the answer is the same on every service and role.
+    if (claims.mustChangePassword && route !== SYNC_UPLOAD_ROUTE) {
+      throw new ForbiddenException(CHOOSE_YOUR_OWN_PASSWORD)
+    }
     const pass = this.readPass(req)
 
     if (claims.role === 'platform_admin') {
@@ -482,6 +510,7 @@ function toClaims(payload: Record<string, unknown>): AccessClaims {
       did: optionalString(payload.did),
       jti: optionalString(payload.jti),
       expiresAt: new Date((payload.exp as number) * 1000),
+      mustChangePassword: payload[FIRST_PASSWORD_CLAIM] === true,
     }
   }
   const role = roleRaw ? MembershipRoleSchema.safeParse(roleRaw) : null
@@ -495,6 +524,7 @@ function toClaims(payload: Record<string, unknown>): AccessClaims {
     did: optionalString(payload.did),
     jti: optionalString(payload.jti),
     expiresAt: new Date((payload.exp as number) * 1000),
+    mustChangePassword: payload[FIRST_PASSWORD_CLAIM] === true,
   }
 }
 

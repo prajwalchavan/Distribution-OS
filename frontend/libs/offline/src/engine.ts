@@ -11,6 +11,7 @@
  */
 import { uuidv7 } from '@dos/domain'
 
+import type { SYNC_REJECTION_CODES } from '@dos/contracts'
 import type { ManifestOutput, PullOutput, SyncOp, SyncTableManifest } from './wire.js'
 
 import { ChangeBus, ERRORS_CHANNEL, OUTBOX_CHANNEL } from './bus.js'
@@ -1622,6 +1623,20 @@ export class SyncEngine {
           }),
         )
         await this.settle(store, batch, response.rejected, response.upgradeRequired)
+        /*
+         * THE FIRST-PASSWORD WALL (docs/22 §8, 2026-09-29): the session signed in with a password a desk
+         * gave and has not chosen its own, so the server ran nothing and recorded nothing. `settle` put
+         * the batch back in the queue; this flush stops and tries again later, when the password is the
+         * person's own. The app never starts the engine on such a session — this is the belt to that.
+         */
+        const walled = response.rejected.find((r) => r.code === PASSWORD_CHANGE_REQUIRED)
+        if (walled !== undefined) {
+          this.lastError = walled.messageEn
+          this.uploading = false
+          this.emitStatus()
+          this.scheduleRetry()
+          return
+        }
         sent = sent || !response.upgradeRequired
         if (response.upgradeRequired) {
           this.upgradeRequired = true
@@ -1718,8 +1733,9 @@ export class SyncEngine {
           accepted.push({ opId: op.opId, table: op.table, rowId: op.rowId, op: op.op })
           continue
         }
-        if (upgradeRequired) {
-          // The server did not run the op at all: keep it queued for a build that can send it.
+        if (upgradeRequired || rejection.code === PASSWORD_CHANGE_REQUIRED) {
+          // The server did not run the op at all: keep it queued for a build that can send it, or for
+          // the session that has chosen its own password.
           await tx.exec(
             `UPDATE ${OUTBOX_TABLE} SET status = 'queued', sent_at = NULL WHERE op_id = ?`,
             [op.opId],
@@ -2207,6 +2223,13 @@ interface SyncUploadRejection {
   code: string
   messageEn: string
 }
+
+/**
+ * `SYNC_REJECTION_CODES.passwordChangeRequired` of `@dos/contracts`, typed from it (so a rename breaks this
+ * package's typecheck) without carrying the contract into the device bundle (see `wire.ts`).
+ */
+const PASSWORD_CHANGE_REQUIRED: (typeof SYNC_REJECTION_CODES)['passwordChangeRequired'] =
+  'password_change_required'
 
 /** An outbox row's weight on the wire, in UTF-8 bytes: its `data` JSON plus the envelope. */
 function wireBytes(row: Record<string, SqlValue>): number {

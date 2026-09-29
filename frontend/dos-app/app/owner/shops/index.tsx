@@ -18,13 +18,17 @@ import {
   Search,
   Sheet,
   Sparkline,
+  Row,
   Stack,
   StatusChip,
   Toast,
   Txt,
+  useColors,
   useStrings,
+  useTheme,
   type RegisterColumn,
 } from '@dos/ui'
+import { platform } from '@dos/ui/platform'
 import { useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 
@@ -41,9 +45,15 @@ import { instantWithClock, longDate, today, shiftDays } from '../../../src/group
 import { useHotkeys, useRegisterKeys } from '../../../src/groups/owner/lib/keys'
 import { useWord } from '../../../src/groups/owner/lib/words'
 import { CreditDialog, useMayWrite } from '../../../src/pricing/editors'
+import { ShopSignInRow } from '../../../src/shops/sign-in'
+import { appSignInCell } from '../../../src/shops/sign-in-forms'
 
 export default function Shops(): React.JSX.Element {
   const t = useStrings()
+  const colors = useColors()
+  const density = useTheme().density
+  /** Where `<Register>` draws one row per shop instead of a table: a phone, or any native build. */
+  const cards = platform.kind === 'native' || density !== 'desk'
   const word = useWord()
   const api = useApi()
   const names = useNames()
@@ -136,7 +146,18 @@ export default function Shops(): React.JSX.Element {
       key: 'tier',
       head: t('o6.tier'),
       priority: 'chip',
-      cell: (row) => <StatusChip label={row.tier} family="neutral" />,
+      // A phone row has no "App sign-in" column: it says it here, under the name (DOS-400).
+      cell: (row) =>
+        cards ? (
+          <Row gap={2} wrap>
+            <StatusChip label={row.tier} family="neutral" />
+            <Txt field="label" desk="meta" color={colors.text.secondary}>
+              {appSignInCell(t, row.appSignIn, true)}
+            </Txt>
+          </Row>
+        ) : (
+          <StatusChip label={row.tier} family="neutral" />
+        ),
     },
     moneyColumn('limit', t('o6.limit'), (row) => row.creditLimitPaise),
     textColumn('terms', t('o6.terms'), (row) => word(row.paymentTerms)),
@@ -154,6 +175,8 @@ export default function Shops(): React.JSX.Element {
       ),
     },
     textColumn('phone', t('o6.phone'), (row) => row.phone),
+    /* DOS-400: whether the shop signs in to the app, as whom; the panel carries the actions. */
+    textColumn('app', t('si.title'), (row) => appSignInCell(t, row.appSignIn, false)),
   ]
 
   useRegisterKeys({
@@ -251,6 +274,7 @@ export default function Shops(): React.JSX.Element {
               <Field label={t('o6.phone')}>{current.phone ?? '—'}</Field>
               <Field label={t('o6.beat')}>{names.beat(current.beatId)}</Field>
               <Field label={t('o6.gstin')}>{current.gstin ?? '—'}</Field>
+              <ShopSignInRow shop={current} when={instantWithClock} onToast={setToast} />
 
               <Panel title={t('o10.dues')}>
                 <Stack gap={2}>

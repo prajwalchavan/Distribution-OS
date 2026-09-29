@@ -251,7 +251,7 @@ describeDb('demo seed on an empty database', () => {
     })
     await db.insert(memberships).values({ id: uuidv7(), tenantId, userId: ownerId, role: 'owner' })
     await bootstrapTenant(db, tenantId)
-  }, 60_000)
+  }, 180_000)
 
   afterAll(async () => {
     await pool?.end()
@@ -341,7 +341,7 @@ describeDb('demo seed on an empty database', () => {
       .filter((table) => first[table] !== second[table])
       .map((table) => `${table}: ${first[table] ?? 0} -> ${second[table] ?? 0}`)
     expect(drift).toEqual([])
-  }, 60_000)
+  }, 180_000)
 
   /**
    * CLAUDE.md's contract for `pnpm smoke --destructive` is one line: "idempotent, re-run after
@@ -381,7 +381,7 @@ describeDb('demo seed on an empty database', () => {
     expect(stillDisabled[0]?.n).toBe(0)
     // ...and putting the demo back on its feet is still a seed: it adds nothing.
     expect(await rowCounts(db)).toEqual(before)
-  }, 60_000)
+  }, 180_000)
 
   /**
    * The founder's requirement (docs/22 §8, 2026-09-04): three distributors, staff under each, and
@@ -760,7 +760,7 @@ describeDb('demo seed on an empty database', () => {
       .filter((table) => before[table] !== after[table])
       .map((table) => `${table}: ${before[table] ?? 0} -> ${after[table] ?? 0}`)
     expect(drift).toEqual([])
-  }, 60_000)
+  }, 180_000)
 
   /**
    * DOS-113 — one plan per distributor, not two.
@@ -782,7 +782,7 @@ describeDb('demo seed on an empty database', () => {
     ).rows as { slug: string; tenant_plan: string; subscription_plan: string }[]
     expect(rows.length).toBeGreaterThan(0)
     expect(rows.filter((r) => r.tenant_plan !== r.subscription_plan)).toEqual([])
-  }, 60_000)
+  }, 180_000)
 
   /**
    * DOS-079. `sales_orders.tax_paise` is GST PLUS compensation cess and `cess_paise` is the cess

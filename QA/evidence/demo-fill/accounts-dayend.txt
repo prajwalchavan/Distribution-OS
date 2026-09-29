@@ -1,0 +1,32 @@
+LD
+Look-alike Distributors
+accountant
+⋯
+Updated just now
+Day-end
+Receipts
+Day-end
+Claims
+CASH TO BANK
+₹0.00
+0 rows
+CHEQUES IN HAND
+₹2,709.00
+1 rows
+TRIPS COMING BACK
+0
+Cheques in hand
+Tap a cheque the bank returned to mark it bounced
+Navratna Cold Drinks House
+RCPT-0023 · Cosmos Bank
+₹2,709.00
+Trips coming back
+No trip is waiting to be settled
+Cash and cheques in hand
+Tick the cash and cheques you are banking
+RCPT-0023
+No
+2,709.00
+Today
+Orders
+Billing

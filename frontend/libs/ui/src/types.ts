@@ -416,7 +416,11 @@ export interface DialogProps extends Testable {
   /** The real verb: "Issue invoice", "Post GRN", "Close trip". Never "OK". */
   confirmLabel: string
   onConfirm: () => void
-  cancelLabel?: string | undefined
+  /**
+   * The second button's words ("Cancel" when omitted). `null` draws NO second button: a dialog that
+   * only tells (nothing is written, so there is nothing to cancel) closes with its one button.
+   */
+  cancelLabel?: string | null | undefined
   destructive?: boolean | undefined
   busy?: boolean | undefined
 }

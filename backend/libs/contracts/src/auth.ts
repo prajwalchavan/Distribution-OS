@@ -74,7 +74,14 @@ export const AuthUserSchema = z.object({
   username: UsernameSchema.nullable(),
   name: z.string().min(1).max(120),
   locale: LocaleSchema,
-  /** True after a temporary password was set by the owner/manager: the app must force a change. */
+  /**
+   * True after a temporary password was set by the owner/manager (or a desk gave a shop its first
+   * password): the app forces a change, and the SERVER does too (architect's ruling of 2026-09-29,
+   * docs/22 §8) — every access token issued while it is true carries the claim `pwc`, and with it
+   * every service answers 403 "Choose your own password first…" to everything but sign-in, refresh,
+   * `me`, `changePassword` and sign-out (`sync.upload` answers 2xx and sends every op back,
+   * `password_change_required`, unapplied).
+   */
   mustChangePassword: z.boolean(),
 })
 export type AuthUser = z.infer<typeof AuthUserSchema>
@@ -391,6 +398,20 @@ export type ResetPasswordIn = z.infer<typeof ResetPasswordInput>
 export const AuthOkOutput = z.object({ ok: z.literal(true) })
 export type AuthOk = z.infer<typeof AuthOkOutput>
 
+/**
+ * `changePassword` (expand-only, 2026-09-29): ok, plus a fresh ACCESS token for the same session. The
+ * token the device held was issued while the password had to be changed and carries that fact (the
+ * `pwc` claim every service refuses); this one does not, so the device carries on at once instead of
+ * waiting for its next refresh. The refresh token is unchanged.
+ */
+export const ChangePasswordOutput = AuthOkOutput.extend({
+  accessToken: z.string(),
+  tokenType: z.literal('Bearer'),
+  /** Lifetime of the new access token in seconds, as on `TokenPairOutput`. */
+  accessExpiresIn: z.number().int().positive(),
+})
+export type ChangePasswordOut = z.infer<typeof ChangePasswordOutput>
+
 /** The public half of the signing keys, so any service (or an integrator) can verify an access token. */
 export const JwksOutput = z.object({ keys: z.array(z.record(z.string(), z.unknown())) })
 export type Jwks = z.infer<typeof JwksOutput>
@@ -528,7 +549,7 @@ export const authContract = {
       summary: 'Change your password; every other session is revoked',
     })
     .input(ChangePasswordInput)
-    .output(AuthOkOutput)
+    .output(ChangePasswordOutput)
     .errors(TOKEN_ERRORS),
   forgotPassword: oc
     .route({

@@ -575,6 +575,12 @@ export const StaffUpdateInput = MutationBase.extend({
 )
 export type StaffUpdateIn = z.infer<typeof StaffUpdateInput>
 
+/**
+ * A new temporary password for a member here. Refused (409, in words) when the person also signs in
+ * with another business — as its staff, its owner or its shopkeeper — or to the platform console: a
+ * password is global, so one set here would open that business too. Only the person changes it then
+ * (`retailers.signIn.setPassword` keeps the same rule for a shop).
+ */
 export const StaffSetPasswordInput = MutationBase.extend({
   userId: IdSchema,
   temporaryPassword: PasswordSchema,

@@ -33,6 +33,8 @@ see `QA/10-business-logic-audit.md`.
 > **Judged by the main session, 2026-09-28.** DOS-310 is CONFIRMED in SQL on `dos_test_p7_money`: UPI reference UTR1790564510946 stands on three collected receipts across two shops (₹315.00), cheque CHQ088789 on two for one shop (₹1,190.00). DOS-322 = DOS-330 and DOS-323 = DOS-332 of the pricing phase (`QA/findings/16-pricing-tax.md`), found independently by both lanes; each is fixed once. DOS-317 is raised to P1 (a CA copies the document counts into the return). The other findings were read, not re-run. Rulings: docs/22 §8, row "Architect rulings, money and credit". Nothing is fixed yet.
 
 ### DOS-310 — The same cheque number / the same UPI UTR is accepted again as a new receipt — money credited twice
+**Status (2026-09-29): FIXED on main `1f378e6b`, not yet on the live server.** A UPI or bank-transfer reference already on a live receipt is refused at the desk and at the crew's door, online and offline, naming the earlier receipt; the same shop's cheque number is refused; another shop's cheque number is asked, and taken once the person confirms it is a different cheque. A bounced or cancelled receipt frees its reference. Duplicates recorded before the fix stay on the books and are named by a release check. The driver's home "Take money" sheet has no confirm step yet (DOS-366). Proof: `money-rulings.spec.ts` and `settlement-money.spec.ts` (DOS-310), `receipt-references.test.ts`, the trigger of migration 0079 and `pnpm check:receipt-references`; the receipts lane's blind check replayed A9 and A9b (now refused) and the crew's online and offline doors, and the merged-tree check found exactly the two QA duplicates on a migrated copy of `dos_test_p7_money`.
+
 Category: business-logic | Priority: P0 | Role: Accountant (also Manager, Owner, Delivery — same endpoint) | Platform: API
 
 ```
@@ -66,6 +68,8 @@ Suggested fix: in receivables.recordReceipt refuse (409 `instrument_already_reco
 ```
 
 ### DOS-311 — Money paid after a bad-debt write-off is parked as the shop's credit; the write-off is never recovered
+**Status (2026-09-29): FIXED on main `1f378e6b`, not yet on the live server.** Money a shop pays after a write-off first recovers that write-off: it shows as "Bad debts recovered" income, the loss stays booked as it was, nothing goes on account, and the shop's next bill is owed in full. Reversing or bouncing that money puts the write-off back. Loose ends are DOS-394. Proof: `money-rulings.spec.ts` (DOS-311) and the recovery guard of migration 0079; the receipts lane's blind check replayed A13 to the paisa (₹395.00 as bad debt recovered, ₹0 on account, trial balance 0) and the crew's cash at the door.
+
 Category: business-logic | Priority: P0 | Role: Owner / Accountant | Platform: API
 
 ```
@@ -95,6 +99,8 @@ Suggested fix: add receivables.writeOffs.reverse (back office, audited): a mirro
 ```
 
 ### DOS-322 — A scheme line picked from several batches carries the whole scheme on every batch line: scheme spend and the brand claim are multiplied
+**Status (2026-09-29): OPEN.** P0. Same defect as DOS-330; it waits for the prices-and-tax lane, which starts from main now that the stock fixes are merged. The merged-tree replay still fails the three "scheme counted once" checks, as QA's own run did.
+
 Category: bug | Priority: P0 | Role: Owner / Accountant (claims), Warehouse (the pick that splits) | Platform: API
 
 ```
@@ -130,6 +136,8 @@ Suggested fix: when billing splits an order line into batch lines, split each ap
 ```
 
 ### DOS-323 — Splitting a line across batches re-rounds its GST per batch: the bill can differ from the order the shop agreed (₹1 here)
+**Status (2026-09-29): OPEN.** P0 by the lane rule (at most ₹1 a bill). Same defect as DOS-332; it waits for the prices-and-tax lane. The merged-tree replay saw the one "order total = bill total" check pass, but no commit fixes the tax split; whether that check fails depends on how the batches split on the run.
+
 Category: bug | Priority: P0 (lane rule: money wrongly rounded is P0; the amount is at most ₹1 a bill) | Role: Salesperson / Shop / Warehouse | Platform: API
 
 ```
@@ -153,6 +161,8 @@ Suggested fix: in billing, allocate the order line's taxable, GST and cess to it
 ```
 
 ### DOS-312 — Money on account is never applied to later bills; the credit gate and ageing count the gross bills, so a shop in credit is held
+**Status (2026-09-29): FIXED on main `1f378e6b`, not yet on the live server.** Money on account now pays the shop's oldest open bills: when a new bill is issued, when a receipt leaves money over, when a credit note lands on a paid bill, and when the desk presses "Apply money on account" for one shop or for all. The credit check, the overdue days, the dues reminder and each shop's dues count what the shop owes after money on account, so a shop in credit is neither held nor chased; the home's totals and the ageing ladder stay gross with on account and net beside them. The oldest due date on some screens is still gross (DOS-396). Proof: `money-rulings.spec.ts`, `vansales.spec.ts` and `credit.spec.ts` (DOS-312), `net-dues.test.ts`, the worker's `notifications.test.ts`; blind checks: the ₹405-in-credit shop and R-0047 are not held, and "Apply for every shop" left no seeded shop with money on account beside an open bill.
+
 Category: business-logic | Priority: P1 | Role: Salesperson / Owner / Accountant | Platform: API
 
 ```
@@ -185,6 +195,8 @@ Suggested fix: (a) at bill issue (billing → receivables.postInvoiceIssued) app
 ```
 
 ### DOS-313 — The credit gate ignores confirmed orders that are not billed yet: two orders together pass a strict limit with no approval
+**Status (2026-09-29): FIXED on main `1f378e6b`, not yet on the live server.** The credit check counts open bills plus confirmed orders not billed yet, less money on account, and two orders placed for one shop at the same moment cannot both pass. An order that waited on a rate or a floor price is measured again when that is approved, and so is the desk's own confirm. One edge stays open: a credit release given before the rate is decided (DOS-324). Proof: `credit.spec.ts` (DOS-313, the same-moment and the re-measure cases); blind checks: QA's C3 held, 20 rounds of two submits at the same moment and 10 rounds of an approval racing a submit each confirmed exactly one order.
+
 Category: business-logic | Priority: P1 | Role: Salesperson | Platform: API
 
 ```
@@ -208,6 +220,8 @@ Suggested fix: add the value of the shop's confirmed/picking/packed orders that 
 ```
 
 ### DOS-314 — Credit mode "stop" behaves exactly like "strict": a manager approves credit to a stopped shop
+**Status (2026-09-29): FIXED on main `1f378e6b`, not yet on the live server.** A shop on credit stop takes no order on credit from any door, and nobody, manager or owner, can approve or confirm one that was already held; only changing the shop's credit mode lifts it. A pay-on-delivery order of a stopped shop is held for the desk. The shop's own app is told in its own words. Proof: `credit.spec.ts` (DOS-314); the credit lane's blind check 2 observed every mode against every payment term (V6, V7), and QA's `s3-credit.mjs` C4, brought to the ruling, passes in the merged-tree replay.
+
 Category: business-logic | Priority: P1 | Role: Manager | Platform: API
 
 ```
@@ -231,6 +245,8 @@ Suggested fix: in approvals.decide, a credit_limit approval on an order of a cre
 ```
 
 ### DOS-315 — A deactivated shop can still be ordered for, confirmed and billed on credit
+**Status (2026-09-29): FIXED on main `1f378e6b`, not yet on the live server.** A deactivated shop takes no new order from the rep, the desk, the shop's own app, "Order again" or a phone upload; the refusal says why. Its open orders can still be billed, delivered or cancelled. Proof: `credit.spec.ts` (DOS-315); blind check 2 of the credit lane (V9, V10b), and QA's `s3b-inactive.mjs`, brought to the ruling, passes in the merged-tree replay.
+
 Category: business-logic | Priority: P2 | Role: Salesperson | Platform: API
 
 ```
@@ -248,6 +264,8 @@ Suggested fix: orders.create/submit and repeatLast refuse a retailer with active
 ```
 
 ### DOS-316 — No refund, payout or debit note: money on account cannot be returned; a bounced cheque's bank charge cannot be recovered
+**Status (2026-09-29): OPEN.** P2, change backlog (money and credit ruling 8 of 28 Sep). No lane built a refund or a debit note; QA's A12 check still fails in the merged-tree replay.
+
 Category: missing-feature | Priority: P2 | Role: Accountant | Platform: API
 
 ```
@@ -272,6 +290,8 @@ Suggested fix: receivables.refunds.create (back office, from on-account only, ca
 ```
 
 ### DOS-317 — GST summary / GSTR-1 register under-counts documents (max per row instead of distinct)
+**Status (2026-09-29): FIXED on main `1f378e6b`, not yet on the live server.** The GST summary and the GST sales register count distinct bills and credit notes, with the cancelled bills counted apart, by rate and by HSN; the CSV ends each section on its total row (see DOS-397). Proof: `money-registers.spec.ts` (DOS-317); the credit lane's blind check on a copy of `dos_test_p7_money` read 163 bills, 1 cancelled and 8 credit notes, each equal to SQL, where the old count read 128.
+
 Category: bug | Priority: P2 | Role: Owner / Accountant | Platform: API
 
 ```
@@ -296,6 +316,8 @@ Suggested fix: compute count(distinct invoice_id) / count(distinct credit_note_i
 ```
 
 ### DOS-318 — No replacement document (goods for goods): a credit note plus a new order and bill is the only way
+**Status (2026-09-29): OPEN.** P3, change backlog (ruling 8 of 28 Sep). QA's R9 check still fails in the merged-tree replay.
+
 Category: missing-feature | Priority: P3 | Role: Manager / Delivery | Platform: API
 
 ```
@@ -309,6 +331,8 @@ Suggested fix: a replacement order type that ships against the credit note witho
 ```
 
 ### DOS-319 — Demo seed leaves ₹1,52,536 "Cash with delivery crews" on a settled trip (TRIP-20260615-1)
+**Status (2026-09-29): OPEN.** P3, demo seed backlog. Every money reconcile of the lanes and of the merged tree still starts with the seed's rows R6a, R6b and R6d on TRIP-20260615-1.
+
 Category: bug | Priority: P3 | Role: Owner | Platform: API (seed data only)
 
 ```
@@ -327,6 +351,8 @@ Suggested fix: in seed-demo attach the RCPT-VAN receipts to a September trip and
 ```
 
 ### DOS-320 — A bill closed by a credit note (refused, never paid) shows state "paid"
+**Status (2026-09-29): PARTLY FIXED on main `1f378e6b`, not yet on the live server.** A bill closed by credit notes alone now reads "Credited" on the bill list and the bill detail for the owner, the desk and the shop; a bill closed by money still reads "Paid". Left: the sales register row still says "paid"; neither money lane changed it. Proof: `billing.spec.ts` and `money-rulings.spec.ts` (DOS-320); the receipts lane's blind check read a bill credited whole as credited for the owner, the manager and the shop, on the list and on the detail.
+
 Category: ux | Priority: P3 | Role: Owner / Accountant | Platform: API
 
 ```
@@ -340,6 +366,8 @@ Suggested fix: derive a display status "credited" when the allocations are all c
 ```
 
 ### DOS-321 — The daily sales register carries no credit notes although the rollup has them
+**Status (2026-09-29): FIXED on main `1f378e6b`, not yet on the live server.** The daily sales register and its CSV show the day's credit notes beside what was invoiced. Proof: `money-registers.spec.ts` (DOS-321); the credit lane's blind check read credited ₹1,639.00 on the copy of `dos_test_p7_money`, equal to the rollup and to the credit notes.
+
 Category: bug | Priority: P3 | Role: Owner | Platform: API
 
 ```
@@ -353,6 +381,8 @@ Suggested fix: add creditedPaise to DailyTenantStatSchema and the register query
 ```
 
 ### DOS-324 — A credit release given before the rate is decided is not measured again
+**Status (2026-09-29): OPEN.** P2, change backlog. Nothing in the merge changed it: the credit lane's last commit after its blind check only moved a test.
+
 Category: bug | Priority: P2 | Role: Manager / Owner | Platform: API | Found by: blind check 2 of the credit fix lane (V19), 2026-09-28
 
 ```

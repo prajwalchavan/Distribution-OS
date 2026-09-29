@@ -225,6 +225,11 @@ export interface SharePayload {
 export interface PlatformShare {
   share: (payload: SharePayload) => Promise<boolean>
   readonly available: boolean
+  /**
+   * A real share sheet opens (every phone; a browser with the Web Share API). False on a desktop
+   * browser, where `share` copies the text instead — a screen that must say what happened reads this.
+   */
+  readonly sheet: boolean
 }
 
 // ---------------------------------------------------------------------------

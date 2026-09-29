@@ -3,14 +3,16 @@
  *
  * The register is the searchable list; a row opens the shop as a side panel with the four things a
  * back office decides about a shop — what it owes, what its credit terms are, its statement of
- * account, and whether the shopkeeper is linked to the app. `q` arrives in the URL from the header
- * search, so "go to a shop" and this screen's own filter are one query.
+ * account, and whether the shop can use the app (`ShopSignInRow`, DOS-400). `q` arrives in the URL
+ * from the header search, so "go to a shop" and this screen's own filter are one query.
  *
- * `retailers.setCredit` and `retailers.linkIdentity` are owner + manager: for the accountant both
+ * `retailers.setCredit` and the sign-in actions are owner + manager: for the accountant those
  * controls are absent, and the statement — which IS the money desk's job — stays.
  *
- * `linkIdentity` is back-office only for a reason worth restating (docs/17 item 27): a salesperson
- * must never learn whether a phone number already exists in another distributor's network.
+ * The old "Link the shopkeeper" action (`retailers.linkIdentity`) is gone from this panel (DOS-400
+ * repair): it said the shopkeeper could then sign in, and it made no sign-in. "Give this shop a
+ * sign-in" does what it promised, and a salesperson still never learns whether a phone number
+ * already exists in another distributor's network (docs/17 item 27).
  */
 import type { Retailer } from '@dos/contracts'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
@@ -27,13 +29,14 @@ import {
   Sheet,
   Stack,
   StatusChip,
-  TextInput,
   Toast,
   Txt,
   useColors,
   useStrings,
+  useTheme,
   type RegisterColumn,
 } from '@dos/ui'
+import { platform } from '@dos/ui/platform'
 import { useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 
@@ -49,7 +52,13 @@ import {
   useCan,
   useNames,
 } from '../../../src/groups/manager/lib/ui'
-import { longDate, shiftDays, shortInstant, today } from '../../../src/groups/manager/lib/dates'
+import {
+  instantWithClock,
+  longDate,
+  shiftDays,
+  shortInstant,
+  today,
+} from '../../../src/groups/manager/lib/dates'
 import {
   SHOP_COLUMNS,
   overdueAmount,
@@ -60,9 +69,14 @@ import {
 import { useHotkeys, useRegisterKeys } from '../../../src/groups/manager/lib/keys'
 import { useWord } from '../../../src/groups/manager/lib/words'
 import { CreditDialog } from '../../../src/pricing/editors'
+import { ShopSignInRow } from '../../../src/shops/sign-in'
+import { appSignInCell } from '../../../src/shops/sign-in-forms'
 
 export default function Shops(): React.JSX.Element {
   const t = useStrings()
+  const density = useTheme().density
+  /** Where `<Register>` draws one row per shop instead of a table: a phone, or any native build. */
+  const cards = platform.kind === 'native' || density !== 'desk'
   const word = useWord()
   const colors = useColors()
   const api = useApi()
@@ -71,12 +85,10 @@ export default function Shops(): React.JSX.Element {
   const params = useLocalSearchParams<{ q?: string }>()
 
   const maySetCredit = can('retailers.setCredit')
-  const mayLink = can('retailers.linkIdentity')
   const [q, setQ] = useState(typeof params.q === 'string' ? params.q : '')
   const [beatId, setBeatId] = useState<string | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
-  const [dialog, setDialog] = useState<'credit' | 'statement' | 'link' | null>(null)
-  const [phone, setPhone] = useState('')
+  const [dialog, setDialog] = useState<'credit' | 'statement' | null>(null)
   const [toast, setToast] = useState<string | null>(null)
 
   const beats = useQuery(['names', 'beats'], () => api.api.retailers.beats.list({}), {
@@ -147,15 +159,6 @@ export default function Shops(): React.JSX.Element {
       }),
     { invalidates: [['notifications']] },
   )
-  const link = useMutation(
-    (input: { id: string; phone: string }, meta) =>
-      api.api.retailers.linkIdentity({
-        id: input.id,
-        phone: input.phone,
-        idempotencyKey: meta.idempotencyKey,
-      }),
-    { invalidates: [['retailers']] },
-  )
 
   /*
    * `retailers.list` and `retailers.get` answer the UNION of the staff row (code, tier, the credit
@@ -186,16 +189,36 @@ export default function Shops(): React.JSX.Element {
       key: 'mode',
       head: t('m14.creditMode'),
       priority: at.priority,
-      cell: (row) => (
-        <StatusChip
-          label={word(row.creditMode)}
-          family={
-            row.creditMode === 'stop' ? 'brick' : row.creditMode === 'strict' ? 'ochre' : 'neutral'
-          }
-        />
-      ),
+      cell: (row) => {
+        const chip = (
+          <StatusChip
+            label={word(row.creditMode)}
+            family={
+              row.creditMode === 'stop'
+                ? 'brick'
+                : row.creditMode === 'strict'
+                  ? 'ochre'
+                  : 'neutral'
+            }
+          />
+        )
+        // A phone row has no "App sign-in" column: it says it here, under the name (DOS-400).
+        return cards ? (
+          <Row gap={2} wrap>
+            {chip}
+            <Txt field="label" desk="meta" color={colors.text.secondary}>
+              {appSignInCell(t, row.appSignIn, true)}
+            </Txt>
+          </Row>
+        ) : (
+          chip
+        )
+      },
     }),
     phone: (at) => textColumn('phone', t('m14.phone'), (row) => row.phone, at),
+    /* DOS-400: whether the shop signs in to the app, as whom; the panel carries the actions. */
+    app: (at) =>
+      textColumn('app', t('si.title'), (row) => appSignInCell(t, row.appSignIn, false), at),
   }
   const columns: readonly RegisterColumn<Retailer>[] = SHOP_COLUMNS.map((spec) =>
     cellOf[spec.key]({ priority: spec.priority }),
@@ -290,6 +313,7 @@ export default function Shops(): React.JSX.Element {
               <Field label={t('px.terms')}>{word(current.paymentTerms)}</Field>
               <Field label={t('m14.phone')}>{current.phone ?? t('app.none')}</Field>
               <Field label={t('m14.gstin')}>{current.gstin ?? t('app.none')}</Field>
+              <ShopSignInRow shop={current} when={instantWithClock} onToast={setToast} />
 
               <Panel title={t('m14.owes')}>
                 <Stack gap={2}>
@@ -386,17 +410,6 @@ export default function Shops(): React.JSX.Element {
                   }}
                   testID="shop-statement"
                 />
-                {mayLink ? (
-                  <Button
-                    label={t('m14.link')}
-                    variant="ghost"
-                    onPress={() => {
-                      setPhone(current.phone ?? '')
-                      setDialog('link')
-                    }}
-                    testID="shop-link"
-                  />
-                ) : null}
               </Stack>
             </Stack>
           )}
@@ -413,46 +426,27 @@ export default function Shops(): React.JSX.Element {
       />
 
       <Dialog
-        open={dialog === 'statement' || dialog === 'link'}
+        open={dialog === 'statement'}
         onClose={() => {
           setDialog(null)
         }}
-        title={dialog === 'statement' ? t('m14.statement') : t('m14.link')}
+        title={t('m14.statement')}
         body={
           <Stack gap={3}>
-            {dialog === 'statement' ? (
-              <Txt field="body" desk="body">
-                {t('m14.statementBody')}
-              </Txt>
-            ) : null}
-            {dialog === 'link' ? (
-              <>
-                <Txt field="label" desk="meta" color={colors.text.secondary}>
-                  {t('m14.linkBody')}
-                </Txt>
-                <TextInput
-                  label={t('m14.linkPhone')}
-                  value={phone}
-                  onChange={setPhone}
-                  keyboard="phone"
-                  capitalize="none"
-                  testID="link-phone"
-                />
-              </>
-            ) : null}
-            <Refusal of={[statement, link]} testID="shop-refusal" />
+            <Txt field="body" desk="body">
+              {t('m14.statementBody')}
+            </Txt>
+            <Refusal of={[statement]} testID="shop-refusal" />
           </Stack>
         }
-        confirmLabel={dialog === 'statement' ? t('m14.statement') : t('m14.link')}
-        busy={statement.status === 'pending' || link.status === 'pending'}
+        confirmLabel={t('m14.statement')}
+        busy={statement.status === 'pending'}
         onConfirm={() => {
           if (selected === null) return
           const close = (): void => {
             setDialog(null)
           }
-          if (dialog === 'statement') void statement.mutateAsync(selected).then(close, stayOpen)
-          if (dialog === 'link')
-            void link.mutateAsync({ id: selected, phone: phone.trim() }).then(close, stayOpen)
+          void statement.mutateAsync(selected).then(close, stayOpen)
         }}
         testID="shop-dialog"
       />

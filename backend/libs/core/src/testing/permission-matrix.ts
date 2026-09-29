@@ -6,8 +6,10 @@ import {
   isAllowed,
   listProcedures as contractProcedures,
   type MembershipRole,
+  type PermissionRole,
   type ProcedureSummary,
 } from '@dos/contracts'
+import { CHOOSE_YOUR_OWN_PASSWORD } from '../platform/index.js'
 import { pickContract, type ServiceDefinition } from '../service/define.js'
 import { bearer, platformBearer, type Actor } from './app.js'
 
@@ -21,6 +23,12 @@ export interface PermissionMatrixOptions {
 
 /** Module 13's non-membership role, deliberately absent from `ALL_ROLES` (see permissions.ts). */
 const PLATFORM_ROLE = 'platform_admin'
+
+/**
+ * The one procedure a first-password token is not refused at the gate (docs/22 §8, 2026-09-29): the
+ * offline upload answers 2xx and sends every op back itself (`sync.service.ts`).
+ */
+const ANSWERS_THE_WALL_ITSELF = 'POST /sync/upload'
 
 const DEFAULTS: Required<PermissionMatrixOptions> = {
   tenantId: '00000000-0000-7000-8000-00000000f001',
@@ -50,6 +58,8 @@ export function describePermissionMatrix(
     let app: NestFastifyApplication
     const tokens = new Map<MembershipRole, Record<string, string>>()
     let platformToken: Record<string, string> = {}
+    /** The same people on a desk's first password (the `pwc` claim): each role this service serves. */
+    const walled = new Map<PermissionRole, Record<string, string>>()
 
     beforeAll(async () => {
       app = await boot()
@@ -57,6 +67,12 @@ export function describePermissionMatrix(
       await app.getHttpAdapter().getInstance().ready()
       for (const role of ALL_ROLES) tokens.set(role, await bearer(actor(opts, role)))
       platformToken = await platformBearer(opts.actorId)
+      for (const role of ALL_ROLES) {
+        if (service.roles.includes(role))
+          walled.set(role, await bearer(actor(opts, role), { mustChangePassword: true }))
+      }
+      if (service.roles.includes(PLATFORM_ROLE))
+        walled.set(PLATFORM_ROLE, await platformBearer(opts.actorId, { mustChangePassword: true }))
     })
 
     afterAll(async () => {
@@ -93,6 +109,23 @@ export function describePermissionMatrix(
           expect(isGateRefusal(platform), platformLabel).toBe(true)
         } else {
           expect(isGateRefusal(platform), platformLabel).toBe(false)
+        }
+        // A password a desk gave is a first password on the server too (docs/22 §8, 2026-09-29): the
+        // person reaches NOTHING here, whatever the role may otherwise do, until they choose their own.
+        const route = `${p.method.toUpperCase()} ${p.httpPath}`
+        for (const [role, headers] of walled) {
+          const res = await request(app, p.method, url, headers)
+          const label = `${role} on a first password, ${p.method} ${url} → ${res.statusCode} ${res.body.slice(0, 200)}`
+          const allowed = isAllowed(p.permission, role)
+          if (route === ANSWERS_THE_WALL_ITSELF && allowed) {
+            expect(isGateRefusal(res), label).toBe(false)
+          } else if (route === ANSWERS_THE_WALL_ITSELF) {
+            expect(res.statusCode, label).toBe(403)
+          } else {
+            expect(res.statusCode, label).toBe(403)
+            expect(isGateRefusal(res), label).toBe(true)
+            expect(res.json<{ message: string }>().message, label).toBe(CHOOSE_YOUR_OWN_PASSWORD)
+          }
         }
       })
     }

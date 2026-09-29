@@ -88,7 +88,8 @@ export function statementRows(
 // The shops register
 // ---------------------------------------------------------------------------
 
-export type ShopColumnKey = 'code' | 'name' | 'beat' | 'tier' | 'terms' | 'limit' | 'mode' | 'phone'
+export type ShopColumnKey =
+  'code' | 'name' | 'beat' | 'tier' | 'terms' | 'limit' | 'mode' | 'phone' | 'app'
 
 /** A `<Register>` column of M14, as far as this file decides it: which column, and what it is FOR. */
 export interface ShopColumnSpec {
@@ -100,7 +101,7 @@ export interface ShopColumnSpec {
 /**
  * The columns M14 lists, in order. The screen supplies each one's head and cell.
  *
- * WHICH COLUMN NAMES THE ROW (DOS-038). A desk sees all eight; a phone sees the `identity` column, the
+ * WHICH COLUMN NAMES THE ROW (DOS-038). A desk sees all nine; a phone sees the `identity` column, the
  * first `value` column and the `chip` one. With the CODE as the identity and the credit limit as the
  * value, a phone row read "R-0046 · Blocked · 0.00" — the one column a manager recognises a shop by was
  * the one the narrow layout dropped, on the list whose whole job is to find a shop. The name is the
@@ -116,6 +117,12 @@ export const SHOP_COLUMNS: readonly ShopColumnSpec[] = [
   { key: 'limit', priority: 'detail' },
   { key: 'mode', priority: 'chip' },
   { key: 'phone', priority: 'detail' },
+  /*
+   * DOS-400: the shop's app sign-in (its username), a desk column; the panel carries the actions. A
+   * PHONE row says it too, beside the credit chip under the name ("App: ramesh.gupta" / "No app sign-in
+   * yet", the second check's minor) — not as the trailing figure, which would squeeze the name.
+   */
+  { key: 'app', priority: 'detail' },
 ]
 
 /** What a phone shows of a row: the kit's rule (`@dos/ui` web/list.tsx and native/list.tsx). */

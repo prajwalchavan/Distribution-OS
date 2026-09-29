@@ -85,7 +85,8 @@ Mutations are pressed for real. That is the only way to know they work, and it i
   an example for those procedures the example wins, and the chain is only as re-runnable as the
   example's own id is.
 - Procedures matching `/cancel|delete|revoke|writeOff|disable/`, plus `auth.changePassword`,
-  `tenancy.staff.setPassword`, `tenancy.staff.setStatus` and `retailers.linkIdentity`, are skipped
+  `tenancy.staff.setPassword`, `tenancy.staff.setStatus`, `retailers.linkIdentity` and the three
+  `retailers.signIn.*` (a shop's app sign-in, DOS-400), are skipped
   unless `--destructive` is passed — they would change the credentials or the shop links every other
   tool and demo script depends on. They are listed in the output, never dropped quietly.
 - `--only GET` writes nothing at all. Use it when another agent is working in the same database.
@@ -112,3 +113,57 @@ dispatched off its own trip's load, a loaded trip cancelled, a pick edited after
 batch — and every godown batch held beyond what stands there, one line each, and exits 1 while any is left.
 Read-only; `--tenant <slug>` looks at one distributor, `--json` prints the rows. Nothing moves them on by itself:
 each needs a person (a check-in, a credit note, a count or a cancel).
+
+## `pnpm fill:demo` — dummy activity on top of the real master data
+
+Decision docs/22 §8 (2026-09-28), brief `docs/plans/demo-activity-fill.md`. One site, one database: the
+distributor's real shops, items, prices, stock and opening dues stay, and this tool adds a working day on top
+so that every role opens on work. It is a CLIENT of the running API — it signs in as the people who would do
+each step and calls the procedures the apps call — and never opens a database connection to write.
+
+| Command                                                                                             | What it does                                                                                                                                                                                                          |
+| --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm fill:demo --api <url> --tenant <slug> --owner-password-file <f> --logins-file <f> [--commit]` | Finishes what the tool left open on earlier days, then makes `--date` (default today, IST). Dry run without `--commit`. `--report <json>` writes its counts.                                                          |
+| `pnpm check:demo-coverage` (same arguments)                                                         | Signs in as every tester login and reads what each role's screens read; exits 1 with the gap list when a role has no work.                                                                                            |
+| `pnpm check:demo-rows --tenant <slug> [--expect <run.json> …] [--baseline <before.json>]`           | Reads the database (`DATABASE_URL`) read-only: the tool's rows by kind, its money only on its own bills and no real money on them, stock ledger = balances, journals balance, dues = bills − receipts − credit notes. |
+| `pnpm --filter @dos/tools build:lookalike --owner-password-file <f>`                                | TEST ONLY (refuses any database not named `dos_test_…`): a distributor built the way the real one was — `bootstrapTenant` + the legacy importer's writer — from an invented plan of the real one's shape.             |
+| `bash backend/infra/oracle-vm/fill-demo.sh`                                                         | The founder's one command: rehearsal on a restored copy, the real run, the tool's two checks and the four release checks on each, the 06:00 IST cron line.                                                            |
+
+How rows are marked: every idempotency key starts `demo-fill:<business date>:`, and every id the tool names
+is derived from that key and the distributor — a UUIDv7 whose time falls inside the business date and which
+carries the tag `…-7d3f-bd3f-de30…` (`demo-fill/ids.ts`). Rows the API makes from them (a bill at pack, a
+credit note at a door) are found through the tool's row they hang off. The same date run twice writes
+nothing; a run that died midway is healed by the next. Output is counts and ids only; the tester passwords
+live in the logins file (mode 600) and nowhere else. Tester usernames are `tester.manager`, `tester.accounts`,
+`tester.sales1`, `tester.sales2`, `tester.godown`, `tester.driver1`, `tester.driver2` (`--login-suffix x`
+makes them `tester.<role>.x`, for a second distributor on one database). A shopkeeper login cannot be made
+through the API (QA DOS-400): three shops stand in for `tester.shop1…3`; when one of them is closed, gets a
+login or becomes a credit shop, the next run picks another and moves the tool's offer to it.
+
+A dry run writes nothing of the business, but it does sign the owner in and out, and the sign-in service
+records that as it records every sign-in: one session, its sign-in and sign-out events and the device. A run
+the API stops answering in the middle still prints its summary and writes its `--report` (exit 1 when a whole
+row of the brief's table is missing); the next run carries on from what is there.
+
+What the fixed product does by itself, and how the tool keeps to it:
+
+- **Money on account is applied by the product** to a shop's oldest open bills — at a new bill, at a receipt's
+  remainder, at a credit note's (QA DOS-312) — and money from a shop with a written-off bill recovers that first
+  (DOS-311). So real money never settles a tool bill and the tool's money never reaches a real one (rule 3b): the
+  tool never bills a shop holding money on account it did not put there; every receipt it records is explicit, to
+  the paisa of its own bills; its one payment left on account ("collections to match") goes only to a shop that owes
+  nothing on a real bill and has nothing written off; a return whose remainder could reach a real bill is not
+  issued (the manager cancels it). `check:demo-rows` proves both directions and names any tool money on account at
+  a shop owing on a real bill. Each run's report says how many shops it leaves out and why ("shops left out: …").
+  What the tool cannot stop is money a PERSON records: a real payment taken FIFO (the default) for a shop with an open
+  bill of the tool is spent on that bill too (QA DOS-407); the next morning's `check:demo-rows` names it.
+- **A payment reference is used once** (DOS-310): the tool's UTRs, cheque numbers and transfer references carry the
+  business date and are never repeated; when the product still names one as taken, the next is asked.
+- **Credit** (DOS-313/314, DOS-225): no order for a shop whose credit is stopped; the shop held for credit is on a
+  strict limit and not pay-on-delivery.
+- **UPI is confirmed at Day-end** (DOS-256): each run confirms the earlier days' UPI with the cash and cheques it banks.
+- **A bill rides only the trip that carries it** (DOS-354): tomorrow's van load is planned tonight on van 1's trip of
+  tomorrow, its sheet waits for the manager (who can sign it off once today's van-1 trip is settled), and the next
+  morning's doors join that trip. A shop has one door on a van, with all its bills.
+- **After a run the four release checks pass** (`check:stock-negative`, `check:stranded`, `check:stock-cancels`,
+  `check:receipt-references`): the work the tool leaves open on purpose is work the product carries on.

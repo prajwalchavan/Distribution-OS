@@ -1,0 +1,46 @@
+LD
+Look-alike Distributors
+warehouse
+⋯
+Updated just now · Not kept in this browser
+Look-alike Distributors
+Inbound
+✓ Queues
+Capture
+Stock
+Counts
+Held
+BILLS TO COUNT
+1
+WAVES OPEN
+1
+PACKED, NO BILL
+0
+SHEETS WAITING
+1
+GATE COUNTS WAITING
+1 receipt
+SB/26-27/1576 · Western Ghats Foods Distribution
+4 lines · 29 Sep, 11:18 am
+counting
+WAVES ON THE FLOOR
+0 being picked · 1 waiting to start
+PICK-0011
+0 of 33 pc picked
+open
+PACKED WITHOUT A BILL
+Every pack has its bill
+LOAD SHEETS
+MH05FJ2386 · 29 Sep
+2 orders · 4 cartons
+Waiting for the manager
+COUNTS OPEN
+No count open
+Fill rate, last 14 days
+16 Sep — 29 Sep
+94.3% of ordered pieces picked
+891 of 945 picked
+Inbound
+Pick
+Pack
+Load

@@ -11,6 +11,7 @@ import {
   AUTH_AUDIENCE,
   AUTH_ISSUER,
   DbModule,
+  FIRST_PASSWORD_CLAIM,
   idempotentReplayInterceptor,
   loadAuthKeys,
 } from '../platform/index.js'
@@ -72,6 +73,8 @@ export interface BearerOptions {
   deviceId?: string
   /** Omit tenant + role (a session that has not chosen a distributor yet). */
   withoutTenant?: boolean
+  /** A session on a desk's first password: the `pwc` claim auth sets until the person chooses their own. */
+  mustChangePassword?: boolean
 }
 
 /**
@@ -99,6 +102,7 @@ export async function signTestToken(actor: Actor, options: BearerOptions = {}): 
     sid: options.sessionId ?? TEST_SESSION_ID,
     did: options.deviceId ?? TEST_DEVICE_ID,
   }
+  if (options.mustChangePassword === true) claims[FIRST_PASSWORD_CLAIM] = true
   if (!options.withoutTenant) {
     claims.tid = actor.tenantId
     claims.role = actor.role
@@ -142,6 +146,7 @@ export async function signPlatformToken(
     role: 'platform_admin',
     sid: options.sessionId ?? TEST_SESSION_ID,
     did: options.deviceId ?? TEST_DEVICE_ID,
+    ...(options.mustChangePassword === true ? { [FIRST_PASSWORD_CLAIM]: true } : {}),
   })
     .setProtectedHeader({ alg: AUTH_ALG, kid: keys.kid, typ: 'JWT' })
     .setSubject(actorId)

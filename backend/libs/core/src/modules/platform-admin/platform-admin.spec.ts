@@ -1,5 +1,6 @@
+import { createHash } from 'node:crypto'
 import { and, eq, sql } from 'drizzle-orm'
-import { PLATFORM_AUDIT_ACTIONS, allProcedures, contract } from '@dos/contracts'
+import { PLATFORM_AUDIT_ACTIONS, TenantCreateInput, allProcedures, contract } from '@dos/contracts'
 import { uuidv7 } from '@dos/domain'
 import {
   accounts,
@@ -8,6 +9,7 @@ import {
   createDb,
   createPool,
   hashPassword,
+  idempotencyKeys,
   locations,
   memberships,
   numberingSeries,
@@ -25,7 +27,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { AuthModule } from '../auth/index.js'
 import { RetailersModule } from '../retailers/index.js'
 import { TenancyModule } from '../tenancy/index.js'
-import { loadAuthKeys, signSupportPass } from '../../platform/index.js'
+import { loadAuthKeys, signSupportPass, withoutSecrets } from '../../platform/index.js'
 import { bearer, bootTestApp, call, platformBearer, type Actor } from '../../testing/app.js'
 import { PlatformAdminModule } from './index.js'
 
@@ -414,6 +416,22 @@ describeDb('platform console — module 13 (DATABASE_URL)', () => {
       )
     ).rows[0]
     expect(Number(onboarded?.n)).toBe(1)
+
+    // The key is filed WITHOUT the owner's temporary password (the DOS-400 fix, now for onboarding too):
+    // `request_hash` is a fast, unsalted SHA-256, and every other field of the request is known.
+    const [key] = await db
+      .select()
+      .from(idempotencyKeys)
+      .where(
+        and(eq(idempotencyKeys.tenantId, newTenantId), eq(idempotencyKeys.key, `onboard-${run}`)),
+      )
+    const parsed = TenantCreateInput.parse(body)
+    const sha = (v: unknown) => createHash('sha256').update(JSON.stringify(v)).digest('hex')
+    expect(key?.requestHash).not.toBe(sha(parsed))
+    expect(key?.requestHash).toBe(
+      sha({ ...parsed, owner: withoutSecrets(parsed.owner, ['temporaryPassword']) }),
+    )
+    expect(JSON.stringify(key?.response)).not.toContain(PASSWORD)
 
     // The distributorship is BOOTSTRAPPED, not merely created: the same chart of accounts, stock
     // locations and numbering series `pnpm db:seed` gives the pilot.

@@ -31,7 +31,13 @@ import {
   type Db,
 } from '@dos/db'
 import { businessDate } from '@dos/domain'
-import { DB, platformIdempotent, isUniqueViolation, requireDb } from '../../platform/index.js'
+import {
+  DB,
+  platformIdempotent,
+  isUniqueViolation,
+  requireDb,
+  withoutSecrets,
+} from '../../platform/index.js'
 import { toSupportGrant } from './support-grants.js'
 import { tenantSizes } from './counts.js'
 import {
@@ -198,7 +204,11 @@ export class PlatformTenantsService {
         })
         .onConflictDoNothing({ target: tenants.id })
         .catch(conflict(`the slug ${input.slug} is already taken by another distributor`))
-      return platformIdempotent(tx, input.id, input.idempotencyKey, input, async () => {
+      // Filed WITHOUT the owner's temporary password (DOS-400's `withoutSecrets`, the same fix as for
+      // staff): `request_hash` is a fast, unsalted SHA-256 whose other fields a reader already knows,
+      // so the password could be guessed back from it. The stored reply never carried it.
+      const filed = { ...input, owner: withoutSecrets(input.owner, ['temporaryPassword']) }
+      return platformIdempotent(tx, input.id, input.idempotencyKey, filed, async () => {
         const [tenant] = await tx.select().from(tenants).where(eq(tenants.id, input.id)).limit(1)
         if (!tenant) throw new ORPCError('INTERNAL_SERVER_ERROR', { message: 'tenant vanished' })
         if (tenant.slug !== input.slug) {

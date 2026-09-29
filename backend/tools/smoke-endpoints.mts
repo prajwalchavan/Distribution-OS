@@ -153,7 +153,11 @@ const DESTRUCTIVE_EXTRA: Record<string, string> = {
   'tenancy.staff.setPassword': 'would change a demo user password',
   'tenancy.staff.setStatus': 'would disable a demo user',
   'retailers.linkIdentity':
-    'would invite a made-up phone into a demo shop and add a retailer_links row every run',
+    'closed to every role since DOS-400 repair 3 (the shop sign-in links a shop); a call is a 403',
+  // DOS-400: a shop's app sign-in is a demo shopkeeper's credential and link.
+  'retailers.signIn.give': 'would give a demo shop a sign-in every other tool then finds made',
+  'retailers.signIn.setPassword': 'would change a demo shopkeeper password',
+  'retailers.signIn.stop': 'would stop a demo shopkeeper signing in',
   // Both permanently undo real demo money. The receipts.reverse chain below is different: it only ever
   // reverses the throwaway receipt this run created, so it leaves the seeded ledger exactly as it was.
   'receivables.receipts.bounce':
@@ -546,12 +550,16 @@ class Fixtures {
    * nobody may change their OWN membership (and the demo tenant has two owners, so "not the primary
    * owner" is not the same as "not me"), and a MANAGER may only administer salesperson, warehouse or
    * delivery members. A junior member other than the caller satisfies both, for every back-office role.
+   * A third binds `setPassword` (DOS-400 repair): no desk resets a person who also signs in with another
+   * distributor or to the console, so the member picked works here alone.
    */
   staffOtherThan = (username: string) =>
     this.liveScalar(
       `select m.user_id from memberships m join users u on u.id = m.user_id
         where m.tenant_id=$1 and m.status='active'
           and m.role::text in ('salesperson','warehouse','delivery') and u.username <> $2
+          and not exists (select 1 from memberships o where o.user_id = m.user_id and o.tenant_id <> m.tenant_id)
+          and not exists (select 1 from platform_admins p where p.user_id = m.user_id)
         order by m.created_at limit 1`,
       [this.tenantId, username],
     )
@@ -1594,6 +1602,9 @@ async function planFor(
     case 'retailers.get':
     case 'retailers.setCredit':
     case 'retailers.linkIdentity':
+    case 'retailers.signIn.give':
+    case 'retailers.signIn.setPassword':
+    case 'retailers.signIn.stop':
       return { pathParams: { id: ctx.scopeRetailerId ?? (await fx.retailerId()) } }
     case 'retailers.beats.assign':
       return { pathParams: { id: await fx.beatId() } }

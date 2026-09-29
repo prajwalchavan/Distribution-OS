@@ -107,6 +107,8 @@ exception is noted in the atomicity column.
 > **Judged by the main session, 2026-09-28.** DOS-350 and DOS-351 are CONFIRMED: in `dos_test_p10_stock` the damaged bin holds −50 and −88 with `negative_allowed = true` (the flag is set at `backend/libs/database/src/tenant-bootstrap.ts:234`, so every tenant bootstrapped so far has it, the live one included), and INV/9011 of 2026-09-28 carries 48 pieces of batch P10-B-EXP, expiry 2026-09-23. The P1s were read, not re-run. Nothing is fixed: these wait for the founder's approval.
 
 ### DOS-350 — The damaged bin may go below zero, so a hand transfer out of it creates sellable stock
+**Status (2026-09-29): FIXED on main `1f378e6b`, not yet on the live server.** The damaged / expiry bin, like every place, can no longer go below zero: a move or a write-off beyond what it holds is refused in words and nothing is written, and no place can be saved as "may go below zero". A balance that was already below zero keeps its books and is named by a release check until a count corrects it. Proof: `bin-and-expiry.spec.ts` and `rls.test.ts` (DOS-350), migration 0075, `pnpm check:stock-negative`; the bin lane's blind check 4 replayed S3c (70 out of a bin of 20 refused for the godown, the manager and the owner), and on migrated copies of `dos_test_p10_stock` the check named exactly the −50 and −88 rows.
+
 Category: bug | Priority: P0 | Role: Warehouse (godown login) | Platform: API
 
 ```
@@ -131,6 +133,8 @@ Suggested fix: bootstrap the damaged location with `negative_allowed = false` an
 ```
 
 ### DOS-351 — An already-expired batch can be picked in place of the reserved in-date batch, and is billed and shipped
+**Status (2026-09-29): FIXED on main `1f378e6b`, not yet on the live server.** An expired batch is never sold: it is not offered or held for an order, and the pick (online and offline), the pack, the bill and the van sale refuse it in words. Short-dated batches still only warn. Proof: `stock-states.spec.ts` (DOS-351), `bin-and-expiry.spec.ts` and `vansales.spec.ts` (DOS-261 / DOS-351); `pnpm check:stranded` names older bills of an expired batch; the states lane's blind check 4 replayed S3d online and offline, and the merged-tree check's cross-lane run held and billed only the in-date batch.
+
 Category: business-logic | Priority: P0 | Role: Warehouse | Platform: API
 
 ```
@@ -155,6 +159,8 @@ Suggested fix: in `applyPicks` and in `packs.confirm`, refuse a lot whose `expir
 ```
 
 ### DOS-352 — Damaged pieces go back to sellable stock with a plain transfer by the godown login
+**Status (2026-09-29): FIXED on main `1f378e6b`, not yet on the live server.** Pieces in the damaged / expiry bin never go back for sale: a move to the godown, a van or the dock is refused for every login, and so is an order, a wave, a pack or a load sheet from the bin; the bin cannot be switched off or saved as a godown. They leave only by the desk's write-off or a return to the brand; a carton binned by mistake is the owner's correction, with a written reason. Proof: `bin-and-expiry.spec.ts`, `bin-exits.spec.ts`, `fixed-places.spec.ts` and `rls.test.ts`; the bin lane's blind check 4 replayed S3b (9 of 9 moves out of the bin refused) and 36 of 36 attempts to switch off or re-kind the fixed places.
+
 Category: business-logic | Priority: P1 | Role: Warehouse | Platform: API
 
 ```
@@ -171,6 +177,8 @@ Suggested fix: refuse transfers OUT of a `damaged` location to a `warehouse` or 
 ```
 
 ### DOS-353 — A short-confirmed order can take, at pick, pieces the godown holds for another confirmed order
+**Status (2026-09-29): FIXED on main `1f378e6b`, not yet on the live server.** A pick takes only the pieces held for its own order plus free ones; taking pieces held for another order is refused, naming that order, online, offline and again at pack, and the order confirmed first packs in full. Proof: `stock-states.spec.ts` (DOS-353); the states lane's blind check 4 replayed S4e, S4f and S4g, and QA's own `s4e-steal` passes.
+
 Category: business-logic | Priority: P1 | Role: Warehouse | Platform: API
 
 ```
@@ -190,6 +198,8 @@ Suggested fix: at pick (and at pack), bound what a line may take from a lot to i
 ```
 
 ### DOS-354 — A trip cancelled after its load-out leaves the bill "dispatched" with no trip and its goods stranded on the van
+**Status (2026-09-29): FIXED on main `1f378e6b`, not yet on the live server.** A loaded trip is not cancelled: it is checked in, and its bills come back to the dock to go out on another trip. A bill is loaded only onto the trip that carries it, a trip does not leave with a bill counted out on another load, and a trip cancelled before its load-out frees every bill. Proof: `stock-states.spec.ts` (DOS-354) and `van-trips.spec.ts`; `pnpm check:stranded` names older cases (`trip-cancelled-loaded`); the states lane's blind check 4 replayed the loaded-trip roads of S6d (cancel refused for the manager and the owner, check-in accepted, the bill delivered on a new trip).
+
 Category: bug | Priority: P1 | Role: Manager | Platform: API
 
 ```
@@ -217,6 +227,8 @@ Suggested fix: `trips.cancel` refuses a trip with a confirmed load sheet (or rev
 ```
 
 ### DOS-355 — An order packed without a bill can be loaded and dispatched, then can be neither billed, delivered nor cancelled
+**Status (2026-09-29): FIXED on main `1f378e6b`, not yet on the live server.** A pack without a bill is not put on a load sheet or counted out at the gate, and no challan is issued; on the billing desk ("Packed, not billed") the desk can Unpack it or Cancel the order. Proof: `stock-states.spec.ts` (DOS-355) and `van-trips.spec.ts` (M1); the states lane's blind check 4 replayed S6e and the unpack and cancel roads.
+
 Category: bug | Priority: P1 | Role: Warehouse / Manager | Platform: API
 
 ```
@@ -235,6 +247,8 @@ Suggested fix: `loadSheets.create` / `confirm` require an issued, uncancelled bi
 ```
 
 ### DOS-356 — Receipts of an item with no batch number merge into one lot that keeps the FIRST expiry
+**Status (2026-09-29): FIXED on main `1f378e6b`, not yet on the live server.** A receipt with another expiry date makes its own batch, so each keeps its own date on every stock screen and in FEFO. Batches merged before the fix are not split, because nobody can know which pieces are the early ones; the release check lists them as a warning. Proof: `receipt-expiry.spec.ts` (DOS-356), `rls.test.ts`, migration 0074; the bin lane's blind check 4 replayed S1b, and on migrated copies of `dos_test_p10_stock` `pnpm check:stock-negative` warned on GRN-0130.
+
 Category: business-logic | Priority: P1 | Role: Owner (GRN) | Platform: API
 
 ```
@@ -252,6 +266,8 @@ Suggested fix: make expiry part of lot identity when the batch number is blank (
 ```
 
 ### DOS-357 — A goods receipt takes an already-expired batch into sellable godown stock without a word
+**Status (2026-09-29): FIXED on main `1f378e6b`, not yet on the live server.** Goods that arrive already expired go into the damaged / expiry bin, not the godown: the count screen says so before the count, a gate finding is raised for the supplier claim, and the supplier's bill is still owed as printed. Proof: `receipt-expiry.spec.ts` (DOS-357); the bin lane's blind check 4 received an expired batch (36 pc into the bin, none into the godown, the purchase journal equal to the bill).
+
 Category: business-logic | Priority: P2 | Role: Owner / Warehouse | Platform: API
 
 ```
@@ -268,6 +284,8 @@ Suggested fix: GRN post routes pieces of a lot already past expiry to the damage
 ```
 
 ### DOS-358 — A van can be unloaded to the godown by hand while its trip is still out, leaving the bill undeliverable
+**Status (2026-09-29): FIXED on main `1f378e6b`, not yet on the live server.** Nothing is moved off or onto a van, adjusted or counted there by hand while its trip is loading, out on the road, or back but not settled; the godown counts the van off at Van check-in. Proof: `stock-states.spec.ts` (DOS-358) and `van-trips.spec.ts`; the states lane's blind check 4 tried every hand door (transfer by the godown and the owner, van to van, van check-in, adjustment, count): all refused while the trip was out, and the bill was delivered.
+
 Category: bug | Priority: P2 | Role: Warehouse | Platform: API
 
 ```
@@ -282,6 +300,8 @@ Suggested fix: `trips.unload` refuses a vehicle whose trip is `loading` or `acti
 ```
 
 ### DOS-359 — An order can be packed and billed with no pick recorded; the bill follows the reservation, not a count
+**Status (2026-09-29): OPEN.** P2, change backlog. Stock ruling 9 of 28 Sep keeps packing an order nobody picked as a desk shortcut, and the screen must say it bills the held quantities; that wording is not built yet.
+
 Category: business-logic | Priority: P2 | Role: Warehouse | Platform: API
 
 ```
@@ -298,6 +318,8 @@ Suggested fix: `packs.confirm` requires an answered pick row per line (picked or
 ```
 
 ### DOS-360 — The ledgers can be emptied with TRUNCATE (and their append-only trigger switched off) by the role the API connects as
+**Status (2026-09-29): OPEN.** P2, change backlog (Phase 3). No lane changed the ledgers' grants or the connection role.
+
 Category: security | Priority: P2 | Role: — (database) | Platform: API / database
 
 ```
@@ -320,6 +342,8 @@ Suggested fix: run the API as a non-owner login role (migrations keep `dos`); RE
 ```
 
 ### DOS-361 — A packed order's pick can still be edited while its wave is live; the pick sheet then disagrees with the bill
+**Status (2026-09-29): FIXED on main `1f378e6b`, not yet on the live server.** Once an order is packed its pick cannot change, online or offline; a wrong carton is corrected on the bill with a credit note. Proof: `stock-states.spec.ts` (DOS-361); `pnpm check:stranded` names older cases (`pick-edited-after-pack`); in the states lane's blind check 4 such an edit was refused online and offline, and S6g3 passes in the merged-tree replay.
+
 Category: bug | Priority: P3 | Role: Warehouse | Platform: API
 
 ```
@@ -331,6 +355,8 @@ Suggested fix: `applyPicks` refuses rows whose order already has a pack confirma
 ```
 
 ### DOS-362 — Stock at cost counts damaged and expired pieces at full cost, drops negative balances, and the windows disagree
+**Status (2026-09-29): OPEN.** P3. Stock ruling 10 of 28 Sep (sellable stock only, damaged and expired shown apart, one 60-day near-expiry window) waits for round 3 of the owner's home.
+
 Category: business-logic | Priority: P3 | Role: Owner | Platform: API
 
 ```
@@ -345,6 +371,8 @@ Suggested fix: split stock at cost into sellable / damaged / expired; one near-e
 ```
 
 ### DOS-363 — Seed data contradicts itself: three delivered bills never moved stock, a cancelled bill left its order packed
+**Status (2026-09-29): OPEN.** P3, demo seed backlog. Every stock reconcile of the lanes and of the merged tree still starts with the three seed bills INV/9001, 9005 and 9006 (C6).
+
 Category: tech-debt | Priority: P3 | Role: — (demo seed) | Platform: database
 
 ```

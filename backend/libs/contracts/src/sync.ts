@@ -47,6 +47,13 @@ export const SYNC_REJECTION_CODES = {
   roleNotAllowed: 'role_not_allowed',
   /** The batch's `protocol` is not this server's `SYNC_PROTOCOL_VERSION`. */
   protocolUnsupported: 'protocol_unsupported',
+  /**
+   * The session signed in with a password somebody else gave it and has not chosen its own yet
+   * (architect's ruling of 2026-09-29, docs/22 §8): NO op of the batch was run and none is recorded,
+   * so the device keeps them queued and sends them again once the password is changed. Every other
+   * procedure answers the same fact as a 403; the upload, which never answers 4xx, answers it here.
+   */
+  passwordChangeRequired: 'password_change_required',
 } as const
 export type SyncRejectionCode = (typeof SYNC_REJECTION_CODES)[keyof typeof SYNC_REJECTION_CODES]
 

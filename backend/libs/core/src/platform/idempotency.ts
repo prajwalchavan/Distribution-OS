@@ -22,6 +22,26 @@ export async function idempotent<T>(
 }
 
 /**
+ * The request a key is filed under, WITHOUT the fields that must never be stored (DOS-400): a first
+ * or temporary password. `idempotency_keys.request_hash` is a fast, unsalted SHA-256 of the request
+ * as sent, so a password inside it could be guessed back, offline and quickly, by anyone who reads
+ * the table (the rest of the request — ids, names, phone — is known to that reader). The stored REPLY
+ * never carries a password either, so a replay cannot hand one out. What is lost is one check: the
+ * same key sent again with a different password replays the first answer instead of a 409, and the
+ * first password is the one that stands. The app never does that: its key follows the whole input.
+ */
+export function withoutSecrets<T extends Record<string, unknown>>(
+  request: T,
+  secrets: readonly (keyof T & string)[],
+): Record<string, unknown> {
+  const kept: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(request)) {
+    if (!secrets.includes(key)) kept[key] = value
+  }
+  return kept
+}
+
+/**
  * The same guarantee for the PLATFORM CONSOLE (module 13), whose session has no tenant of its own.
  * `admin.subscriptions.upsert`, `admin.support.request` and `admin.tenants.suspend` each name the
  * distributor they act on in their input, and that is the tenant the key is filed under — so two

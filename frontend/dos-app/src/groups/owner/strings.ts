@@ -9,10 +9,13 @@
  * state the next action rather than the problem, never "Oops", never "!" and never an emoji.
  */
 import { PRICING_STRINGS } from '../../pricing/strings'
+import { SHOP_SIGN_IN_STRINGS } from '../../shops/strings'
 
 export const strings = {
   /* DOS-212 / DOS-214: the desk's credit and pricing editors, one copy for both desks. */
   ...PRICING_STRINGS,
+  /* DOS-400: a shop's app sign-in on the shop's page, one copy for both desks. */
+  ...SHOP_SIGN_IN_STRINGS,
 
   // --- chrome, sign-in, account (X1–X4) -----------------------------------------------------------
   'app.signIn': 'Sign in',
@@ -39,6 +42,8 @@ export const strings = {
   'app.passwordVoluntary': 'Choose a new password for this account.',
   'app.passwordRule': 'At least 8 characters, with a letter and a digit',
   'app.passwordMismatch': 'The two new passwords are not the same',
+  /** docs/22 §8 (2026-09-29): keeping the password somebody gave you is not choosing one. */
+  'app.passwordSame': 'Choose a new password, not the one you have now',
   'app.passwordNeedsCurrent': 'Enter the password you signed in with',
   'app.passwordRevokes': 'Your other devices will be signed out.',
   'app.setPassword': 'Set password',

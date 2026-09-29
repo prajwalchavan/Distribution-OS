@@ -1,0 +1,36 @@
+LD
+Look-alike Distributors
+manager
+⋯
+Updated just now
+Inbound
+Type a supplier bill
+Supplier bills
+Documents
+Gate count
+✓ Bills
+Goods received
+Findings
+Purchase orders
+SB/26-27/1576
+Approved
+33,443.00
+SB/26-27/1302
+Being reviewed
+36,730.00
+SB/26-27/0664
+Received
+11,916.00
+SB/26-27/5273
+Received
+29,365.00
+SB/26-27/4233
+Received
+26,257.00
+SB/26-27/1253
+Received
+43,014.00
+Today
+Orders
+Fulfilment
+Billing

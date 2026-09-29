@@ -236,7 +236,10 @@ export function createPlatformClient(options: CreatePlatformClientOptions): Plat
     },
 
     async changePassword(currentPassword: string, newPassword: string): Promise<void> {
-      await authClient.changePassword({ currentPassword, newPassword })
+      const changed = await authClient.changePassword({ currentPassword, newPassword })
+      // The console's first password is walled on the server too (docs/22 §8, 2026-09-29): carry on
+      // with the token the change answers with.
+      session.replaceAccessToken(changed.accessToken, changed.accessExpiresIn)
       const answer = await authClient.platformMe()
       session.updateUser(answer.user)
     },

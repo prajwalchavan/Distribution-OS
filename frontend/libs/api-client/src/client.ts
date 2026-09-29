@@ -617,7 +617,11 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
 
     async changePassword(currentPassword: string, newPassword: string): Promise<void> {
       const at = generation
-      await authClient.changePassword({ currentPassword, newPassword })
+      const changed = await authClient.changePassword({ currentPassword, newPassword })
+      // The token this device held says the password must still be changed, and every service refuses
+      // it (docs/22 §8, 2026-09-29); the change answers with one that does not.
+      if (generation === at)
+        session.replaceAccessToken(changed.accessToken, changed.accessExpiresIn)
       const answer = await authClient.me()
       if (generation === at) session.updateUser(answer.user)
     },
