@@ -545,7 +545,11 @@ export type StaffList = z.infer<typeof StaffListOutput>
 export const StaffCreateInput = MutationBase.extend({
   /** Client-generated UUIDv7 of the membership row. */
   id: IdSchema,
-  /** Client-generated UUIDv7 of the user; reused when the same person already exists by phone. */
+  /**
+   * Client-generated UUIDv7 of the user. A username or a phone whose sign-in another distributor or the
+   * console holds is refused (409, QA DOS-424) and nothing is written; one of this distributor's own
+   * people answers "already a member".
+   */
   userId: IdSchema,
   username: UsernameSchema,
   name: z.string().min(1).max(120),

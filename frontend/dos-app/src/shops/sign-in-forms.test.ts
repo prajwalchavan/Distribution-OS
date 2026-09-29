@@ -16,10 +16,12 @@ import {
   appSignInCell,
   firstPassword,
   givePayload,
+  handOverSentence,
   hasMobile,
   isSharedNumber,
   newGiveIntent,
   passwordPayload,
+  SHOWN_ONCE_BUTTONS,
   stopPayload,
   toldWords,
   toMobile,
@@ -114,6 +116,50 @@ describe('the shop sign-in forms', () => {
     expect(appSignInCell(t, null, false)).toBe('Not yet')
     expect(appSignInCell(t, signIn, true)).toBe('App: ramesh.gupta')
     expect(appSignInCell(t, null, true)).toBe('No app sign-in yet')
+  })
+
+  it('says one sentence under the shown password, for what this device can do, and has one closing button', () => {
+    expect(handOverSentence(true, true)).toBe('si.shownOnce')
+    expect(handOverSentence(true, false)).toBe('si.shownOnceCopy')
+    expect(handOverSentence(false, true)).toBe('si.shownOnceShare')
+    expect(handOverSentence(false, false)).toBe('si.shownOnceRead')
+    const said = (canCopy: boolean, canShare: boolean) =>
+      SHOP_SIGN_IN_STRINGS[handOverSentence(canCopy, canShare)]
+    // never a button the dialog does not show
+    expect(said(true, false)).not.toMatch(/share/i)
+    expect(said(false, true)).not.toMatch(/copy/i)
+    expect(said(false, false)).not.toMatch(/\b(copy|share) it (or|with)\b/i)
+    expect(said(false, false)).toContain('cannot copy or share')
+    for (const [canCopy, canShare] of [
+      [true, true],
+      [true, false],
+      [false, true],
+      [false, false],
+    ] as const) {
+      const sentence = said(canCopy, canShare)
+      expect(sentence.startsWith('This password is shown only now')).toBe(true)
+      // the old pair contradicted itself: "no share sheet" beside "Copy it or share it"
+      expect(sentence).not.toMatch(/share sheet/i)
+    }
+    // the sentences the dialog printed two at a time are gone
+    expect(Object.keys(SHOP_SIGN_IN_STRINGS)).not.toContain('si.noShareSheet')
+    expect(Object.keys(SHOP_SIGN_IN_STRINGS)).not.toContain('si.nothingToCopy')
+    // one closing button, the one that says what the desk did
+    expect(SHOWN_ONCE_BUTTONS).toEqual({ confirm: 'si.done', cancel: null })
+  })
+
+  it('says what is true of a phone already signed in when the desk gives a new first password (DOS-426)', () => {
+    const body = SHOP_SIGN_IN_STRINGS['si.newPasswordBody']
+    expect(body).not.toMatch(/signed out of the app on every phone/i)
+    expect(body).toContain('A phone already signed in keeps working for up to 15 minutes')
+    expect(body).toContain('must choose a new password')
+  })
+
+  it('says what is true of both kinds of login when the desk stops a sign-in (DOS-425)', () => {
+    const body = SHOP_SIGN_IN_STRINGS['si.stopBody']
+    expect(body).not.toMatch(/You can give it a sign-in again later\.$/)
+    expect(body).toContain('you may be asked for another mobile number of the shopkeeper')
+    expect(body).toContain('Its orders, bills and dues stay as they are')
   })
 
   it('never names membership, identity, tenant, link or role on the screen', () => {

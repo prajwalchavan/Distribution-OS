@@ -133,12 +133,27 @@ How rows are marked: every idempotency key starts `demo-fill:<business date>:`, 
 is derived from that key and the distributor — a UUIDv7 whose time falls inside the business date and which
 carries the tag `…-7d3f-bd3f-de30…` (`demo-fill/ids.ts`). Rows the API makes from them (a bill at pack, a
 credit note at a door) are found through the tool's row they hang off. The same date run twice writes
-nothing; a run that died midway is healed by the next. Output is counts and ids only; the tester passwords
-live in the logins file (mode 600) and nowhere else. Tester usernames are `tester.manager`, `tester.accounts`,
-`tester.sales1`, `tester.sales2`, `tester.godown`, `tester.driver1`, `tester.driver2` (`--login-suffix x`
-makes them `tester.<role>.x`, for a second distributor on one database). A shopkeeper login cannot be made
-through the API (QA DOS-400): three shops stand in for `tester.shop1…3`; when one of them is closed, gets a
-login or becomes a credit shop, the next run picks another and moves the tool's offer to it.
+nothing; a run that died midway is healed by the next. Output is counts and ids only.
+
+**The tester logins** (founder, 2026-09-29; brief rule 4) are plain — `manager`, `accounts`, `sales1`, `sales2`,
+`godown`, `driver1`, `driver2` (`--login-suffix x` makes them `manager.x` …, for a second distributor on one
+database) — and every one signs in with the demo password the demo seed gives every demo user (`DEMO_PASSWORD` in
+`libs/database/src/seed-demo/`, imported from there, never written into the tool). It is set through the product's
+own doors: the owner makes the login with a temporary password and the tool, signed in as the person, changes it,
+so no tester is asked to change it at sign-in; a tester whose password someone changed is set back the same way.
+The owner's password is never set, changed or written, and the distributor's own staff are never touched. The
+logins file (mode 600) lists `username<TAB>password<TAB>role` so a person sees who exists; nothing else the tool,
+its checks or `fill-demo.sh` print or write carries a password. The tool finds its people by the mark it made them
+with (their user id derives from its idempotency key), not by the username: a plain username someone else holds —
+the distributor's own staff, or a person of another distributor, which the tool asks the product about without
+making anything — is left to them, the next free plain name is taken (`godown2`, `sales3`) and the report says so.
+A database the tool ran on before that decision (`tester.<role>` logins with generated passwords) is healed in one
+run: the old drivers finish their trips on the road themselves (no procedure hands a trip to another driver), the
+van load they planned for the next morning is cancelled and its bills ride the new vans, the old reps' beats go to
+the new reps, and the old logins are switched off at the end; on a date the old logins already made, the new crew
+takes its own shift of it (ids tagged `s2`). A shopkeeper login cannot be made through the API (QA DOS-400): three
+shops stand in for `shop1…3`; when one of them is closed, gets a login or becomes a credit shop, the next run
+picks another and moves the tool's offer to it.
 
 A dry run writes nothing of the business, but it does sign the owner in and out, and the sign-in service
 records that as it records every sign-in: one session, its sign-in and sign-out events and the device. A run

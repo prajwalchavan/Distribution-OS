@@ -146,6 +146,7 @@ export async function readWorld(ctx: Ctx): Promise<World> {
       ),
       foreignOpenPaise: money.foreignOpen.get(r.id) ?? 0,
       writtenOff: money.writtenOff.has(r.id),
+      toolOnAccountPaise: money.toolOnAccount.get(r.id) ?? 0,
     }
   })
   const beats = await ctx.read(contract.retailers.beats.list, { activeOnly: true })

@@ -15,7 +15,7 @@ import type { World } from './world.js'
 
 /** The bill a door of today's van carries (null when the door or its bill is not there). */
 async function doorBill(ctx: Ctx, date: string, driver: 'driver1' | 'driver2', sequence: number) {
-  const trip = await readTrip(ctx, ctx.id(date, 'trip', driver))
+  const trip = await readTrip(ctx, ctx.tripId(date, driver))
   const stop = trip?.stops.find((s) => s.sequence === sequence)
   const d = stop?.deliveries[0]
   if (!stop || !d) return null
@@ -27,7 +27,7 @@ async function doorBill(ctx: Ctx, date: string, driver: 'driver1' | 'driver2', s
  * raises the credit note and leaves it as a draft for the manager to issue.
  */
 export async function returnToApprove(ctx: Ctx, date: string): Promise<void> {
-  const id = ctx.id(date, 'return', 'driver2')
+  const id = ctx.dayId(date, 'return', 'driver2')
   if (await maybe(ctx.read(contract.billing.creditNotes.get, { id }))) {
     ctx.summary.foundOne('manager', 'return to approve')
     return
@@ -43,7 +43,7 @@ export async function returnToApprove(ctx: Ctx, date: string): Promise<void> {
     () => ctx.as('driver2'),
     contract.billing.creditNotes.create,
     {
-      idempotencyKey: demoKey(date, 'return', 'driver2'),
+      idempotencyKey: ctx.dayKey(date, 'return', 'driver2'),
       id,
       invoiceId: door.delivery.invoiceId,
       reason: 'return_damaged',
@@ -52,7 +52,7 @@ export async function returnToApprove(ctx: Ctx, date: string): Promise<void> {
       autoIssue: false,
       lines: [
         {
-          id: ctx.id(date, 'return', 'driver2', 'line'),
+          id: ctx.dayId(date, 'return', 'driver2', 'line'),
           invoiceLineId: line.id,
           qtyPcs: 2,
           saleable: false,
@@ -68,7 +68,7 @@ export async function returnToApprove(ctx: Ctx, date: string): Promise<void> {
  * matched to a bill yet ("collections to match").
  */
 export async function officeMoney(ctx: Ctx, date: string): Promise<void> {
-  const cheque = ctx.id(date, 'office', 'cheque')
+  const cheque = ctx.dayId(date, 'office', 'cheque')
   if (await maybe(ctx.read(contract.receivables.receipts.get, { id: cheque })))
     ctx.summary.foundOne('accountant', 'cheque at the counter')
   else {
@@ -84,7 +84,7 @@ export async function officeMoney(ctx: Ctx, date: string): Promise<void> {
         () => ctx.as('accounts'),
         contract.receivables.receipts.create,
         (attempt) => ({
-          idempotencyKey: demoKey(date, 'office', 'cheque'),
+          idempotencyKey: ctx.dayKey(date, 'office', 'cheque'),
           id: cheque,
           retailerId: door.stop.retailerId,
           mode: 'cheque' as const,
@@ -95,7 +95,7 @@ export async function officeMoney(ctx: Ctx, date: string): Promise<void> {
           strategy: 'explicit' as const,
           allocations: [
             {
-              id: ctx.id(date, 'office', 'cheque', 'allocation'),
+              id: ctx.dayId(date, 'office', 'cheque', 'allocation'),
               invoiceId: door.delivery.invoiceId,
               amountPaise: bill.item.amountDuePaise,
             },
@@ -104,7 +104,7 @@ export async function officeMoney(ctx: Ctx, date: string): Promise<void> {
       )
     }
   }
-  const upi = ctx.id(date, 'office', 'upi')
+  const upi = ctx.dayId(date, 'office', 'upi')
   if (await maybe(ctx.read(contract.receivables.receipts.get, { id: upi })))
     ctx.summary.foundOne('accountant', 'payment to match')
   else {
@@ -130,7 +130,7 @@ export async function officeMoney(ctx: Ctx, date: string): Promise<void> {
         () => ctx.as('accounts'),
         contract.receivables.receipts.create,
         (attempt) => ({
-          idempotencyKey: demoKey(date, 'office', 'upi'),
+          idempotencyKey: ctx.dayKey(date, 'office', 'upi'),
           id: upi,
           retailerId: door.stop.retailerId,
           mode: 'upi' as const,
@@ -194,7 +194,10 @@ export function supplierCodeOf(variantId: string): string {
   return variantId.replace(/-/g, '').slice(0, 8).toUpperCase()
 }
 
-/** Lines for a supplier bill: the items with the least stock that have a purchase rate, at that rate. */
+/**
+ * Lines for a supplier bill: the items with the least stock that have a purchase rate, at that rate. `seed` is the
+ * day's (`Ctx.daySeed`: the date, and its shift when it has one, D6); a shift's batches carry its tag.
+ */
 export function supplierLines(
   date: string,
   kind: string,
@@ -202,6 +205,7 @@ export function supplierLines(
   skip: ReadonlySet<string>,
   count: number,
   lineId: (n: number) => string,
+  seed: string = date,
 ): BillLine[] {
   const pool = [...items]
     .filter(
@@ -209,10 +213,11 @@ export function supplierLines(
     )
     .sort((a, b) => a.available - b.available || a.variantId.localeCompare(b.variantId))
     .slice(0, count * 3)
-  return shuffled(pool, `${date}:${kind}:supply`, (i) => i.variantId)
+  const shift = seed.startsWith(`${date}:`) ? seed.slice(date.length + 1).toUpperCase() : ''
+  return shuffled(pool, `${seed}:${kind}:supply`, (i) => i.variantId)
     .slice(0, count)
     .map((item, n) => {
-      const qty = 24 * (1 + Math.floor(unit(`${date}:${kind}:${item.variantId}`) * 3))
+      const qty = 24 * (1 + Math.floor(unit(`${seed}:${kind}:${item.variantId}`) * 3))
       const rate = item.costPaise ?? 0
       const taxable = rate * qty
       const tax = Math.round((taxable * (item.gstBps ?? 0)) / 10_000)
@@ -223,7 +228,7 @@ export function supplierLines(
         supplierCode: supplierCodeOf(item.variantId),
         variantId: item.variantId,
         hsnCode: item.hsnCode,
-        batchNo: `B${date.replace(/-/g, '').slice(2)}${String(n + 1)}`,
+        batchNo: `B${date.replace(/-/g, '').slice(2)}${shift}${String(n + 1)}`,
         expiryDate: addDays(date, 240),
         mrpPaise: item.mrpPaise,
         printedQty: qty,
@@ -259,15 +264,21 @@ export async function supplierBills(ctx: Ctx, date: string, world: World): Promi
     return
   }
   const pick = (kind: string) =>
-    shuffled(suppliers, `${date}:${kind}:supplier`, (s) => s.id)[0] ?? suppliers[0]
+    shuffled(suppliers, `${ctx.daySeed(date)}:${kind}:supplier`, (s) => s.id)[0] ?? suppliers[0]
   const used = new Set<string>()
   for (const kind of ['review', 'gate'] as const) {
-    const id = ctx.id(date, 'supplier-bill', kind)
+    const id = ctx.dayId(date, 'supplier-bill', kind)
     const have = await maybe(ctx.read(contract.procurement.supplierInvoices.get, { id }))
     let status = have?.item.status ?? null
     if (!have) {
-      const lines = supplierLines(date, kind, world.items, used, kind === 'review' ? 3 : 4, (n) =>
-        ctx.id(date, 'supplier-bill', kind, 'line', String(n)),
+      const lines = supplierLines(
+        date,
+        kind,
+        world.items,
+        used,
+        kind === 'review' ? 3 : 4,
+        (n) => ctx.dayId(date, 'supplier-bill', kind, 'line', String(n)),
+        ctx.daySeed(date),
       )
       if (lines.length === 0) {
         ctx.summary.refusedOne(
@@ -291,7 +302,7 @@ export async function supplierBills(ctx: Ctx, date: string, world: World): Promi
         () => ctx.as('manager'),
         contract.procurement.supplierInvoices.create,
         {
-          idempotencyKey: demoKey(date, 'supplier-bill', kind),
+          idempotencyKey: ctx.dayKey(date, 'supplier-bill', kind),
           id,
           supplierId: supplier?.id ?? '',
           source: 'manual',

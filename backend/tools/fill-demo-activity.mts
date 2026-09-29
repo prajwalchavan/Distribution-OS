@@ -11,8 +11,10 @@
  * tool's work still open under an earlier date is finished first. Every row it writes is marked
  * (idempotency key `demo-fill:<date>:…`, an id derived from that key carrying a fixed tag); the same date run
  * twice writes nothing the second time; a run that died midway is healed by the next. Output is counts and
- * ids only — never a shop's name, a phone number, a GSTIN or an address. The tester passwords go to the
- * logins file (mode 600) and nowhere else.
+ * ids only — never a shop's name, a phone number, a GSTIN or an address. The tester logins are plain
+ * (`manager`, `accounts`, `sales1`, `sales2`, `godown`, `driver1`, `driver2`) and each signs in with the demo
+ * password the demo seed gives every demo user (founder, 2026-09-29); the logins file (mode 600) lists them with
+ * it, and nothing else the tool writes or prints carries a password. The owner's password is never changed.
  *
  * Exit: 0 done (a refusal is counted, not fatal); 1 a whole row of the brief's table could not be produced;
  * 2 could not start (bad arguments, the API down, the owner could not sign in).
@@ -26,7 +28,7 @@ import { runFill } from './demo-fill/run.js'
 
 const HELP = `usage: fill-demo-activity.mts --api <url> --tenant <slug> --owner-password-file <path> --logins-file <path>
                                [--owner-username <name>] [--date YYYY-MM-DD] [--commit] [--report <file.json>]
-                               [--login-suffix <x>]   testers become tester.<role>.<x> (a second distributor on one database)`
+                               [--login-suffix <x>]   testers become manager.<x>, sales1.<x>, … (a second distributor on one database)`
 
 function out(line = ''): void {
   process.stdout.write(`${line}\n`)

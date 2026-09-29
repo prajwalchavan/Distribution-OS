@@ -188,35 +188,46 @@ describeDb('tenancy staff (DATABASE_URL)', () => {
     expect(rows).toHaveLength(1)
   })
 
-  it('reuses a person another distributor already hired, then refuses a second membership', async () => {
-    const first = await call<CreateBody>(app, owner, 'POST', '/tenancy/staff', {
-      idempotencyKey: `staff-reuse-${run}`,
-      id: uuidv7(),
-      userId: uuidv7(), // ignored: the username resolves to the existing person
-      username: foreignUsername,
-      name: 'Someone Else Entirely',
-      phone: `+919${run}8`,
-      role: 'delivery',
-      temporaryPassword: 'Reuse2026',
-    })
-    expect(first.status).toBe(200)
-    expect(first.body.userId).toBe(foreignUserId)
-    const [reused] = await db.select().from(users).where(eq(users.id, foreignUserId))
-    expect(reused?.name).toBe('External Person') // never overwritten
-    expect(reused?.passwordHash).toBe(foreignPasswordHash)
-    expect(reused?.phone).toBe(`+919${run}6`)
-
-    const second = await call(app, owner, 'POST', '/tenancy/staff', {
-      idempotencyKey: `staff-reuse-2-${run}`,
-      id: uuidv7(),
-      userId: uuidv7(),
-      username: foreignUsername,
-      name: 'Someone Else Entirely',
-      phone: `+919${run}8`,
-      role: 'delivery',
-      temporaryPassword: 'Reuse2026',
-    })
-    expect(second.status).toBe(409)
+  /**
+   * QA DOS-424, R1 at the hire door (docs/22 §8): this used to REUSE the other distributor's login and
+   * add a membership here, so whoever knew its password signed in here as this distributor's staff.
+   * Refused now, in words, and nothing is written; `hire-door.spec.ts` pins every kind of "elsewhere".
+   */
+  it('refuses a person another distributor already hired, and writes nothing', async () => {
+    const first = await call<CreateBody & { message?: string }>(
+      app,
+      owner,
+      'POST',
+      '/tenancy/staff',
+      {
+        idempotencyKey: `staff-reuse-${run}`,
+        id: uuidv7(),
+        userId: uuidv7(),
+        username: foreignUsername,
+        name: 'Someone Else Entirely',
+        phone: `+919${run}8`,
+        role: 'delivery',
+        temporaryPassword: 'Reuse2026',
+      },
+    )
+    expect(first.status, JSON.stringify(first.body)).toBe(409)
+    expect(first.body.message).toBe(
+      'This username already has a Distribution OS sign-in, which cannot be shared yet. Choose another username.',
+    )
+    const [kept] = await db.select().from(users).where(eq(users.id, foreignUserId))
+    expect(kept?.name).toBe('External Person') // never overwritten
+    expect(kept?.passwordHash).toBe(foreignPasswordHash)
+    expect(kept?.phone).toBe(`+919${run}6`)
+    const here = await db
+      .select()
+      .from(memberships)
+      .where(and(eq(memberships.tenantId, tenantId), eq(memberships.userId, foreignUserId)))
+    expect(here).toHaveLength(0)
+    const made = await db
+      .select()
+      .from(users)
+      .where(eq(users.phone, `+919${run}8`))
+    expect(made).toHaveLength(0)
   })
 
   it('lets a manager hire a warehouse hand but not an accountant', async () => {
@@ -345,8 +356,9 @@ describeDb('tenancy staff (DATABASE_URL)', () => {
    * DOS-400 repair (the blind check's major). A password is global: a desk that may give a new one to
    * a person who also signs in with ANOTHER business may sign in as that person there. The shop's page
    * refused it; the staff screen did not, and it reaches every member here — a shopkeeper a shop's
-   * page added, a person `staff.create` took over by phone or username, another distributor's own
-   * owner. The check ran it end to end: Tarsun's owner reset a Kalyan shopkeeper, then Sai's owner,
+   * page added, a person the data shares (before DOS-424 `staff.create` took such people over by phone
+   * or username), another distributor's own owner. The check ran it end to end: Tarsun's owner reset a
+   * Kalyan shopkeeper, then Sai's owner,
    * and signed in there. Refused now, with the password, the sessions and the trail left as they were.
    */
   it('gives no new password to a person who also signs in with another business, nor to a console account', async () => {
@@ -400,19 +412,33 @@ describeDb('tenancy staff (DATABASE_URL)', () => {
       refreshExpiresAt: new Date(Date.now() + 86_400_000),
     })
 
-    // The first of the two calls the check made: hire the other distributor's owner by phone …
-    const hired = await call<CreateBody>(app, owner, 'POST', '/tenancy/staff', {
-      idempotencyKey: `staff-take-${run}`,
-      id: uuidv7(),
-      userId: uuidv7(),
-      username: `x${run}.fresh`,
-      name: 'Anyone At All',
-      phone: `+918${run}2`,
-      role: 'delivery',
-      temporaryPassword: 'Mine12345',
-    })
-    expect(hired.status, JSON.stringify(hired.body)).toBe(200)
-    expect(hired.body.userId).toBe(theirOwner)
+    // The first of the two calls the check made — hire the other distributor's owner by phone — is
+    // refused since DOS-424 (`hire-door.spec.ts`), and writes nothing …
+    const hired = await call<CreateBody & { message?: string }>(
+      app,
+      owner,
+      'POST',
+      '/tenancy/staff',
+      {
+        idempotencyKey: `staff-take-${run}`,
+        id: uuidv7(),
+        userId: uuidv7(),
+        username: `x${run}.fresh`,
+        name: 'Anyone At All',
+        phone: `+918${run}2`,
+        role: 'delivery',
+        temporaryPassword: 'Mine12345',
+      },
+    )
+    expect(hired.status, JSON.stringify(hired.body)).toBe(409)
+    expect(hired.body.message).toContain('already has a Distribution OS sign-in')
+    // People the DATA already shares with the other distributor, as the demo seed has them: the hire
+    // door no longer makes such a person, but the ones there are keep working, and the staff screen
+    // reaches them.
+    await db.insert(memberships).values([
+      { id: uuidv7(), tenantId, userId: theirOwner, role: 'delivery' },
+      { id: uuidv7(), tenantId, userId: foreignUserId, role: 'delivery' },
+    ])
 
     // … and the second, for each person the staff screen can reach who is not this desk's alone.
     const staffSentence =
@@ -422,7 +448,7 @@ describeDb('tenancy staff (DATABASE_URL)', () => {
     const cases: [Actor, string, string][] = [
       [owner, theirOwner, staffSentence],
       [owner, shared, shopSentence],
-      [owner, foreignUserId, staffSentence], // reused by username earlier in this file
+      [owner, foreignUserId, staffSentence], // shared in the data, above
       [manager, foreignUserId, staffSentence], // a delivery hand here: the manager's to administer
       [owner, consolePerson, staffSentence],
     ]
@@ -568,18 +594,17 @@ describeDb('tenancy staff (DATABASE_URL)', () => {
       .where(eq(users.username, `x${run}.clash`))
     expect(made).toHaveLength(0)
 
-    // a person another distributor hired, taken over with the same clashing id: the insert itself
-    // refuses, in the same words, and no membership is made
-    const elsewhereOnly = uuidv7()
+    // an existing person the hire may still take — nobody can sign in as them (no password) and no
+    // business holds them (since DOS-424 anybody another business holds is refused before this) —
+    // taken with the same clashing id: the insert itself refuses, in the same words, and no membership
+    // is made
+    const noSignIn = uuidv7()
     await db.insert(users).values({
-      id: elsewhereOnly,
+      id: noSignIn,
       phone: `+918${run}5`,
       name: 'Hired Elsewhere',
       username: `x${run}.away`,
     })
-    await db
-      .insert(memberships)
-      .values({ id: uuidv7(), tenantId: foreignTenantId, userId: elsewhereOnly, role: 'delivery' })
     const reuse = await call<{ message?: string }>(app, owner, 'POST', '/tenancy/staff', {
       idempotencyKey: `staff-clash-2-${run}`,
       id: taken?.id,
@@ -597,7 +622,7 @@ describeDb('tenancy staff (DATABASE_URL)', () => {
     const joined = await db
       .select()
       .from(memberships)
-      .where(and(eq(memberships.tenantId, tenantId), eq(memberships.userId, elsewhereOnly)))
+      .where(and(eq(memberships.tenantId, tenantId), eq(memberships.userId, noSignIn)))
     expect(joined).toHaveLength(0)
   })
 

@@ -116,6 +116,17 @@ const NOT_YOURS_ALONE =
 const NOT_YOURS_ALONE_STAFF =
   'This sign-in is not yours alone to reset: this person also uses it with another business. Only they can change its password.'
 /**
+ * The hire door (`tenancy.staff.create`) under the same ruling (R1, docs/22 §8, QA DOS-424): a mobile
+ * number or a username whose sign-in was made at another business — another distributor's staff or
+ * shopkeeper, or a console account — gets no membership here, because whoever made that sign-in may
+ * still know its first password. One sentence for the number and one for the username, each the same
+ * whatever the other business is; nothing about where. The desk is told what it can do.
+ */
+const HIRE_SHARED_PHONE =
+  'This mobile number already has a Distribution OS sign-in, which cannot be shared yet. Enter another mobile number for this person.'
+const HIRE_SHARED_USERNAME =
+  'This username already has a Distribution OS sign-in, which cannot be shared yet. Choose another username.'
+/**
  * A membership id the app sent is already a row (the app makes a new one for every form, so this is
  * a request sent twice with its content changed, never a desk's mistake). Nothing is saved.
  */
@@ -226,9 +237,10 @@ export class TenancyService {
   /**
    * Hire someone and hand them a temporary password they must replace at first sign-in.
    *
-   * Users are global (ADR 0006): the same person may already exist because another distributor hired
-   * them, and RLS hides that row from this tenant. The lookup-or-create therefore runs as the system
-   * role and never overwrites an existing person's name or password — only the membership is added.
+   * Users are global (ADR 0006), and RLS hides a person this tenant has never met, so the lookup runs
+   * as the system role. It never overwrites an existing person's name or password. A person found by
+   * the username or the phone whom another business or the console holds is refused before anything
+   * is written (R1 at the hire door, QA DOS-424, `refuseSharedHire`).
    */
   async createStaff(input: StaffCreateIn): Promise<StaffCreateOut> {
     requireRole(ONBOARDERS)
@@ -240,7 +252,12 @@ export class TenancyService {
 
     const userId = await withSystem(db, async (tx) => {
       const found = await tx
-        .select({ id: users.id })
+        .select({
+          id: users.id,
+          phone: users.phone,
+          username: users.username,
+          passwordHash: users.passwordHash,
+        })
         .from(users)
         .where(or(eq(users.username, username), eq(users.phone, input.phone)))
         .limit(2)
@@ -250,7 +267,15 @@ export class TenancyService {
         })
       }
       const existing = found[0]
-      if (existing) return existing.id
+      if (existing) {
+        await refuseSharedHire(tx, {
+          tenantId: ctx.tenantId,
+          person: existing,
+          byPhone: existing.phone === input.phone,
+          requestUserId: input.userId,
+        })
+        return existing.id
+      }
       // Before the person is made: a clashing membership id used to make them, then fail as a 500
       // and leave them behind. (A replay of this very hire finds the person above and never gets here.)
       if (await membershipIdTaken(tx, input.id)) {
@@ -875,6 +900,44 @@ async function refuseForeignSeat(
       message: shared,
       data: { code: SHOP_SIGN_IN_CODES.numberHasSignIn },
     })
+  }
+}
+
+/**
+ * R1 at the hire door (architect's ruling of 2026-09-29, docs/22 §8, item 1 said of `staff.create`
+ * too; QA DOS-424). The hire found a person by the username or the phone the desk typed:
+ *  - one of THIS distributor's own people (any role, any state) → as before: the membership step says
+ *    "already a member", or a replay of the hire gives back its stored answer;
+ *  - a person another distributor holds (staff or shopkeeper, switched on or off) or who holds a console
+ *    seat → 409 in words, ONE statement (`usedElsewhere`) whatever they are there, so neither the body
+ *    nor the work tells the desk which; nothing is written and the login is not touched;
+ *  - a sign-in that no business holds (a username and a password, and no membership anywhere) → the
+ *    same 409, unless THIS request made it on an earlier attempt that failed before the membership (a
+ *    retry: the same `userId`). Such a sign-in is a hire or a give that stopped half way — possibly at
+ *    another business, or still on its way to one — so its password may be known to another desk;
+ *  - a person nobody can sign in as (no username or no password) → as before: nobody knows a password.
+ */
+async function refuseSharedHire(
+  sys: Db,
+  input: {
+    tenantId: string
+    person: { id: string; username: string | null; passwordHash: string | null }
+    byPhone: boolean
+    requestUserId: string
+  },
+): Promise<void> {
+  const { person } = input
+  const [here] = await sys
+    .select({ id: memberships.id })
+    .from(memberships)
+    .where(and(eq(memberships.tenantId, input.tenantId), eq(memberships.userId, person.id)))
+    .limit(1)
+  if (here) return
+  const sentence = input.byPhone ? HIRE_SHARED_PHONE : HIRE_SHARED_USERNAME
+  await refuseIfShared(sys, { userId: person.id, tenantId: input.tenantId }, sentence)
+  const canSignIn = person.username !== null && person.passwordHash !== null
+  if (canSignIn && person.id !== input.requestUserId) {
+    throw new ORPCError('CONFLICT', { message: sentence })
   }
 }
 

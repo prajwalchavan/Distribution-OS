@@ -8,23 +8,29 @@ import {
   type Session,
 } from './client.js'
 import { REFERENCE_TAKEN } from './helpers.js'
-import { demoId, demoKey } from './ids.js'
+import { demoId, demoKey, stopIdOf, tripIdOf, tripParts } from './ids.js'
 import {
+  DEMO_PASSWORD,
+  TESTER_KEYS,
   newPassword,
   readLogins,
-  testersFor,
+  testerOf,
   writeLogins,
+  type FormerTester,
   type LoginLine,
-  type Tester,
+  type StaffMemberLike,
   type TesterKey,
 } from './people.js'
 import type { Section, Summary } from './summary.js'
+
+/** Van 1 is driver1's, van 2 driver2's. */
+export type VanKey = 'driver1' | 'driver2'
 
 /**
  * One run's shared state: the API, who is signed in, the date whose work is being made, dry run or commit,
  * and the summary every step writes into. Sessions are opened LAZILY — a person signs in only when they
  * have something to do — so a second run of the same date, which has nothing to do, signs in the owner
- * alone.
+ * alone (and, at the end, each tester once, to prove the logins file).
  */
 export interface RunOptions {
   api: string
@@ -34,7 +40,7 @@ export interface RunOptions {
   loginsFile: string
   date: string
   commit: boolean
-  /** `tester.manager.<suffix>` instead of `tester.manager` (a second distributor on one database). */
+  /** `manager.<suffix>` instead of `manager` (a second distributor on one database). */
   loginSuffix?: string | undefined
   log: (line: string) => void
 }
@@ -43,26 +49,77 @@ export class Ctx {
   readonly api: Api
   owner!: Session
   private readonly sessions = new Map<TesterKey, Session>()
-  readonly logins: Map<string, LoginLine>
-  /** Person → user id, filled from the staff list. */
+  /** This run's crew: tester → user id, filled by `ensurePeople` from the staff list (found by the mark). */
   readonly userIds = new Map<TesterKey, string>()
-  /** This run's tester people (their usernames carry `loginSuffix` when one is given). */
-  readonly testers: readonly Tester[]
-  private loginsDirty = false
+  /** This run's crew: tester → username (its plain one, or the next free plain one when that is taken, D5). */
+  readonly usernames = new Map<TesterKey, string>()
+  /** Logins the tool made for a tester and uses no more (D6), switched off at the end of the run. */
+  former: FormerTester<StaffMemberLike>[] = []
+  /** The two vans' vehicle ids (`ensureVans`): van 1 is driver1's, van 2 driver2's. */
+  readonly vanIds = new Map<VanKey, string>()
 
   constructor(
     readonly opts: RunOptions,
     readonly summary: Summary,
   ) {
     this.api = new Api(opts.api)
-    this.logins = readLogins(opts.loginsFile)
-    this.testers = testersFor(opts.loginSuffix)
   }
 
-  tester(key: TesterKey): Tester {
-    const t = this.testers.find((x) => x.key === key)
-    if (!t) throw new Error(`no tester ${key}`)
-    return t
+  get suffix(): string | undefined {
+    return this.opts.loginSuffix
+  }
+
+  /** The crew's driver of a trip (van key), or null when its driver is not one of this run's (a former tester). */
+  crewDriverOf(userId: string | null): VanKey | null {
+    if (!userId) return null
+    if (this.userIds.get('driver1') === userId) return 'driver1'
+    if (this.userIds.get('driver2') === userId) return 'driver2'
+    return null
+  }
+
+  /** Which of the tool's vans a vehicle is. */
+  vanOfVehicle(vehicleId: string): VanKey | null {
+    if (this.vanIds.get('driver1') === vehicleId) return 'driver1'
+    if (this.vanIds.get('driver2') === vehicleId) return 'driver2'
+    return null
+  }
+
+  /** The id of van `van`'s trip of `date` with this run's driver (null while the crew has no such driver). */
+  tripId(date: string, van: VanKey): string | null {
+    const driver = this.userIds.get(van)
+    return driver ? tripIdOf(this.tenantId, date, van, driver) : null
+  }
+  /** Its idempotency key (the id is derived from it). */
+  tripKey(date: string, van: VanKey): string | null {
+    const driver = this.userIds.get(van)
+    return driver ? demoKey(date, ...tripParts(van, driver)) : null
+  }
+  /** A door of a trip of `date`. */
+  stopId(date: string, tripId: string, sequence: number): string {
+    return stopIdOf(this.tenantId, date, tripId, sequence)
+  }
+
+  /**
+   * The SHIFT of a date (D6): empty when the date's work is this crew's alone (every date the tool makes with one
+   * crew: its ids are the ones it always had), `s2`, `s3`… when a crew the tool no longer uses already made that
+   * date and this crew takes its own shift of it (`day.ts dayShift`). Set by `makeDay`.
+   */
+  readonly shifts = new Map<string, string>()
+  private shiftParts(date: string): string[] {
+    const s = this.shifts.get(date)
+    return s ? [s] : []
+  }
+  /** The id of a row of the day's own work of `date` (its shift's, when it has one). */
+  dayId(date: string, ...parts: string[]): string {
+    return demoId(this.tenantId, date, ...this.shiftParts(date), ...parts)
+  }
+  /** Its idempotency key. */
+  dayKey(date: string, ...parts: string[]): string {
+    return demoKey(date, ...this.shiftParts(date), ...parts)
+  }
+  /** The seed of the day's choices (which shops, which items): the date, and its shift when it has one. */
+  daySeed(date: string): string {
+    return [date, ...this.shiftParts(date)].join(':')
   }
 
   get commit(): boolean {
@@ -185,43 +242,43 @@ export class Ctx {
   }
 
   /**
-   * The session of a tester, signed in on first use. When the password in the logins file no longer works
-   * (someone changed it, the file was lost) the owner resets it and the tester sets the file's password again
-   * — the run heals the login instead of failing on it.
+   * The session of a tester, signed in on first use with the DEMO password. When that no longer works (someone
+   * changed the password, or it was reset and not changed yet) the owner sets a temporary one and the tester
+   * changes it back to the demo password — the run heals the login instead of failing on it, and no tester is left
+   * with a forced change of password.
    */
   async as(key: TesterKey): Promise<Session | null> {
     const have = this.sessions.get(key)
     if (have) return have
     if (!this.commit) return null
-    const t = this.tester(key)
-    const line = this.logins.get(t.username)
-    if (line) {
-      try {
-        const s = await this.api.signIn(t.username, line.password, this.opts.tenant)
-        if (!s.mustChangePassword) {
-          this.sessions.set(key, s)
-          return s
-        }
-      } catch (e) {
-        if (!(e instanceof ApiRefusal) || e.status !== 401) {
-          this.summary.refusedOne(
-            'people',
-            `sign-in ${t.username}`,
-            e instanceof ApiRefusal ? e.label : 'error',
-          )
-          return null
-        }
+    const username = this.usernames.get(key)
+    if (!username) return null
+    try {
+      const s = await this.api.signIn(username, DEMO_PASSWORD, this.opts.tenant)
+      if (!s.mustChangePassword) {
+        this.sessions.set(key, s)
+        return s
+      }
+      await this.api.signOut(s)
+    } catch (e) {
+      if (!(e instanceof ApiRefusal) || e.status !== 401) {
+        this.summary.refusedOne(
+          'people',
+          `sign-in ${username}`,
+          e instanceof ApiRefusal ? e.label : 'error',
+        )
+        return null
       }
     }
-    return this.resetPassword(t)
+    return this.resetPassword(key)
   }
 
-  /** Owner sets a temporary password; the tester signs in with it and changes it to the file's password. */
-  async resetPassword(t: Tester): Promise<Session | null> {
-    const userId = this.userIds.get(t.key)
-    if (!userId) return null
+  /** The owner sets a temporary password; the tester signs in with it and changes it to the demo password. */
+  async resetPassword(key: TesterKey): Promise<Session | null> {
+    const userId = this.userIds.get(key)
+    const username = this.usernames.get(key)
+    if (!userId || !username) return null
     const temporary = newPassword()
-    const final = this.logins.get(t.username)?.password ?? newPassword()
     const date = this.opts.date
     const reset = await this.write(
       'people',
@@ -232,7 +289,7 @@ export class Ctx {
         idempotencyKey: demoKey(
           date,
           'person',
-          t.username,
+          username,
           'reset',
           this.id(date, 'reset', temporary),
         ),
@@ -241,47 +298,129 @@ export class Ctx {
       },
     )
     if (!reset) return null
-    return this.finishPassword(t, temporary, final)
+    return this.finishPassword(key, temporary)
   }
 
-  /** Sign in with the temporary password and set the final one: the login is then the tool's, not temporary. */
-  async finishPassword(t: Tester, temporary: string, final: string): Promise<Session | null> {
+  /**
+   * Sign in with the temporary password and change it to the demo password, the way the person would at first
+   * sign-in: the login then signs in with the demo password and is not asked to change it.
+   */
+  async finishPassword(key: TesterKey, temporary: string): Promise<Session | null> {
+    const username = this.usernames.get(key)
+    if (!username) return null
     try {
-      const s = await this.api.signIn(t.username, temporary, this.opts.tenant)
+      const s = await this.api.signIn(username, temporary, this.opts.tenant)
       await this.api.authCall(s, authContract.changePassword, {
         currentPassword: temporary,
-        newPassword: final,
+        newPassword: DEMO_PASSWORD,
       })
-      this.logins.set(t.username, { username: t.username, password: final, role: t.role })
-      this.loginsDirty = true
-      this.saveLogins()
-      const again = await this.api.signIn(t.username, final, this.opts.tenant)
-      this.sessions.set(t.key, again)
+      await this.api.signOut(s)
+      const again = await this.api.signIn(username, DEMO_PASSWORD, this.opts.tenant)
+      this.sessions.set(key, again)
       this.summary.madeOne('people', 'password set')
       return again
     } catch (e) {
       this.summary.refusedOne(
         'people',
-        `password ${t.username}`,
+        `password ${username}`,
         e instanceof ApiRefusal ? e.label : 'error',
       )
       return null
     }
   }
 
-  /** Rewrites the logins file (mode 600) when a password changed, keeping every tester's line. */
+  /**
+   * The logins file (D4): one line per tester of the crew — username, the demo password, role — mode 600, so a
+   * person opens it to see who exists. A tester is listed when it signed in with the demo password in this run, or
+   * the file already listed it with the demo password; nobody else is (the former testers, the owner, the
+   * distributor's own staff). The file is written only on a run that commits, and only when its text changes.
+   */
   saveLogins(): void {
-    if (!this.loginsDirty) return
-    const lines = this.testers
-      .map((t) => this.logins.get(t.username))
-      .filter((l): l is LoginLine => l !== undefined)
+    if (!this.commit || this.usernames.size === 0) return
+    const before = readLogins(this.opts.loginsFile)
+    const lines: LoginLine[] = []
+    for (const key of TESTER_KEYS) {
+      const username = this.usernames.get(key)
+      if (!username) continue
+      if (!this.sessions.has(key) && before.get(username)?.password !== DEMO_PASSWORD) continue
+      lines.push({ username, password: DEMO_PASSWORD, role: testerOf(key).role })
+    }
     writeLogins(this.opts.loginsFile, this.opts.tenant, lines)
-    this.loginsDirty = false
+  }
+
+  /** Sessions of former tester logins (D6), by user id: null when that person could not be signed in. */
+  private readonly formerSessions = new Map<string, Session | null>()
+
+  /**
+   * The session of a FORMER tester login (D6), to finish work the product cannot hand to another person (a trip's
+   * driver is fixed when it is planned) as that person, before the login is switched off. Tried in turn: the
+   * password the logins file of the tool before 2026-09-29 holds for it (read, never printed, never written again),
+   * the demo password, and last the product's own door — the owner sets a temporary password and the person changes
+   * it to a fresh one the tool keeps in memory for this run only (the login is switched off at the end of it).
+   * Null when none works: the step is then done by the desk and the report says so.
+   */
+  async asFormer(userId: string): Promise<Session | null> {
+    if (this.formerSessions.has(userId)) return this.formerSessions.get(userId) ?? null
+    if (!this.commit) return null
+    const member = this.former.find((f) => f.member.userId === userId)?.member
+    const username = member?.username
+    let s: Session | null = null
+    if (username && member.status !== 'disabled') {
+      const file = readLogins(this.opts.loginsFile).get(username)?.password
+      for (const password of [file, DEMO_PASSWORD]) {
+        if (!password || s) continue
+        try {
+          const got = await this.api.signIn(username, password, this.opts.tenant)
+          if (got.mustChangePassword) await this.api.signOut(got)
+          else s = got
+        } catch (e) {
+          if (!(e instanceof ApiRefusal) || e.status !== 401) break
+        }
+      }
+      if (!s) s = await this.resetFormer(userId, username)
+    }
+    this.formerSessions.set(userId, s)
+    return s
+  }
+
+  private async resetFormer(userId: string, username: string): Promise<Session | null> {
+    const temporary = newPassword()
+    const date = this.opts.date
+    const reset = await this.write(
+      'people',
+      'former login password reset',
+      this.owner,
+      contract.tenancy.staff.setPassword,
+      {
+        idempotencyKey: demoKey(date, 'person', userId, 'reset', this.id(date, 'reset', temporary)),
+        userId,
+        temporaryPassword: temporary,
+      },
+    )
+    if (!reset) return null
+    try {
+      const first = await this.api.signIn(username, temporary, this.opts.tenant)
+      const fresh = newPassword()
+      await this.api.authCall(first, authContract.changePassword, {
+        currentPassword: temporary,
+        newPassword: fresh,
+      })
+      await this.api.signOut(first)
+      return await this.api.signIn(username, fresh, this.opts.tenant)
+    } catch (e) {
+      this.summary.refusedOne(
+        'people',
+        `sign-in ${username}`,
+        e instanceof ApiRefusal ? e.label : 'error',
+      )
+      return null
+    }
   }
 
   /** Sign every session this run opened out again. */
   async signOutAll(): Promise<void> {
     for (const s of this.sessions.values()) await this.api.signOut(s)
+    for (const s of this.formerSessions.values()) if (s) await this.api.signOut(s)
     if (this.owner) await this.api.signOut(this.owner)
   }
 }

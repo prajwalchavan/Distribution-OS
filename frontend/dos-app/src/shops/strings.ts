@@ -35,7 +35,16 @@ export const SHOP_SIGN_IN_STRINGS = {
   // --- the one time the password is shown ----------------------------------------------------------------
   'si.shownTitle': 'The shop’s sign-in',
   'si.firstPassword': 'First password',
+  /**
+   * ONE sentence under the password, for what THIS device can do with it (`handOverSentence`): copy and
+   * share, copy only, share only, or neither. Never a button the dialog does not show.
+   */
   'si.shownOnce': 'This password is shown only now. Copy it or share it with the shopkeeper.',
+  'si.shownOnceCopy': 'This password is shown only now. Copy it, or read it out to the shopkeeper.',
+  'si.shownOnceShare':
+    'This password is shown only now. Share it with the shopkeeper, or read it out to them.',
+  'si.shownOnceRead':
+    'This password is shown only now, and this device cannot copy or share it. Write it down or read it out to the shopkeeper.',
   'si.mustChange': 'The shop will be asked to choose its own password at the first sign-in.',
   'si.copy': 'Copy',
   'si.copied': 'Copied',
@@ -45,10 +54,7 @@ export const SHOP_SIGN_IN_STRINGS = {
   /** Copy and Share say what happened when nothing could be copied or shared (the second check). */
   'si.copyRefused':
     'This device did not let the app copy it. Write the password down or read it out to the shopkeeper.',
-  'si.noShareSheet': 'This device has no share sheet. Copy it, or read it out to the shopkeeper.',
   'si.shareFailed': 'It was not shared. Try again, or copy it.',
-  'si.nothingToCopy':
-    'This device cannot copy or share from here. Write the password down or read it out to the shopkeeper.',
 
   // --- a number this business already signs in, or a shop that already has one ----------------------
   'si.existingTitle': 'Sign-in added',
@@ -70,13 +76,22 @@ export const SHOP_SIGN_IN_STRINGS = {
     'This mobile number already has a Distribution OS sign-in, which cannot be shared yet. Enter another mobile number of the shopkeeper.',
 
   // --- a new first password ------------------------------------------------------------------------------
+  /**
+   * What is true of a phone already signed in (QA DOS-426): its session keeps working until its access
+   * token expires, up to 15 minutes, and cannot be renewed; then the app asks for a sign-in again.
+   */
   'si.newPasswordBody':
-    '{shop} gets a new first password. The shopkeeper is signed out of the app on every phone and must choose a new password at the next sign-in.',
+    '{shop} gets a new first password, and the password it had stops working. A phone already signed in keeps working for up to 15 minutes, then asks to sign in again. At the next sign-in the shopkeeper must choose a new password.',
   'si.newPasswordConfirm': 'Give a new password',
 
   // --- stopping it ---------------------------------------------------------------------------------------
+  /**
+   * True of both kinds of login (QA DOS-425): a login of this business alone comes back as it was when
+   * given again; one the data shares with another business cannot be given again on the same number,
+   * so the desk is asked for another mobile of the shopkeeper.
+   */
   'si.stopBody':
-    '{shop} will no longer see your business in the app. Its orders, bills and dues stay as they are. You can give it a sign-in again later.',
+    '{shop} will no longer see your business in the app. Its orders, bills and dues stay as they are. You can give it a sign-in again later, but you may be asked for another mobile number of the shopkeeper.',
   'si.stopConfirm': 'Stop the sign-in',
   'si.stopped': 'Sign-in stopped',
 } as const

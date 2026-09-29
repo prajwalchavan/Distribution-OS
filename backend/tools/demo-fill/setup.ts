@@ -1,8 +1,20 @@
 import { contract } from '@dos/contracts'
+import { ApiRefusal } from './client.js'
 import type { Ctx } from './context.js'
 import { pages } from './helpers.js'
 import { addDays, demoKey, isDemoId, unit } from './ids.js'
-import { newPassword, testerPhone } from './people.js'
+import {
+  TESTERS,
+  crewKeyOf,
+  newPassword,
+  personId,
+  personParts,
+  plainUsername,
+  sortStaff,
+  testerPhone,
+  usernameCandidates,
+  type Tester,
+} from './people.js'
 import {
   chooseCreditShop,
   chooseRepBeats,
@@ -13,14 +25,15 @@ import {
   slotShopsOnVans,
   type ShopInfo,
 } from './plan.js'
+import { takeShift } from './day.js'
 import { readTrip } from './road.js'
 import type { World } from './world.js'
 
 /**
  * THE STANDING PIECES a day of work needs, each made once and found on every later run: the tester logins,
  * two vans, a beat for each rep, a shop over its limit on each rep's beat, an offer, and each driver's GPS
- * consent. All are made through the API as the person who would make them — the owner, or the driver for his
- * own consent.
+ * consent. All are made through the API as the person who would make them — the owner, the manager, or the
+ * driver for his own consent.
  */
 export interface Standing {
   repBeats: Partial<Record<'sales1' | 'sales2', string>>
@@ -39,58 +52,222 @@ export function vanRegNo(tenantId: string, n: 1 | 2): string {
 
 /**
  * The standing changes a manager makes in the app — a van, a rep on a beat, a shop's credit limit, an offer —
- * are made by `tester.manager`, so the audit log names a tester login as the one who made them: a change the
+ * are made by the tester manager login, so the audit log names a tester login as the one who made them: a change the
  * tool made to a REAL shop (its credit limit) is found again by who made it (`check:demo-rows`).
  */
 const manager = (ctx: Ctx) => (): ReturnType<Ctx['as']> => ctx.as('manager')
 
 // ---------------------------------------------------------------------------------------------- people
 
+/**
+ * The tester logins (brief rule 4 as decided on 2026-09-29). The crew is found by the tool's mark (`sortStaff`),
+ * never by a username; a tester the crew lacks is made by the owner with a temporary password, and the person
+ * then changes it to the demo password (`finishPassword`). A plain username someone else holds is never taken:
+ * the next free plain one is (D5). The logins the tool made for testers before are listed as former, and
+ * `switchOffFormer` switches them off at the end of the run (D6).
+ */
 export async function ensurePeople(ctx: Ctx, world: World, date: string): Promise<void> {
   const staff = await ctx.read(contract.tenancy.staff.list, {})
-  const taken = new Set([...world.staffPhones, ...world.shopPhones])
-  for (const t of ctx.testers) {
-    const member = staff.items.find((m) => m.username === t.username)
-    if (member) {
-      ctx.userIds.set(t.key, member.userId)
-      if (member.role !== t.role)
-        ctx.summary.note(`${t.username} exists with another role (${member.role}); left alone`)
-      if (member.status === 'disabled') {
-        await ctx.write('people', 'login re-enabled', ctx.owner, contract.tenancy.staff.setStatus, {
-          idempotencyKey: demoKey(date, 'person', t.username, 'enable'),
-          userId: member.userId,
-          status: 'active',
-        })
-      } else ctx.summary.foundOne('people', 'tester login')
+  const { crew, former } = sortStaff(ctx.tenantId, staff.items, ctx.suffix)
+  ctx.former = former
+  const phones = new Set([...world.staffPhones, ...world.shopPhones])
+  // Every username of this distributor is someone's: the crew's own, or one the tool must not take (D5).
+  const taken = new Set(staff.items.map((m) => m.username).filter((u): u is string => !!u))
+  const ownerPhone = staff.items.find((m) => m.userId === ctx.owner.userId)?.phone ?? null
+  for (const t of TESTERS) {
+    const member = crew.get(t.key)
+    if (!member) {
+      await makeTester(ctx, t, date, taken, phones, ownerPhone)
+      continue
+    }
+    ctx.userIds.set(t.key, member.userId)
+    if (member.username) ctx.usernames.set(t.key, member.username)
+    if (member.role !== t.role)
+      ctx.summary.note(
+        `${member.username ?? t.key} exists with another role (${member.role}); left alone`,
+      )
+    if (member.status === 'disabled') {
+      await ctx.write('people', 'login re-enabled', ctx.owner, contract.tenancy.staff.setStatus, {
+        idempotencyKey: demoKey(date, 'person', member.userId, 'enable'),
+        userId: member.userId,
+        status: 'active',
+      })
+    } else ctx.summary.foundOne('people', 'tester login')
+  }
+  const live = former.filter((f) => f.member.status !== 'disabled')
+  if (live.length > 0)
+    ctx.summary.note(
+      `${String(live.length)} login(s) the tool made for testers before (${live.map((f) => f.member.username ?? f.member.userId).join(', ')}) are switched off at the end of this run; their open work is finished or carried by the testers of today (D6)`,
+    )
+}
+
+/**
+ * Is a username someone's (D5)? `staff.create` looks a person up by username OR phone across the whole platform
+ * and gives the new login to the one it finds, and nothing the API answers shows a person of another distributor.
+ * So the tool asks the product first, without making anything: `staff.create` with that username and the phone of
+ * the OWNER, a person already in this distributor. The product refuses it either way — "already a member" when
+ * the only person it found is the owner (the username is nobody's), "two different people" when the username is
+ * someone else's. Anything else is read as taken: the tool then takes the next plain name rather than guess.
+ */
+export function probeAnswer(e: unknown): 'free' | 'taken' {
+  if (e instanceof ApiRefusal && e.status === 409 && /already a member/i.test(e.message))
+    return 'free'
+  return 'taken'
+}
+
+async function usernameIsFree(
+  ctx: Ctx,
+  t: Tester,
+  date: string,
+  username: string,
+  ownerPhone: string | null,
+): Promise<boolean> {
+  if (!ownerPhone) return true
+  try {
+    await ctx.api.call(ctx.owner, contract.tenancy.staff.create, {
+      idempotencyKey: demoKey(date, ...personParts(t.key, ctx.suffix), 'probe', username),
+      id: ctx.id(date, 'membership-probe', t.key, username),
+      userId: personId(ctx.tenantId, date, t.key, ctx.suffix),
+      username,
+      name: t.name,
+      phone: ownerPhone,
+      role: t.role,
+      locale: 'en-IN',
+      temporaryPassword: newPassword(),
+    })
+  } catch (e) {
+    if (e instanceof ApiRefusal && e.status === 0) throw e
+    return probeAnswer(e) === 'free'
+  }
+  // Never answered with a login (the owner is a member already); if it ever is, the name is not taken as free.
+  return false
+}
+
+/**
+ * Make one tester: the owner adds the login with a temporary password under the first plain username nobody
+ * holds, and the person changes it to the demo password. A plain username someone holds — the distributor's own
+ * staff (in the staff list) or a person of another distributor (`usernameIsFree`) — is never taken, and the next
+ * plain name is asked (D5). Should the API still give the new login to someone else (a phone the tool drew that
+ * a person of another distributor holds), that login is switched off at once and the next name is asked.
+ */
+async function makeTester(
+  ctx: Ctx,
+  t: Tester,
+  date: string,
+  taken: Set<string>,
+  phones: ReadonlySet<string>,
+  ownerPhone: string | null,
+): Promise<void> {
+  const plain = plainUsername(t.key, ctx.suffix)
+  const userId = personId(ctx.tenantId, date, t.key, ctx.suffix)
+  const said = (username: string): void => {
+    if (username !== plain)
+      ctx.summary.note(
+        `the plain username ${plain} belongs to someone the tool did not make: its ${t.key} is ${username}`,
+      )
+  }
+  for (const username of usernameCandidates(t.key, ctx.suffix, taken)) {
+    if (!ctx.commit) {
+      ctx.summary.wouldOne('people', 'tester login')
+      said(username)
+      return
+    }
+    if (!(await usernameIsFree(ctx, t, date, username, ownerPhone))) {
+      taken.add(username)
+      ctx.log(`  people: ${username} is someone else's; the next plain name is asked`)
       continue
     }
     const temporary = newPassword()
-    const userId = ctx.id(date, 'person', t.username)
-    const made = await ctx.write(
-      'people',
-      'tester login',
-      ctx.owner,
-      contract.tenancy.staff.create,
-      {
-        idempotencyKey: demoKey(date, 'person', t.username, 'create'),
-        id: ctx.id(date, 'membership', t.username),
+    let made: { userId: string }
+    try {
+      made = await ctx.api.call(ctx.owner, contract.tenancy.staff.create, {
+        idempotencyKey: demoKey(date, ...personParts(t.key, ctx.suffix), 'create', username),
+        id: ctx.id(date, 'membership', t.key, username),
         userId,
-        username: t.username,
+        username,
         name: t.name,
-        phone: testerPhone(ctx.tenantId, t.username, taken),
+        phone: testerPhone(ctx.tenantId, username, phones),
         role: t.role,
         locale: 'en-IN',
         temporaryPassword: temporary,
+      })
+    } catch (e) {
+      if (!(e instanceof ApiRefusal)) throw e
+      if (e.status === 409) {
+        // The username and the phone belong to two other people, or to someone already in this distributor.
+        taken.add(username)
+        ctx.log(
+          `  people: ${username} is someone else's (${e.label}); the next plain name is asked`,
+        )
+        continue
+      }
+      ctx.summary.refusedOne('people', `tester login ${t.key}`, e.label)
+      return
+    }
+    ctx.summary.madeOne('people', 'tester login')
+    taken.add(username)
+    if (made.userId !== userId && crewKeyOf(ctx.tenantId, made.userId, ctx.suffix) !== t.key) {
+      await ctx.write(
+        'people',
+        'login given to someone else switched off',
+        ctx.owner,
+        contract.tenancy.staff.setStatus,
+        {
+          idempotencyKey: demoKey(date, 'person', t.key, 'attached', made.userId),
+          userId: made.userId,
+          status: 'disabled',
+        },
+      )
+      ctx.summary.note(
+        `the username ${username} belongs to someone the tool did not make: the API gave them the new ${t.key} login, which the tool switched off at once`,
+      )
+      continue
+    }
+    ctx.userIds.set(t.key, made.userId)
+    ctx.usernames.set(t.key, username)
+    said(username)
+    await ctx.finishPassword(t.key, temporary)
+    return
+  }
+  ctx.summary.refusedOne('people', `tester login ${t.key}`, 'no free plain username')
+}
+
+/**
+ * D6: the logins the tool made for testers and uses no more — the `tester.<role>` logins of the tool before
+ * 2026-09-29, a crew of another login suffix — are switched off the way a staff member who left is (the owner,
+ * `staff.setStatus`), after their open work was finished or carried in this run. A login that still drives an open
+ * trip (a step of its finishing was refused) stays on, and the next run finishes the trip first. Nobody else is
+ * touched.
+ */
+export async function switchOffFormer(ctx: Ctx, date: string): Promise<void> {
+  const live = ctx.former.filter((f) => f.member.status !== 'disabled')
+  if (live.length === 0) return
+  const open = await pages((cursor) =>
+    ctx.read(contract.delivery.trips.list, {
+      states: ['planned', 'loading', 'active', 'closing'],
+      limit: 200,
+      ...(cursor ? { cursor } : {}),
+    }),
+  )
+  for (const f of live) {
+    const still = open.filter((t) => t.driverId === f.member.userId)
+    if (ctx.commit && still.length > 0) {
+      ctx.summary.note(
+        `${f.member.username ?? f.member.userId} stays on: it still drives ${String(still.length)} open trip(s) (${still.map((t) => t.id).join(', ')}); the next run finishes them first`,
+      )
+      continue
+    }
+    await ctx.write(
+      'people',
+      'former tester login switched off',
+      ctx.owner,
+      contract.tenancy.staff.setStatus,
+      {
+        idempotencyKey: demoKey(date, 'person', f.member.userId, 'off'),
+        userId: f.member.userId,
+        status: 'disabled',
       },
     )
-    if (!made) continue
-    ctx.userIds.set(t.key, made.userId)
-    if (made.userId !== userId)
-      ctx.summary.note(
-        `${t.username}: the API attached the login to an existing person ${made.userId}`,
-      )
-    const final = ctx.logins.get(t.username)?.password ?? newPassword()
-    await ctx.finishPassword(t, temporary, final)
   }
 }
 
@@ -105,6 +282,7 @@ async function ensureVans(ctx: Ctx, world: World, date: string): Promise<Standin
     if (have) {
       ctx.summary.foundOne('masters', 'van')
       vans[driver] = { id: have.id, locationId: have.locationId }
+      ctx.vanIds.set(driver, have.id)
       continue
     }
     const made = await ctx.write(
@@ -122,14 +300,27 @@ async function ensureVans(ctx: Ctx, world: World, date: string): Promise<Standin
         active: true,
       },
     )
-    if (made) vans[driver] = { id: made.item.id, locationId: made.item.locationId }
+    if (made) {
+      vans[driver] = { id: made.item.id, locationId: made.item.locationId }
+      ctx.vanIds.set(driver, made.item.id)
+    }
   }
   return vans
 }
 
 // --------------------------------------------------------------------------------- beats and credit
 
-async function ensureRepBeats(ctx: Ctx, world: World, from: string): Promise<Standing['repBeats']> {
+/**
+ * Each rep's beat. D6: a beat a former tester rep still walks goes to the rep of today, and the former rep's
+ * assignment ends on `lastFormerDay` (`beats.assign` again with an end date: the product's way to take a rep off a
+ * beat) — the day before `from`, or `from` itself when the former crew already worked that date (its shift).
+ */
+async function ensureRepBeats(
+  ctx: Ctx,
+  world: World,
+  from: string,
+  lastFormerDay: string,
+): Promise<Standing['repBeats']> {
   const existing: Standing['repBeats'] = {}
   for (const rep of ['sales1', 'sales2'] as const) {
     const userId = ctx.userIds.get(rep)
@@ -142,7 +333,28 @@ async function ensureRepBeats(ctx: Ctx, world: World, from: string): Promise<Sta
     const first = list.items.find((a) => world.beatIds.includes(a.beatId))
     if (first) existing[rep] = first.beatId
   }
-  const chosen = chooseRepBeats(world.shops, world.beatIds, existing)
+  const carried: Standing['repBeats'] = {}
+  const ending: {
+    id: string
+    beatId: string
+    userId: string
+    validFrom: string
+    validTo: string | null
+  }[] = []
+  for (const f of ctx.former.filter((x) => x.member.role === 'salesperson')) {
+    const list = await ctx.read(contract.retailers.beats.assignments.list, {
+      userId: f.member.userId,
+      on: from,
+      currentOnly: true,
+    })
+    for (const a of list.items) {
+      ending.push(a)
+      const rep = f.key === 'sales1' || f.key === 'sales2' ? f.key : null
+      if (rep && !existing[rep] && !carried[rep] && world.beatIds.includes(a.beatId))
+        carried[rep] = a.beatId
+    }
+  }
+  const chosen = chooseRepBeats(world.shops, world.beatIds, { ...carried, ...existing })
   for (const rep of ['sales1', 'sales2'] as const) {
     const beatId = chosen[rep]
     const userId = ctx.userIds.get(rep)
@@ -152,13 +364,31 @@ async function ensureRepBeats(ctx: Ctx, world: World, from: string): Promise<Sta
       continue
     }
     await ctx.write('masters', 'beat assignment', manager(ctx), contract.retailers.beats.assign, {
-      idempotencyKey: demoKey(from, 'beat', rep, beatId),
+      idempotencyKey: demoKey(from, 'beat', rep, beatId, userId),
       id: beatId,
-      assignmentId: ctx.id(from, 'beat', rep, beatId),
+      assignmentId: ctx.id(from, 'beat', rep, beatId, userId),
       userId,
       validFrom: from,
       validTo: null,
     })
+  }
+  for (const a of ending) {
+    const validTo = a.validFrom > lastFormerDay ? a.validFrom : lastFormerDay
+    if (a.validTo !== null && a.validTo <= validTo) continue
+    await ctx.write(
+      'masters',
+      'former rep taken off a beat',
+      manager(ctx),
+      contract.retailers.beats.assign,
+      {
+        idempotencyKey: demoKey(from, 'beat', 'end', a.id),
+        id: a.beatId,
+        assignmentId: a.id,
+        userId: a.userId,
+        validFrom: a.validFrom,
+        validTo,
+      },
+    )
   }
   return chosen
 }
@@ -310,9 +540,11 @@ async function ensureConsents(ctx: Ctx, date: string): Promise<void> {
       ctx.summary.foundOne('masters', 'gps consent')
       continue
     }
+    // The driver's own user id is part of the key: a crew that replaces another on the same date (D6) grants its
+    // own consent, never replays the former driver's.
     await ctx.write('masters', 'gps consent', () => ctx.as(key), contract.delivery.consents.grant, {
-      idempotencyKey: demoKey(date, 'consent', key),
-      id: ctx.id(date, 'consent', key),
+      idempotencyKey: demoKey(date, 'consent', key, userId),
+      id: ctx.id(date, 'consent', key, userId),
       granted: true,
       noticeVersion: GPS_NOTICE_VERSION,
       locale: 'en-IN',
@@ -329,14 +561,16 @@ export async function ensureStanding(
   earliest: string,
 ): Promise<Standing> {
   await ensurePeople(ctx, world, date)
+  // A date the former tester logins already made is theirs too: today's crew takes a shift of it (D6).
+  const shift = await takeShift(ctx, date)
   const vans = await ensureVans(ctx, world, date)
-  const repBeats = await ensureRepBeats(ctx, world, earliest)
+  const repBeats = await ensureRepBeats(ctx, world, earliest, shift ? date : addDays(earliest, -1))
   const creditShops = await ensureCreditShops(ctx, world, date, repBeats)
   const slotShops = chooseSlotShops(ctx.tenantId, world.shops, new Set(Object.values(creditShops)))
   // A shop the vans of `date` already carry as a stand-in keeps the offer until that day is over.
   const onVans = slotShopsOnVans({
-    driver1: (await readTrip(ctx, ctx.id(date, 'trip', 'driver1')))?.stops ?? null,
-    driver2: (await readTrip(ctx, ctx.id(date, 'trip', 'driver2')))?.stops ?? null,
+    driver1: (await readTrip(ctx, ctx.tripId(date, 'driver1')))?.stops ?? null,
+    driver2: (await readTrip(ctx, ctx.tripId(date, 'driver2')))?.stops ?? null,
   })
   await ensureOffer(ctx, world, date, offerShops(slotShops, onVans))
   await ensureConsents(ctx, date)

@@ -14,7 +14,7 @@ Ids DOS-420 … DOS-428.
 | DOS-421 | P2 | business-logic | A person shared across businesses who forgets the password has no desk that may reset it |
 | DOS-422 | P3 | privacy | The audit row of a shop's sign-in shows the shopkeeper's user id to the back office |
 | DOS-423 | P2 | product | One login for every distributor a shop buys from waits for sign-in by OTP |
-| DOS-424 | P2 | security | Hiring by phone still shares a login between distributors on the strength of a number |
+| DOS-424 | P2 | security | Hiring by phone still shares a login between distributors on the strength of a number (fixed on `fix/hire-door-dos-424`) |
 | DOS-425 | P3 | business-logic | A shop the data already shares cannot be given its sign-in again after a stop |
 | DOS-426 | P3 | security | An access token issued before a desk's reset is not walled until it expires |
 | DOS-427 | P3 | coverage | The shop sign-in screens were walked in a browser only, not on a phone build |
@@ -81,6 +81,16 @@ What it should do (needs a ruling): the same rule for the staff door as for the 
 Not changed by the lane: it is a product decision about who may hire whom.
 ```
 
+Status (2026-09-29): **fixed on branch `fix/hire-door-dos-424`, not merged yet.** The architect ruled that item 1 of the
+ruling applies to the hire door too. `tenancy.staff.create` now refuses a mobile number or a username whose sign-in another
+distributor holds (staff or shopkeeper, switched on or off), or a console seat holds. It also refuses a sign-in that no
+business holds, which is a hire left half way, unless the retry comes from the request that made it. Each refusal is a 409
+in words, with one body for the number and one for the username, whatever the other business is. Nothing is written, and
+the existing login is not touched. A person of this distributor alone still gets "already a member", and a new person is
+made as before.
+Pinned by `backend/libs/core/src/modules/tenancy/hire-door.spec.ts`. Before the fix it failed 3 of its 7 cases, and after
+the fix all 7 pass. `tenancy.spec.ts` now expects the refusal where it used to expect the reuse.
+
 ### DOS-425 — A shop the data already shares cannot be given its sign-in again after a stop
 Category: business-logic | Priority: P3 | Role: Owner / Manager | Platform: API, desk shop page | Found by: repair 2 (ruling R1 read strictly)
 
@@ -140,3 +150,20 @@ number it answered 200 and made a platform identity for the number. Beside the g
 elsewhere from staff or a console account elsewhere. Status: FIXED on the lane — the procedure stays in the contract
 (expand-only) and PERMISSIONS closes it to every role (`NOBODY`): every caller gets the gate's 403 before any handler, the same
 body whatever the number; the give links a shop to its number itself.
+
+### DOS-429 — A sign-in request that fails validation is written to the API's log with its password
+Category: security | Priority: P2 | Role: all | Platform: API | Found by: the main session, 2026-09-29, while proving the plain tester logins on main
+
+```
+What happens: a POST /auth/login whose body is not valid (here: no deviceId) answers 400, and the API's log holds the
+  rejected input as `data: { username: '…', password: '…' }`.
+How it was seen: local all-in-one API (NODE_ENV=development) over a test database; three malformed sign-ins by the main
+  session's own probe left three such lines. Whether NODE_ENV=production logs the same was NOT checked.
+What it should do: a rejected request is logged without the values of password, token and key fields, in every mode.
+Status: OPEN. Not fixed. The dummy activity tool and its checks wrote no password anywhere but the logins file.
+```
+
+Also seen, same class (blind check of the plain tester logins, 2026-09-29): when a cheque number is refused because it
+is already on another shop's receipt, the API's log holds the refusal with `retailerName`, the name of that shop. On the
+live server that is a real shop's name in a log file. The dummy activity tool prints only the code.
+
