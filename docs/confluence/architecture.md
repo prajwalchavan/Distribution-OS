@@ -6,7 +6,7 @@
 | ------------ | ------------------------- |
 | Document     | Architecture & Technology |
 | Product      | Distribution OS           |
-| Version      | 3.2                       |
+| Version      | 3.3                       |
 | Status       | Active                    |
 | Owner        | Prajwal Chavan            |
 | Last Updated | 29 September 2026         |
@@ -29,7 +29,7 @@ The technology stack is TypeScript end to end.
 6. **The product's own authentication service**: username + password, EdDSA access tokens, rotating per-device refresh tokens; the token also carries an **elected role**, granted downward only.
 7. **Object storage** for every binary, and **one pg-boss worker** for outbox relay, retention and document rendering.
 8. An **offline write protocol that never answers 4xx**, **the product's own delta-sync client** on the device, and scale rules that apply from the first distributor.
-9. **One Expo codebase for the app**: six role groups behind one sign-in — one website and one Android app, with iOS built from the same code and not released yet — plus the separate platform console; the backend is shipped as one container image on one VM, with the website on a CDN.
+9. **One Expo codebase for the app**: six role groups behind one sign-in — one website and one Android app, with iOS built from the same code and not released yet — plus the separate platform console; the backend runs natively as one process on one VM, with the website on a CDN.
 
 # 2. Technology stack
 
@@ -45,8 +45,8 @@ The technology stack is TypeScript end to end.
 | Auth              | Own service: argon2id + EdDSA JWT + JWKS                 | No third-party auth provider                                                             |
 | Apps              | Expo (React Native) + expo-router, web + Android + iOS   | One codebase renders all three; the six business roles are one app, the console a second |
 | Offline           | The product's own delta-sync client on SQLite            | No PowerSync, no TanStack Query                                                          |
-| Compute           | One arm64 Docker image, all-in-one mode, on Oracle Cloud | See §4.3; Caddy with automatic Let's Encrypt in front                                    |
-| Web hosting       | Cloudflare Pages; backups to Cloudflare R2               | Website at `www.distributionos.in`                                                       |
+| Compute           | One native process, all-in-one mode, on Oracle Cloud ARM | See §4.3; run by systemd, reached through a Cloudflare tunnel with Cloudflare's TLS      |
+| Web hosting       | Cloudflare Pages; nightly backups to object storage      | Website at `www.distributionos.in`                                                       |
 | Tooling           | pnpm 11 workspaces + Turborepo                           | Dependency versions pinned in a workspace `catalog:`                                     |
 | API docs          | Swagger UI + Scalar, generated from the contract         | Examples built from real seeded rows                                                     |
 
@@ -65,7 +65,7 @@ Two workspaces, `backend/` and `frontend/`, install and build separately.
 | `libs/config`                        | Shared TypeScript / ESLint / Vitest presets                                                                                                                                     |
 | `auth-service` + seven role services | ~20 lines each: which roles it serves, which modules it mounts, its default port                                                                                                |
 | `all-in-one`                         | The same eight services mounted behind path prefixes in one process, for a small deployment (§4.3)                                                                              |
-| `worker`, `tools`, `infra`           | pg-boss consumers; README and key generation, smoke harness; Dockerfile, compose, Caddyfile and backup scripts                                                                  |
+| `worker`, `tools`, `infra`           | pg-boss consumers; README and key generation, smoke harness; the server's setup, release and backup scripts, and a Dockerfile, compose files and Caddyfile for other machines   |
 
 **`frontend/`** holds `libs/{ui,api-client,offline,config}` and two app packages: `dos-app`, the one app of the six business roles, and `admin-app`, the platform console. The apps link `@dos/contracts` and `@dos/domain` as symlinks into the backend, so the wire types and the pricing engine are one implementation shared by server and device — not a copy.
 
@@ -119,12 +119,12 @@ A membership is one (person, distributor, role), but real distributorships do no
 
 | Piece           | Shape                                                                                                                                                                 |
 | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Compute         | **One arm64 Docker image in all-in-one mode** — all eight services plus the worker in one process, **377 MB of memory measured** — on **Oracle Cloud, Mumbai region** |
-| TLS and routing | **Caddy** in front, with automatic Let's Encrypt certificates; `api.distributionos.in`                                                                                |
-| Database        | **PostgreSQL 17 self-hosted on the same VM**, with a named volume                                                                                                     |
+| Compute         | **All eight services plus the worker in one process** (all-in-one mode), run natively under systemd, no container, on **Oracle Cloud, Mumbai** (2 OCPU, 12 GB, arm64) |
+| TLS and routing | A **Cloudflare tunnel** that the server opens outward, with Cloudflare's TLS; `api.distributionos.in`. The server accepts no inbound connection except SSH            |
+| Database        | **PostgreSQL 17 self-hosted on the same VM**, listening on its loopback only                                                                                          |
 | Web app         | **Cloudflare Pages**; `www.distributionos.in`, with the bare `distributionos.in` redirecting to it                                                                    |
-| Backups         | **Nightly `pg_dump` plus an object-storage archive to Cloudflare R2**, rotated, with a tested restore                                                                 |
-| Builds          | On a build machine or in CI, **never on the VM** (the VM has too little memory to build); the VM only ever pulls the image                                            |
+| Backups         | **Nightly dump of every database plus the cluster's roles**, kept seven days on the VM, uploaded to object storage through a write-only link, with a tested restore   |
+| Builds          | **On the server**: a release copies the source and builds there, rehearses new migrations on a restore of the latest backup, dumps, migrates, restarts, checks health |
 | Domain          | `distributionos.in`: the website at `www.distributionos.in`, the API at `api.distributionos.in`                                                                       |
 
 **Why the database is not managed.** The schema creates a `BYPASSRLS` database role for the worker, which requires superuser rights. No free managed tier grants them — Neon, Supabase and RDS all withhold it — so a managed free Postgres cannot host this schema at all. The database therefore runs on the same VM as the services.
@@ -198,7 +198,7 @@ The app opens on a **Welcome** screen (the Distribution OS mark and one Sign in 
 
 # 9. Files, documents and printing
 
-- Object storage sits behind two drivers. The **local driver is the default** — it writes to disk and signs its own URLs with HMAC, so the whole product runs on a laptop, and on a single server, with no cloud account. The **S3 driver** implements SigV4 signing directly with `node:crypto` (about 70 lines) rather than pulling in the AWS SDK, and is tested against AWS's published signing vectors with no network call. The same driver is what writes backups to Cloudflare R2.
+- Object storage sits behind two drivers. The **local driver is the default** — it writes to disk and signs its own URLs with HMAC, so the whole product runs on a laptop, and on a single server, with no cloud account. The **S3 driver** implements SigV4 signing directly with `node:crypto` (about 70 lines) rather than pulling in the AWS SDK, and is tested against AWS's published signing vectors with no network call. Nightly backups are uploaded to an object-storage bucket through a write-only link, so the server can add to the bucket and cannot read it.
 - Keys are tenant-scoped and a key that tries to escape its tenant prefix is refused. Uploads are pre-signed PUTs on both drivers, so the local flow is the S3 flow; reads follow the owning row's RLS, so another shop's invoice PDF is a 403, not a leak.
 - PDFs (invoice in A4, A5 and thermal widths, credit note, delivery challan, receipt) are rendered by a dependency-free renderer in the worker and white-labelled from tenant settings.
 - **No permanent public link to a shop's papers.** Invoices, receipts and statements go out as files shared from the phone; a forever-URL carrying a shop's prices and balance is refused, and any link ever added must be signed and expire in seven days.

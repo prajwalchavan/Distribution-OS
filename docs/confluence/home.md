@@ -6,7 +6,7 @@
 | ------------ | ----------------- |
 | Document     | Product Home      |
 | Product      | Distribution OS   |
-| Version      | 3.2               |
+| Version      | 3.3               |
 | Status       | Active            |
 | Owner        | Prajwal Chavan    |
 | Last Updated | 29 September 2026 |
@@ -83,11 +83,11 @@ Stock comes in through a **zero-typing pipeline**: blind gate count → QR / IRN
 | Documents              | Own dependency-free PDF renderer                                                                          | invoice A4 / A5 / thermal, credit note, Rule 55 challan, receipt — all white-labelled                                                     |
 | Apps                   | Expo (React Native) + expo-router, one codebase = website + Android + iOS                                 | a screen imports only the shared kit, never `react-native` or `react-dom`; the shell follows the viewport, desk at 1024 px and up         |
 | Offline                | Our own delta-sync client on SQLite; the upload endpoint never answers 4xx                                | sales and delivery work offline; no third-party sync engine                                                                               |
-| Hosting                | Oracle Cloud (Mumbai) + Cloudflare Pages + R2 backups; Caddy with automatic Let's Encrypt                 | PostgreSQL is self-hosted, because managed PostgreSQL services withhold the superuser needed to create the row-level-security bypass role |
-| CI                     | GitHub Actions; one arm64 container image, all-in-one process mode                                        | the image is built on the Mac or in CI and shipped as an artifact — never built on the server, which has too little memory                |
+| Hosting                | Oracle Cloud (Mumbai) + Cloudflare Pages; a Cloudflare tunnel with Cloudflare's TLS; nightly backups      | PostgreSQL is self-hosted, because managed PostgreSQL services withhold the superuser needed to create the row-level-security bypass role |
+| CI                     | GitHub Actions runs the checks — format, lint, types, build, tests; it does not deploy                    | releases build on the server itself, rehearse new migrations on a restore of the latest backup, then migrate, restart and check health    |
 | Monitoring and logging | Kept to what the hosting needs                                                                            | more comes after version 1                                                                                                                |
 
-**Where it runs.** PostgreSQL 17 is self-hosted alongside the services on an Oracle Cloud instance (2 OCPU / 12 GB ARM) in the **Mumbai** region; the creation of the worker role that bypasses row-level security needs a superuser, which managed PostgreSQL services (Neon, Supabase, RDS) withhold, and the isolation model is not bent to fit a hosting provider. The apps are served from **Cloudflare Pages**, and backups are kept **off Oracle** on Cloudflare R2. The website is **www.distributionos.in**, the bare domain `distributionos.in` redirects to it, and `api.` is the services.
+**Where it runs.** PostgreSQL 17 is self-hosted alongside the services on an Oracle Cloud instance (2 OCPU / 12 GB ARM) in the **Mumbai** region; the creation of the worker role that bypasses row-level security needs a superuser, which managed PostgreSQL services (Neon, Supabase, RDS) withhold, and the isolation model is not bent to fit a hosting provider. The eight services and the worker run there natively as one process (all-in-one mode) under systemd, with no container; the database listens on the instance's loopback only, and the API is reached through a Cloudflare tunnel that the server opens outward, so the server accepts no inbound connection except SSH. The apps are served from **Cloudflare Pages**, and every night a dump of every database and the cluster's roles is kept seven days on the server and uploaded to an object-storage bucket through a write-only link, so the server can add to the bucket but cannot read it. The website is **www.distributionos.in**, the bare domain `distributionos.in` redirects to it, and `api.` is the services.
 
 ---
 

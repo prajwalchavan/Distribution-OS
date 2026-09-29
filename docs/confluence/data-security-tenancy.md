@@ -6,7 +6,7 @@
 | ------------ | ------------------------------ |
 | Document     | Data, Security & Multi-tenancy |
 | Product      | Distribution OS                |
-| Version      | 3.1                            |
+| Version      | 3.2                            |
 | Status       | Active                         |
 | Owner        | Prajwal Chavan                 |
 | Last Updated | 29 September 2026              |
@@ -289,7 +289,7 @@ Retention runs hourly on the worker under the `BYPASSRLS` worker role, in bounde
 | `sync_errors`, once resolved          | 90 days                     | Rejections are shown, then aged out                                                                  |
 | `outbox_events`, once published       | 30 days                     | Relay bookkeeping                                                                                    |
 
-Ledgers, invoices, journals and the audit log are **not** swept — they are the books. Backups are point-in-time recovery plus nightly dumps to an object-locked bucket held **off** the hosting provider, with a monthly restore drill; the stated targets are RPO 5 minutes / RTO 2 hours.
+Ledgers, invoices, journals and the audit log are **not** swept — they are the books. Backups are a nightly dump of every database plus the cluster's roles, kept seven days on the server and uploaded to an object-storage bucket through a write-only link, so the server can add to the bucket and cannot read it, with a tested restore into a scratch database. Point-in-time recovery is not available yet.
 
 ---
 
