@@ -30,10 +30,12 @@ import {
   afterSharedNumber,
   firstPassword,
   givePayload,
+  handOverSentence,
   hasMobile,
   isSharedNumber,
   newGiveIntent,
   passwordPayload,
+  SHOWN_ONCE_BUTTONS,
   stopPayload,
   toldWords,
   toMobile,
@@ -323,20 +325,18 @@ export function ShopSignInRow({ shop, when, onToast }: ShopSignInRowProps): Reac
               ) : step.handOver === 'shareFailed' ? (
                 <Problem text={t('si.shareFailed')} testID="shop-sign-in-share-failed" />
               ) : null}
-              {!clipboard.available && !(share.available && share.sheet) ? (
-                <Hint>{t('si.nothingToCopy')}</Hint>
-              ) : clipboard.available && !(share.available && share.sheet) ? (
-                <Hint>{t('si.noShareSheet')}</Hint>
-              ) : null}
-              <Hint>{t('si.shownOnce')}</Hint>
+              {/* One sentence, for what this device can do (the fourth check's minor). */}
+              <Hint>
+                {t(handOverSentence(clipboard.available, share.available && share.sheet))}
+              </Hint>
               <Txt field="body" desk="body">
                 {t('si.mustChange')}
               </Txt>
             </Stack>
           ) : null
         }
-        confirmLabel={t('si.done')}
-        cancelLabel={t('si.ok')}
+        confirmLabel={t(SHOWN_ONCE_BUTTONS.confirm)}
+        cancelLabel={SHOWN_ONCE_BUTTONS.cancel}
         onConfirm={close}
         testID="shop-sign-in-shown"
       />

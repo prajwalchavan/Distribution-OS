@@ -149,6 +149,26 @@ export function afterSharedNumber(
 }
 
 /**
+ * THE SHOWN-ONCE DIALOG (the fourth check's minor): ONE sentence under the password, for what this
+ * device can do with it — the Copy button shows when the clipboard is there, the Share button when a
+ * share sheet is — so the dialog never names a button it does not have, and never says two things.
+ */
+export type HandOverSentence =
+  'si.shownOnce' | 'si.shownOnceCopy' | 'si.shownOnceShare' | 'si.shownOnceRead'
+export function handOverSentence(canCopy: boolean, canShare: boolean): HandOverSentence {
+  if (canCopy && canShare) return 'si.shownOnce'
+  if (canCopy) return 'si.shownOnceCopy'
+  if (canShare) return 'si.shownOnceShare'
+  return 'si.shownOnceRead'
+}
+
+/**
+ * Its buttons: nothing was left undone that a Cancel could take back (the password is already the
+ * shop's), so ONE button closes it, the one that says what the desk did.
+ */
+export const SHOWN_ONCE_BUTTONS = { confirm: 'si.done', cancel: null } as const
+
+/**
  * What the desk is told when the give made no new login (ruling R4). "The shopkeeper uses their own
  * password" only where it is true: a login of this business whose password the person has chosen.
  */
