@@ -958,6 +958,70 @@ describe('priceOrder', () => {
   })
 
   /*
+   * DOS-219 (docs/22 §8, 2026-09-28): "On its own" is a scheme that is NOT stackable (and not final): it still
+   * means no other scheme at all on that line, the bill-level one included. QA's X04: a 10 % "on its own" line
+   * of ₹791.20 also took ₹14.24 of a 2 % bill scheme and the bill came to ₹1,165 instead of ₹1,181.
+   */
+  it('DOS-219: a line on an "On its own" scheme takes no bill-level scheme, still counts toward its threshold, and keeps a bargain', () => {
+    const onItsOwn = scheme({
+      id: 's-alone-v1',
+      scope: { variantIds: [V1] },
+      triggerKind: 'qty',
+      triggerUnit: 'pcs',
+      triggerMin: 1,
+      rewardKind: 'line_pct',
+      rewardValue: 1000,
+      stackable: false,
+    })
+    const bill2 = scheme({
+      id: 's-bill-2',
+      scope: { all: true },
+      triggerKind: 'value',
+      triggerUnit: 'inr',
+      triggerMin: 50_000,
+      rewardKind: 'order_pct',
+      rewardValue: 200,
+    })
+    // l1 = 48 × ₹10 = ₹480 on its own scheme; l2 = 5 × ₹20 = ₹100. The bill (₹580) is over ₹500 only with l1.
+    const input = order({
+      lines: [
+        { lineId: 'l1', variantId: V1, qtyPcs: 48, caseSize: 12 },
+        { lineId: 'l2', variantId: V2, qtyPcs: 5, caseSize: 24 },
+      ],
+      schemes: [onItsOwn, bill2],
+    })
+    const r = priceOrder(input)
+    const l1 = line(r, 'l1')
+    expect(l1.appliedRules.map((a) => a.ruleId)).toEqual(['s-alone-v1'])
+    expect(l1.discountPaise).toBe(fromRupees('48'))
+    // the threshold still counts l1, so l2 earns its 2 % — of its own ₹100 only
+    const l2 = line(r, 'l2')
+    expect(l2.appliedRules.map((a) => a.ruleId)).toEqual(['s-bill-2'])
+    expect(l2.discountPaise).toBe(fromRupees('2'))
+    expect(r.orderRules).toEqual([
+      {
+        ruleId: 's-bill-2',
+        version: 1,
+        kind: 'scheme',
+        rewardKind: 'order_pct',
+        amountPaise: fromRupees('2'),
+      },
+    ])
+    // an approved rate still applies on the "on its own" line (only a FINAL scheme blocks a bargain)
+    const bargained = priceOrder({
+      ...input,
+      approvedBargains: [{ id: 'b1', variantId: V1, ratePaise: fromRupees('9') }],
+    })
+    expect(line(bargained, 'l1').bargainPaise).toBe(fromRupees('48'))
+    // and a STACKABLE line scheme still shares the bill scheme, as before
+    const stacking = priceOrder({ ...input, schemes: [{ ...onItsOwn, stackable: true }, bill2] })
+    expect(line(stacking, 'l1').appliedRules.map((a) => a.ruleId)).toEqual([
+      's-alone-v1',
+      's-bill-2',
+    ])
+  })
+
+  /*
    * The same rule for a line the shop has a FINAL price on (ADR 0008 step 2): no scheme stacks on that
    * line, but it is still goods on the bill, so it counts toward "bills over ₹X" (QA DOS-075).
    */

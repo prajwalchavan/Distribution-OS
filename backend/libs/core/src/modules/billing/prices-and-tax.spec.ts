@@ -1153,6 +1153,69 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
     await db.update(schemes).set({ active: false }).where(eq(schemes.id, gift))
   })
 
+  // ---------------------------------------------------------------------------------------------------------------
+  // DOS-219: "On its own" means no other scheme at all, the bill-level one included (QA X04)
+
+  it('DOS-219: an "On its own" line takes no share of the bill scheme; quote, order and bill agree', async () => {
+    const shop = await newShop('X04')
+    const alone = uuidv7()
+    const bill2 = uuidv7()
+    const base = {
+      applicability: { retailerIds: [shop] },
+      validFrom: '2020-01-01',
+      validTo: '2099-12-31',
+      fundingSource: 'distributor',
+    }
+    for (const body of [
+      {
+        idempotencyKey: `x04-alone-${run}`,
+        id: alone,
+        name: `X04 on its own 10 % ${run}`,
+        scope: { variantIds: [v.t12at1025] },
+        triggerKind: 'qty',
+        triggerMin: 1,
+        triggerUnit: 'pcs',
+        rewardKind: 'line_pct',
+        rewardValue: 1000,
+        stackable: false,
+        ...base,
+      },
+      {
+        idempotencyKey: `x04-bill-${run}`,
+        id: bill2,
+        name: `X04 bill 2 % ${run}`,
+        scope: { all: true },
+        triggerKind: 'value',
+        triggerMin: 10_000,
+        triggerUnit: 'inr',
+        rewardKind: 'order_pct',
+        rewardValue: 200,
+        ...base,
+      },
+    ]) {
+      const made = await call(app, owner, 'POST', '/pricing/schemes', body)
+      expect(made.status, JSON.stringify(made.body)).toBe(200)
+    }
+    const lines = [
+      { variantId: v.t12at1025, qtyPcs: 23 },
+      { variantId: v.t0at1001, qtyPcs: 5 },
+    ]
+    const quoted = await quote(shop, lines)
+    const q = quoted as Quote & {
+      lines: { lineId: string; discountPaise: number; appliedRules: { ruleId: string }[] }[]
+    }
+    // 23 × ₹10.25 = ₹235.75, 10 % on its own = ₹23.58 and nothing else; the dahi's ₹50.05 takes 2 % = ₹1.00
+    expect(q.lines[0]?.appliedRules.map((r) => r.ruleId)).toEqual([alone])
+    expect(q.lines[0]?.discountPaise).toBe(2358)
+    expect(q.lines[1]?.appliedRules.map((r) => r.ruleId)).toEqual([bill2])
+    expect(q.lines[1]?.discountPaise).toBe(100)
+    const order = await placeOrder(shop, lines, 'x04')
+    expect(order.totalPaise).toBe(quoted.totals.totalPaise)
+    const bill = await pack(order.id, 'x04')
+    expect(bill.totalPaise).toBe(quoted.totals.totalPaise)
+    expect(bill.discountPaise).toBe(2358 + 100)
+  })
+
   it('the release check is clean for this distributor’s bills written now', async () => {
     const faults = await schemeAmountFaults(db, tenantId)
     expect(faults.filter((f) => f.status === 'differs')).toEqual([])

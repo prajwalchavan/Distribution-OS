@@ -8,7 +8,9 @@ import { pieces } from '../quantity.js'
  *   1. tier price from the retailer's price list (`tierPrices`)
  *   2. retailer override wins; `final` = nothing stacks on top of it (no schemes on that line)
  *   3. schemes stack; a non-stackable (or `final`) scheme applies alone — the engine picks whichever is worth
- *      more to the retailer: every stackable scheme together, or the single best exclusive one
+ *      more to the retailer: every stackable scheme together, or the single best exclusive one. A line that
+ *      takes an exclusive ("On its own") scheme takes no other scheme at all, a bill-level one included
+ *      (DOS-219, docs/22 §8 2026-09-28); it still counts toward a bill's threshold (DOS-075)
  *   4. approved bargain last: the negotiated rate replaces the rate, the difference is a `bargain` rule
  *   5. cash discount is CONDITIONAL (realised at receipt, ADR 0004): the single offer worth most to the retailer,
  *      computed on the net of its own in-scope lines; reported, never deducted
@@ -235,6 +237,12 @@ interface LineState {
   gross: Paise
   schemesAllowed: boolean
   lockedByFinalScheme: boolean
+  /**
+   * DOS-219 (docs/22 §8, 2026-09-28): the line took a scheme saved "On its own" (not stackable, or final), which
+   * means no other scheme at all — the bill-level one included. It still counts toward a bill's threshold
+   * (DOS-075); it takes no share of a bill-level reward. A bargain still applies unless the scheme is final.
+   */
+  onItsOwn: boolean
   discount: number
   bargain: number
   bargainRate: Paise | null
@@ -286,7 +294,9 @@ export function priceOrder(input: PriceOrderInput): PriceOrderResult {
         exclusive: !scheme.stackable || scheme.final,
       })
     }
-    for (const c of chooseStack(candidates)) applyLineReward(c, line, [line])
+    const chosen = chooseStack(candidates)
+    if (chosen.length === 1 && chosen[0]?.exclusive === true) line.onItsOwn = true
+    for (const c of chosen) applyLineReward(c, line, [line])
   }
 
   // 3b. order-level schemes (order_pct, or any `mix` trigger) over every in-scope line together
@@ -306,7 +316,7 @@ export function priceOrder(input: PriceOrderInput): PriceOrderResult {
      * ...and those same lines still earn NOTHING from it: only lines schemes may still touch are the base
      * of the reward (`orderRewardValue`/`scopeBase`) and take a share of it (`spread`).
      */
-    const scope = measured.filter((l) => l.schemesAllowed && !l.lockedByFinalScheme)
+    const scope = measured.filter((l) => l.schemesAllowed && !l.lockedByFinalScheme && !l.onItsOwn)
     if (scope.length === 0) continue
     const reward = evaluateTrigger(scheme, measure(scheme.triggerUnit, measured))
     if (!reward) continue
@@ -441,6 +451,7 @@ function resolveBase(line: PriceOrderLineInput, input: PriceOrderInput): LineSta
     gross: multiply(baseRate, pieces(line.qtyPcs)),
     schemesAllowed: !(override?.final ?? false),
     lockedByFinalScheme: false,
+    onItsOwn: false,
     discount: 0,
     bargain: 0,
     bargainRate: null,
