@@ -1,4 +1,5 @@
 import {
+  boolean,
   check,
   date,
   index,
@@ -232,6 +233,13 @@ export const dailyOwnerStats = pgTable(
     /** Scheme redemptions on the day's invoices, split by funding source — never collapsed (docs/plans/reporting.md §4 rule 8). */
     schemeSpendCompanyPaise: paise('scheme_spend_company_paise').notNull().default(0),
     schemeSpendDistributorPaise: paise('scheme_spend_distributor_paise').notNull().default(0),
+    /**
+     * The two scheme-spend figures count a scheme ONCE per order line (QA DOS-330, ruling 1 of docs/22 §8
+     * 2026-09-28). NULL on a day rolled before that rule, whose figures may carry a scheme once per BATCH line
+     * of a bill split over batches: today's rollup recounts such a day once (`recountSchemeSpendDays`) and sets
+     * it, so the owner's series agrees with the scheme-spend register for every past day, not only new ones.
+     */
+    schemeSpendCountedOnce: boolean('scheme_spend_counted_once'),
     byBrand: jsonb('by_brand').$type<DailyMarginMix>(),
     computedAt: tz('computed_at').notNull().defaultNow(),
   },

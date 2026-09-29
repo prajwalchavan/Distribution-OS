@@ -4,6 +4,7 @@ import { businessDate } from '@dos/domain'
 import { ageingNeedsRebuild, rebuildTenantAgeing } from '@dos/core/receivables'
 import {
   activeTenantIds,
+  recountSchemeSpendDays,
   registerReportRenderers,
   rollupBehaviour,
   rollupStaleCreditDays,
@@ -171,6 +172,14 @@ export async function registerReportingJobs(boss: PgBoss, db: Db): Promise<void>
         logger.info(
           { tenantId: parsed.tenantId, days: caughtUp },
           'reporting: credit-note catch-up',
+        )
+      // QA DOS-330 (prices lane, blind check 1, M1): a past day rolled while a scheme was counted once per
+      // batch line has its scheme spend recounted once, so the owner's series agrees with the register.
+      const recounted = await recountSchemeSpendDays(db, parsed.tenantId)
+      if (recounted.length > 0)
+        logger.info(
+          { tenantId: parsed.tenantId, days: recounted },
+          'reporting: scheme-spend recount',
         )
     }
     const result = await rollupTenantDay(db, parsed.tenantId, parsed.day)

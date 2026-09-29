@@ -286,6 +286,8 @@ export async function seedReporting(
       nearExpiryValuePaise: stockAt.nearExpiryValuePaise,
       schemeSpendCompanyPaise: spend?.company ?? 0,
       schemeSpendDistributorPaise: spend?.distributor ?? 0,
+      // counted once per order line already (`invoiceRulesGiven`): the rollup's DOS-330 recount leaves it alone
+      schemeSpendCountedOnce: true,
       byBrand: margin?.byBrand ?? {},
     })
   }
@@ -328,6 +330,7 @@ export async function seedReporting(
       'nearExpiryValuePaise',
       'schemeSpendCompanyPaise',
       'schemeSpendDistributorPaise',
+      'schemeSpendCountedOnce',
       'byBrand',
     ],
   )
@@ -1255,6 +1258,8 @@ async function seedRollupHistory(
       // bigger days only — the split the owner's <StackedMix> exists to show (never collapsed).
       schemeSpendCompanyPaise: Math.round(netSalesPaise * (0.008 + rng() * 0.006)),
       schemeSpendDistributorPaise: factor > 1.05 ? Math.round(netSalesPaise * 0.02) : 0,
+      // the history's own figures (no bills stand behind them): never recounted from bills
+      schemeSpendCountedOnce: true,
       byBrand: byBrandMargin,
     })
 
@@ -1343,6 +1348,7 @@ async function seedRollupHistory(
       'nearExpiryValuePaise',
       'schemeSpendCompanyPaise',
       'schemeSpendDistributorPaise',
+      'schemeSpendCountedOnce',
       'byBrand',
     ],
   )

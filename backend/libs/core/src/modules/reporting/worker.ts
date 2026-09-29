@@ -4,6 +4,7 @@
  */
 export {
   activeTenantIds,
+  recountSchemeSpendDays,
   rollupBehaviour,
   rollupStaleCreditDays,
   rollupTenant,

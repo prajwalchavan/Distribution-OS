@@ -547,6 +547,13 @@
       "when": 1790900000800,
       "tag": "0082_credit_note_line_tax_split_expand",
       "breakpoints": true
+    },
+    {
+      "idx": 83,
+      "version": "7",
+      "when": 1790900000900,
+      "tag": "0083_daily_scheme_spend_counted_once_expand",
+      "breakpoints": true
     }
   ]
 }

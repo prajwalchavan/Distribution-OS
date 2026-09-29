@@ -14,6 +14,7 @@ export { ReportExportsService } from './exports.service.js'
 export { registerReportRenderers } from './renderers.js'
 export {
   activeTenantIds,
+  recountSchemeSpendDays,
   rollupBehaviour,
   rollupStaleCreditDays,
   rollupTenant,

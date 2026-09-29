@@ -41,7 +41,7 @@ import { InventoryModule, InventoryService } from '../inventory/index.js'
 import { OrdersModule } from '../orders/index.js'
 import { PricingModule } from '../pricing/index.js'
 import { ReceivablesModule } from '../receivables/index.js'
-import { ReportingModule } from '../reporting/index.js'
+import { recountSchemeSpendDays, ReportingModule } from '../reporting/index.js'
 import { SyncModule } from '../sync/index.js'
 import { WarehouseModule } from '../warehouse/index.js'
 import { BillingModule } from './index.js'
@@ -1491,6 +1491,106 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
       [62, 62],
       [61, 61],
     ])
+  })
+
+  /*
+   * Blind check 1, M1: the rollup counts a scheme once since DOS-330, but a day rolled before kept the figure that
+   * carried it once per batch line (QA's 28 Sep: the owner's series Rs 1,488.96 / Rs 3,930.44, the register Rs 385.44
+   * / Rs 2,463.70), and nothing rolls a past day again. The worker's tenant job now recounts such a day once.
+   */
+  it('M1: a past day rolled before DOS-330 has its scheme spend recounted once, and the owner’s series then agrees with the register', async () => {
+    const shop = await newShop('M1')
+    const tenPct = uuidv7()
+    const made = await call(app, owner, 'POST', '/pricing/schemes', {
+      idempotencyKey: `m1-scheme-${run}`,
+      id: tenPct,
+      name: `M1 10 % ${run}`,
+      scope: { variantIds: [v.t18at1025] },
+      applicability: { retailerIds: [shop] },
+      triggerKind: 'qty',
+      triggerMin: 1,
+      triggerUnit: 'pcs',
+      rewardKind: 'line_pct',
+      rewardValue: 1000,
+      validFrom: '2020-01-01',
+      validTo: '2099-12-31',
+      fundingSource: 'company',
+    })
+    expect(made.status, JSON.stringify(made.body)).toBe(200)
+    const order = await placeOrder(shop, [{ variantId: v.t18at1025, qtyPcs: 10 }], 'm1')
+    const orderLine = order.lines[0]
+    const given = orderLine?.discountPaise ?? 0
+    expect(given).toBe(1025) // 10 % of 10 × ₹10.25
+    const bill = await pack(order.id, 'm1')
+
+    // The same order line billed on a PAST day before the ruling: three batch lines, each carrying the order
+    // line's whole rule (INV/9047's shape), and the owner's day rolled the old way — the rule three times.
+    const past = new Date(Date.parse(`${today}T00:00:00Z`) - 5 * 86_400_000).toISOString().slice(0, 10)
+    const oldId = uuidv7()
+    const [issued] = await db.select().from(invoices).where(eq(invoices.id, bill.id))
+    if (!issued) throw new Error('bill not found')
+    await db.insert(invoices).values({
+      ...issued,
+      id: oldId,
+      invoiceNo: `OLD-M1/${run}`,
+      seriesCode: 'OLDM1',
+      invoiceDate: past,
+      orderId: null,
+      upiQrPayload: null,
+    })
+    const [template] = await db.select().from(invoiceLines).where(eq(invoiceLines.invoiceId, bill.id))
+    if (!template) throw new Error('bill line not found')
+    const discounts = shareOut(given, [4, 3, 3])
+    await db.insert(invoiceLines).values(
+      [4, 3, 3].map((qty, i) => ({
+        ...template,
+        id: uuidv7(),
+        invoiceId: oldId,
+        lineNo: i + 1,
+        qtyPcs: qty,
+        discountPaise: discounts[i] ?? 0,
+        taxablePaise: qty * RATE.t18at1025 - (discounts[i] ?? 0),
+        appliedRules: orderLine?.appliedRules ?? [],
+      })),
+    )
+    await db.execute(sql`
+      insert into daily_owner_stats (tenant_id, day, scheme_spend_company_paise, scheme_spend_distributor_paise)
+      values (${tenantId}, ${past}, ${3 * given}, 0)`)
+
+    const series = async (): Promise<number> => {
+      const res = await call<{ series: { metric: string; points: { value: number }[] }[] }>(
+        app,
+        owner,
+        'GET',
+        '/reporting/series/scheme-spend',
+        { grain: 'day', from: past, to: past },
+      )
+      expect(res.status, JSON.stringify(res.body)).toBe(200)
+      return res.body.series.find((s) => s.metric === 'schemeSpendCompany')?.points[0]?.value ?? -1
+    }
+    const register = await call<{ items: { schemeId: string; amountPaise: number }[] }>(
+      app,
+      owner,
+      'GET',
+      '/reporting/registers/scheme-spend',
+      { from: past, to: past },
+    )
+    expect(register.status, JSON.stringify(register.body)).toBe(200)
+    expect(register.body.items.find((i) => i.schemeId === tenPct)?.amountPaise).toBe(given)
+    // the day as it was stored: the scheme three times on the owner's chart
+    expect(await series()).toBe(3 * given)
+
+    // the worker's tenant job for today runs the recount before today's rollup
+    const recounted = await recountSchemeSpendDays(db, tenantId)
+    expect(recounted).toContain(past)
+    expect(await series()).toBe(given)
+    const [row] = (
+      await db.execute(sql`select scheme_spend_counted_once as once from daily_owner_stats
+                            where tenant_id = ${tenantId} and day = ${past}`)
+    ).rows as { once: boolean | null }[]
+    expect(row?.once).toBe(true)
+    // once: the next tick finds nothing for that day
+    expect(await recountSchemeSpendDays(db, tenantId)).not.toContain(past)
   })
 
   it('ruling 8: a shop’s final rate blocks schemes, not a rate request approved for it (QA O07)', async () => {

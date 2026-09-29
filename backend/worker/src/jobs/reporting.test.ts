@@ -335,6 +335,42 @@ describeDb('DOS-117 nightly ageing through the reporting jobs (DATABASE_URL)', (
     expect(fake.sent.filter((s) => s.data.tenantId === current.tenantId)).toEqual([])
   })
 
+  it('M1 (prices lane, QA DOS-330): the tenant job for today first recounts, once, the scheme spend of a past day rolled while a scheme was counted once per batch line', async () => {
+    const today = day(0)
+    const past = day(-3)
+    const { tenantId } = await shopWithDues({
+      label: 'scheme',
+      bills: [],
+      summary: {
+        asOf: today,
+        outstandingPaise: 0,
+        overduePaise: 0,
+        bucket0to7Paise: 0,
+        openBills: 0,
+      },
+    })
+    hoisted.tenants = []
+    // The day as the old rollup left it (QA's 28 Sep figures): not what its own bills gave — it has none.
+    await db.execute(sql`
+      insert into daily_owner_stats (tenant_id, day, scheme_spend_company_paise, scheme_spend_distributor_paise)
+      values (${tenantId}, ${past}, 148896, 393044)`)
+
+    const fake = fakeBoss(duesAsOf)
+    await registerReportingJobs(fake.boss, db)
+    await fake.run('reporting.rollup.tenant', { tenantId, day: today })
+
+    const rows = await db.execute(sql`
+      select day::text as day, scheme_spend_company_paise as company,
+             scheme_spend_distributor_paise as distributor, scheme_spend_counted_once as once
+        from daily_owner_stats where tenant_id = ${tenantId} order by day`)
+    expect(
+      rows.rows.map((r) => [String(r.day), Number(r.company), Number(r.distributor), r.once]),
+    ).toEqual([
+      [past, 0, 0, true],
+      [today, 0, 0, true],
+    ])
+  })
+
   it('DOS-117: an ageing rebuild job that runs on a later business date than it was queued for ages to the run-time date, never back to the queued date', async () => {
     const today = day(0)
     const tomorrow = day(1)

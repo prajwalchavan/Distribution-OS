@@ -328,6 +328,84 @@ export async function rollupStaleCreditDays(
   return days
 }
 
+/**
+ * The scheme spend of one day's bills, split by who funds it. QA DOS-330 (ruling 1): a scheme is counted once per
+ * ORDER line (`invoiceRulesGiven`), however many batches it left from — on a bill written before the rule, whose
+ * batch lines each carry the order line's whole rule, as on one written since, whose batch lines carry shares.
+ */
+async function schemeSpendOfDay(
+  tx: Db,
+  tenantId: string,
+  day: string,
+): Promise<{ company: number; distributor: number }> {
+  const result = await tx.execute(sql`
+    with ${invoiceRulesGiven(sql`
+      select l.invoice_id, l.id as line_id, l.line_no, l.order_line_id, l.variant_id, l.qty_pcs,
+             l.free_qty_pcs, l.applied_rules
+        from invoice_lines l
+        join invoices i on i.id = l.invoice_id and i.tenant_id = l.tenant_id
+       where l.tenant_id = ${tenantId} and i.invoice_date = ${day}
+         and i.state not in ('draft', 'cancelled')`)}
+    select coalesce(s.funding_source::text, 'company') as funding_source,
+           coalesce(sum(g.amount_paise), 0)::bigint as amount_paise
+      from rg_given g
+      left join schemes s on s.id = g.rule_id and s.tenant_id = ${tenantId}
+       -- DOS-018: a line carries every rule the engine applied; only a SCHEME is scheme spend, and a
+       -- bargain counted here fell to the company side and looked like a claim to raise on a brand.
+     where g.kind = 'scheme'
+     group by 1`)
+  let company = 0
+  let distributor = 0
+  for (const row of result.rows) {
+    if (String(row.funding_source) === 'distributor') distributor += n(row.amount_paise)
+    else company += n(row.amount_paise)
+  }
+  return { company, distributor }
+}
+
+/** At most this many past days are recounted per tick, newest first (docs/20: bounded work per request). */
+export const SCHEME_RECOUNT_DAYS_PER_TICK = 62
+
+/**
+ * THE DOS-330 CATCH-UP (prices lane, blind check 1, M1). A day rolled up before a scheme was counted once per
+ * order line stored a scheme spend that carried the scheme once per BATCH line of every bill split over batches
+ * (QA's 28 Sep: company Rs 1,488.96 / distributor Rs 3,930.44 against the register's Rs 385.44 / Rs 2,463.70), and
+ * nothing rolls a past day again, so the owner's scheme-spend series disagreed with the register for every such
+ * day. Each day whose `scheme_spend_counted_once` is NULL (migration 0083 added it without a default on purpose)
+ * has its two scheme-spend figures recounted from its own bills, ONCE — the recount sets the column, so the next
+ * tick finds nothing — newest first, a bounded batch per tick. Nothing else of the day is touched: its sales,
+ * margin, stock at cost and dues keep what their own last run stored (property 4). The worker runs it before
+ * today's rollup; a day rolled since carries the column already.
+ */
+export async function recountSchemeSpendDays(
+  db: Db,
+  tenantId: string,
+  limit: number = SCHEME_RECOUNT_DAYS_PER_TICK,
+): Promise<string[]> {
+  const ctx = systemCtx(tenantId)
+  return tenantStorage.run(ctx, () =>
+    withTenant(db, ctx, async (tx) => {
+      const stale = await tx.execute(sql`
+        select to_char(day, 'YYYY-MM-DD') as day
+          from daily_owner_stats
+         where tenant_id = ${tenantId} and scheme_spend_counted_once is null
+         order by day desc
+         limit ${limit}`)
+      const days = stale.rows.map((r: Record<string, unknown>) => String(r.day))
+      for (const day of days) {
+        const { company, distributor } = await schemeSpendOfDay(tx, tenantId, day)
+        await tx.execute(sql`
+          update daily_owner_stats
+             set scheme_spend_company_paise = ${Math.max(0, company)},
+                 scheme_spend_distributor_paise = ${Math.max(0, distributor)},
+                 scheme_spend_counted_once = true
+           where tenant_id = ${tenantId} and day = ${day}`)
+      }
+      return days
+    }),
+  )
+}
+
 /** One row per rep who did anything that day: visits, orders, and the money a delivery user took. */
 async function rollupRepDay(
   tx: Db,
@@ -548,23 +626,7 @@ async function rollupOwnerDay(tx: Db, tenantId: string, day: string): Promise<vo
       left join lot_cost lc on lc.lot_id = b.lot_id
       left join cost c on c.variant_id = lo.variant_id
      where b.tenant_id = ${tenantId} and b.on_hand > 0`)
-  // QA DOS-330: a scheme is counted once per order line (`invoiceRulesGiven`), however many batches it left from.
-  const schemes = await tx.execute(sql`
-    with ${invoiceRulesGiven(sql`
-      select l.invoice_id, l.id as line_id, l.line_no, l.order_line_id, l.variant_id, l.qty_pcs,
-             l.free_qty_pcs, l.applied_rules
-        from invoice_lines l
-        join invoices i on i.id = l.invoice_id and i.tenant_id = l.tenant_id
-       where l.tenant_id = ${tenantId} and i.invoice_date = ${day}
-         and i.state not in ('draft', 'cancelled')`)}
-    select coalesce(s.funding_source::text, 'company') as funding_source,
-           coalesce(sum(g.amount_paise), 0)::bigint as amount_paise
-      from rg_given g
-      left join schemes s on s.id = g.rule_id and s.tenant_id = ${tenantId}
-       -- DOS-018: a line carries every rule the engine applied; only a SCHEME is scheme spend, and a
-       -- bargain counted here fell to the company side and looked like a claim to raise on a brand.
-     where g.kind = 'scheme'
-     group by 1`)
+  const schemes = await schemeSpendOfDay(tx, tenantId, day)
 
   /*
    * Stock at cost is a CLOSING figure read from the live balances, so only today's run may write it. A past
@@ -614,12 +676,7 @@ async function rollupOwnerDay(tx: Db, tenantId: string, day: string): Promise<vo
       grossMarginPaise: -back.taxable + back.restockedCost,
     }
   }
-  let company = 0
-  let distributor = 0
-  for (const row of schemes.rows) {
-    if (String(row.funding_source) === 'distributor') distributor += n(row.amount_paise)
-    else company += n(row.amount_paise)
-  }
+  const { company, distributor } = schemes
   await tx
     .insert(dailyOwnerStats)
     .values({
@@ -632,6 +689,7 @@ async function rollupOwnerDay(tx: Db, tenantId: string, day: string): Promise<vo
       nearExpiryValuePaise: n(stockRow?.near_expiry_value),
       schemeSpendCompanyPaise: Math.max(0, company),
       schemeSpendDistributorPaise: Math.max(0, distributor),
+      schemeSpendCountedOnce: true,
       byBrand,
       computedAt: new Date(),
     })
@@ -645,6 +703,7 @@ async function rollupOwnerDay(tx: Db, tenantId: string, day: string): Promise<vo
         nearExpiryValuePaise: sql`excluded.near_expiry_value_paise`,
         schemeSpendCompanyPaise: sql`excluded.scheme_spend_company_paise`,
         schemeSpendDistributorPaise: sql`excluded.scheme_spend_distributor_paise`,
+        schemeSpendCountedOnce: sql`excluded.scheme_spend_counted_once`,
         byBrand: sql`excluded.by_brand`,
         computedAt: sql`excluded.computed_at`,
       },
