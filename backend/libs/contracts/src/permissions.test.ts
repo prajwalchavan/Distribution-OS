@@ -50,9 +50,20 @@ describe('permission matrix', () => {
     expect(Object.keys(PERMISSIONS).filter((p) => !known.has(p))).toEqual([])
   })
 
+  /**
+   * Doors kept in the contract (expand-only) that no role may call any more (`NOBODY`): an empty row is
+   * refused here unless it is named, so a door is never closed by accident — nor left open by one.
+   * `retailers.linkIdentity`: DOS-400 repair 3 (it told a desk where a number is known, ruling R1).
+   */
+  const CLOSED = new Set(['retailers.linkIdentity'])
+
   it('names only real roles, and mixes membership with platform roles nowhere', () => {
     for (const [path, permission] of Object.entries(PERMISSIONS)) {
       if (permission === 'public' || permission === 'authenticated') continue
+      if (CLOSED.has(path)) {
+        expect(permission, `${path} is closed to every role`).toEqual([])
+        continue
+      }
       expect(permission.length, path).toBeGreaterThan(0)
       const membership = permission.filter((r) => MembershipRoleSchema.safeParse(r).success)
       const platform = permission.filter((r) => PlatformRoleSchema.safeParse(r).success)
