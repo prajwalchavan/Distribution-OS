@@ -152,7 +152,9 @@ What the fixed product does by itself, and how the tool keeps to it:
   the paisa of its own bills; its one payment left on account ("collections to match") goes only to a shop that owes
   nothing on a real bill and has nothing written off; a return whose remainder could reach a real bill is not
   issued (the manager cancels it). `check:demo-rows` proves both directions and names any tool money on account at
-  a shop owing on a real bill.
+  a shop owing on a real bill. Each run's report says how many shops it leaves out and why ("shops left out: …").
+  What the tool cannot stop is money a PERSON records: a real payment taken FIFO (the default) for a shop with an open
+  bill of the tool is spent on that bill too (QA DOS-407); the next morning's `check:demo-rows` names it.
 - **A payment reference is used once** (DOS-310): the tool's UTRs, cheque numbers and transfer references carry the
   business date and are never repeated; when the product still names one as taken, the next is asked.
 - **Credit** (DOS-313/314, DOS-225): no order for a shop whose credit is stopped; the shop held for credit is on a
