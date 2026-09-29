@@ -41,6 +41,12 @@
  *                            packed bills waiting there need — sold off a van, or swept away while it rode another
  *                            trip's van (QA verify 3, X1); a bill that came back and still rides a van that has not
  *                            been settled is not listed
+ *   order-not-from-godown    an order not yet dispatched that is set to be served from a van, the dock, the damaged
+ *                            bin or a shop's floor — never from a godown (architect ruling of 2026-09-28, the last
+ *                            stock row; QA verify 4, N1): it is refused at send, confirm, pick and pack, and its
+ *                            pieces there belong to that place's trip or to nobody; the desk cancels it and places it
+ *                            again without a location. A van sale's own order is not listed (its door bills it off
+ *                            its van)
  *
  * Reads every tenant of `DATABASE_URL` (loaded through `loadDotenv()` like every script here, a real env var
  * wins) as the connection's own role, so run it with the migration owner, like `pnpm check:stock-cancels`.
@@ -334,6 +340,25 @@ const CHECKS: { kind: string; query: ReturnType<typeof sql> }[] = [
         join tenants t on t.id = s.tenant_id
        where s.have < s.need
        order by t.slug, b.invoice_no`,
+  },
+  {
+    kind: 'order-not-from-godown',
+    query: sql`
+      select t.slug as tenant, coalesce(o.order_no, o.id) as document,
+             'order is ' || o.state::text || ' and set to be served from ' || loc.name || ' (' || loc.kind::text ||
+             '), not a godown' ||
+             coalesce('; it holds ' || (select sum(r.qty)::bigint from reservations r
+                                          join sales_order_lines ol on ol.id = r.order_line_id
+                                         where ol.order_id = o.id and r.state = 'pending'
+                                           and r.location_id = loc.id) || ' pc there', '') ||
+             ': cancel it and place it again without a location' as detail
+        from sales_orders o
+        join tenants t on t.id = o.tenant_id
+        join locations loc on loc.id = o.fulfil_from_location_id
+       where o.state in ('draft', 'submitted', 'confirmed', 'picking', 'packed')
+         and loc.kind <> 'warehouse'
+         and not (o.source = 'van_sale' and loc.kind = 'vehicle')
+       order by t.slug, o.order_no`,
   },
 ]
 
