@@ -76,7 +76,8 @@ Money, Stock, Reports, Settings (UX-00 §8.1). 26 screens.
   Calls: `orders.list` ✓, `orders.get` ✓, `orders.confirm` ✓, `orders.cancel` ✓, `warehouse.reservations.list` ✓,
   `warehouse.reservations.release` ✓, `billing.invoices.list` orderId ✓.
 - **O6 Retailers list + retailer detail** — shop record, credit terms, dues, statement, bills, visits, overrides, behaviour.
-  Calls: `retailers.list` ✓, `retailers.get` ✓, `retailers.upsert` ✓, `retailers.setCredit` ✓, `retailers.linkIdentity` ✓,
+  Calls: `retailers.list` ✓, `retailers.get` ✓, `retailers.upsert` ✓, `retailers.setCredit` ✓, `retailers.signIn.*` ✓
+  (the shop's App sign-in, DOS-400; `retailers.linkIdentity` is closed to every role since its repair 3),
   `receivables.outstanding.get` ✓, `receivables.ledger.get` ✓, `receivables.receipts.list` ✓, `billing.invoices.list` ✓,
   `pricing.overrides.list` ✓, `pricing.overrides.upsert` ✓, `retailers.visits.list` ✓, `reporting.retailers.behaviour` (planned),
   `receivables.statements.send` ✓. MISSING: per-retailer purchase series for the row sparkline (§1.2).
@@ -258,7 +259,8 @@ gstSalesRegister/gstPurchaseRegister/schemeSpend/stockValue/fillRate`, `reportin
   `integrations.tally.syncLedger.list` (planned).
 - **M14 Retailers (staff view) & credit** — Calls: `retailers.list/get/upsert/setCredit` ✓ (manager; accountant may
   `setCredit` ✓), `retailers.signIn.give/setPassword/stop` ✓ (the shop's "App sign-in" row, owner + manager, DOS-400 — it
-  replaced the "Link the shopkeeper" button, which called `linkIdentity` and made no sign-in),
+  replaced the "Link the shopkeeper" button, which called `linkIdentity` and made no sign-in; `linkIdentity` is closed
+  to every role since repair 3, because its answer told a desk that a number was a shop at another distributor, R1),
   `receivables.outstanding.get/ledger.get` ✓, `receivables.statements.send` ✓.
 - **M15 Prices & schemes (manager edits, accountant reads)** — Calls: `pricing.priceLists.*`, `pricing.schemes.*`,
   `pricing.overrides.*` ✓ (BACK_OFFICE; see §2.3 on the accountant).
@@ -341,7 +343,8 @@ Ninety seconds in a doorway: repeat order in 3 taps, modified order ≤ 15 taps.
   MISSING: `sync.errors.list` (rejections are written to `sync_errors` but no procedure reads them back; PowerSync is "later").
 - **S6 My orders** — Calls: `orders.list` salespersonId ✓, `orders.cancel` ✓ (up to confirmed).
 - **S7 New shop (onboarding, no credit fields)** — Calls: `retailers.upsert` ✓ (credit block 403 by design), `catalog.propose` ✓.
-  `retailers.linkIdentity` ✗ deliberately (docs/17 item 27): the app shows "linked by office later".
+  `retailers.linkIdentity` ✗ deliberately (docs/17 item 27; closed to every role since DOS-400 repair 3): the app shows
+  "linked by office later" — the office links a shop by giving it its App sign-in.
 - **S8 Visits history** — `retailers.visits.list` userId=self ✓.
 - **S9 Performance tab** — target, achievement, computed incentive, today's numbers, 30-day sparkline.
   Calls: `incentives.progress.mine`, `incentives.statements.list/get`, `reporting.dashboard.rep`, `reporting.dailyStats.rep`
