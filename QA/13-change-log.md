@@ -1050,3 +1050,4 @@ The P0 and P1 of QA phases 7, 9 and 10, and the rulings of 28 Sep that go with t
 | 2026-09-29 | DOS-256 | UPI money is confirmed at Day-end, ticked or "Confirm all", which moves it from UPI clearing to the bank | 1f378e6b |
 | 2026-09-29 | DOS-292 | Every CSV export puts a quote in front of a text cell that starts with = + - @, and numbers stay numbers | 1f378e6b |
 | 2026-09-29 | Catalogue sort ruling (28 Sep) | The catalogue, the product master, the price lists and the shop's rate list read by brand, then item A–Z, then pack size | 1f378e6b |
+| 2026-09-29 | Release | The stock and money fixes are on the live server: released by the founder at main `9ac27b15`, migrations 0074 to 0080 rehearsed on a restore of the last nightly dump and then applied, fresh dump taken first, public health 200. New `backend/infra/oracle-vm/release-checks.sh` runs the four release checks on the server | 9ac27b15 |
