@@ -1062,7 +1062,8 @@ interface SchemeLineSource extends InvoiceLineSource {
   brandId: string
 }
 async function schemeClaimLinesFor(db: Db, tenantId: string): Promise<SchemeLineSource[]> {
-  // QA DOS-330: the rule AS GIVEN, counted once per order line (`invoiceRulesGiven`), like the claim builder.
+  // QA DOS-330: the rule AS GIVEN, counted once per order line (`invoiceRulesGiven`), like the claim builder. The
+  // line's own columns come with each rule entry (`rg_given` carries them): nothing is joined back to the lines.
   const result = await db.execute(sql`
     WITH ${invoiceRulesGiven(sql`
       SELECT il.invoice_id, il.id AS line_id, il.line_no, il.order_line_id, il.variant_id, il.qty_pcs,
@@ -1072,16 +1073,15 @@ async function schemeClaimLinesFor(db: Db, tenantId: string): Promise<SchemeLine
         JOIN invoices i ON i.id = il.invoice_id AND i.tenant_id = il.tenant_id
        WHERE il.tenant_id = ${tenantId}
          AND i.state NOT IN ('draft', 'cancelled')`)}
-    SELECT rl.line_id, rl.invoice_id, rl.invoice_no, rl.invoice_date, rl.retailer_id, rl.variant_id,
-           rl.qty_pcs, rl.rate_paise, rl.taxable_paise, rl.applied_rules,
+    SELECT g.line_id, g.invoice_id, g.invoice_no, g.invoice_date, g.retailer_id, g.variant_id,
+           g.qty_pcs, g.rate_paise, g.taxable_paise, g.applied_rules,
            g.given_rule AS rule, s.id AS scheme_id, s.name AS scheme_name, s.source_ref, s.brand_id
       FROM rg_given g
-      JOIN rg_lines rl ON rl.line_id = g.line_id
       JOIN schemes s ON s.id = g.rule_id AND s.tenant_id = ${tenantId}
      WHERE s.funding_source = 'company' AND s.claimable AND s.claim_channel = 'dos'
        AND s.brand_id IS NOT NULL
        AND g.kind = 'scheme' AND g.reward_kind <> 'cash_discount_pct'
-     ORDER BY rl.invoice_date ASC, rl.invoice_id ASC, rl.line_no ASC, s.id ASC`)
+     ORDER BY g.invoice_date ASC, g.invoice_id ASC, g.line_no ASC, s.id ASC`)
   return result.rows.map((r) => ({
     lineId: String(r.line_id),
     invoiceId: String(r.invoice_id),

@@ -764,7 +764,8 @@ async function readDayBook(db: Db, tenantId: string): Promise<DayBook> {
     marginByDay.set(r.day, entry)
   }
   const schemeSpendByDay = new Map<string, { company: number; distributor: number }>()
-  // QA DOS-330: counted once per order line (`invoiceRulesGiven`), as the owner's live rollup does.
+  // QA DOS-330: counted once per order line (`invoiceRulesGiven`), as the owner's live rollup does; the bill's day
+  // comes with each rule entry (`rg_given` carries the line's columns), nothing is joined back to the lines.
   for (const r of (
     await db.execute(sql`
       with ${invoiceRulesGiven(sql`
@@ -773,11 +774,10 @@ async function readDayBook(db: Db, tenantId: string): Promise<DayBook> {
           from invoice_lines l
           join invoices i on i.id = l.invoice_id and i.tenant_id = l.tenant_id
          where l.tenant_id = ${tenantId} and i.state not in ('draft', 'cancelled')`)}
-      select rl.day,
+      select g.day,
              coalesce(s.funding_source::text, 'company') as funding,
              sum(g.amount_paise)::bigint as paise
         from rg_given g
-        join rg_lines rl on rl.line_id = g.line_id
         left join schemes s on s.id = g.rule_id and s.tenant_id = ${tenantId}
        group by 1, 2`)
   ).rows as { day: string; funding: string; paise: string | number }[]) {

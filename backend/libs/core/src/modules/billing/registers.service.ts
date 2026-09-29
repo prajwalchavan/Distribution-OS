@@ -332,27 +332,40 @@ export class RegistersService {
            AND (${filter.retailerId ?? null}::text IS NULL OR i.retailer_id = ${filter.retailerId ?? null})
            AND (${filter.variantId ?? null}::text IS NULL OR l.variant_id = ${filter.variantId ?? null})
            AND (${filter.brandId ?? null}::text IS NULL OR p.brand_id = ${filter.brandId ?? null})`
+    if (limit <= 0) return []
     // The read is bounded by `limit` lines, but it is cut at a BILL's edge, never inside one (blind check 1, minor):
     // an old bill's whole-rule copies are counted once over the batch lines of their order line, so a cut between
-    // those batch lines would read the whole rule on the part that made it in. The last bill is read to its end.
+    // those batch lines would read the whole rule on the part that made it in. The bills the first `limit` lines
+    // touch are exactly the bills up to the bill of the `limit`-th line, in (date, bill) order, so the bound is that
+    // one key, read once (blind check 2: a key, not a list of bills joined back to every line); fewer lines than
+    // the bound, and every bill is read. The last bill is read to its end.
+    //
+    // Each line is read once (blind check 2, speed): its rules come back grouped from `rg_given`, which carries the
+    // line's own columns, and a line with no rule entry comes straight from the lines — nothing is looked up per line.
     const result = await tx.execute(sql`
       WITH ${invoiceRulesGiven(sql`
         SELECT i.id AS invoice_id, i.invoice_no, i.invoice_date, i.retailer_id,
                l.id AS line_id, l.line_no, l.order_line_id, l.variant_id, l.hsn_code, l.qty_pcs,
                l.free_qty_pcs, l.rate_paise, l.discount_paise, l.taxable_paise, l.applied_rules
         ${scope}
-           AND l.invoice_id IN (
-                 SELECT cut.invoice_id FROM (
-                   SELECT l.invoice_id ${scope}
-                    ORDER BY i.invoice_date ASC, i.id ASC, l.line_no ASC
-                    LIMIT ${limit}) cut)
-         ORDER BY i.invoice_date ASC, i.id ASC, l.line_no ASC`)}
-      SELECT rl.invoice_id, rl.invoice_no, rl.invoice_date, rl.retailer_id, rl.line_id, rl.variant_id,
+           AND (i.invoice_date, i.id) <= ALL (
+                 SELECT i.invoice_date, i.id ${scope}
+                  ORDER BY i.invoice_date ASC, i.id ASC, l.line_no ASC
+                 OFFSET ${limit - 1} LIMIT 1)`)}
+      SELECT g.invoice_id, g.invoice_no, g.invoice_date, g.retailer_id, g.line_id, g.line_no, g.variant_id,
+             g.hsn_code, g.qty_pcs, g.free_qty_pcs, g.rate_paise, g.discount_paise, g.taxable_paise,
+             jsonb_agg(g.given_rule ORDER BY g.ord) AS applied_rules
+        FROM rg_given g
+       GROUP BY g.invoice_id, g.invoice_no, g.invoice_date, g.retailer_id, g.line_id, g.line_no, g.variant_id,
+                g.hsn_code, g.qty_pcs, g.free_qty_pcs, g.rate_paise, g.discount_paise, g.taxable_paise
+      UNION ALL
+      SELECT rl.invoice_id, rl.invoice_no, rl.invoice_date, rl.retailer_id, rl.line_id, rl.line_no, rl.variant_id,
              rl.hsn_code, rl.qty_pcs, rl.free_qty_pcs, rl.rate_paise, rl.discount_paise, rl.taxable_paise,
-             coalesce((SELECT jsonb_agg(g.given_rule ORDER BY g.ord)
-                         FROM rg_given g WHERE g.line_id = rl.line_id), '[]'::jsonb) AS applied_rules
+             '[]'::jsonb AS applied_rules
         FROM rg_lines rl
-       ORDER BY rl.invoice_date ASC, rl.invoice_id ASC, rl.line_no ASC`)
+       WHERE NOT EXISTS (SELECT 1 FROM jsonb_array_elements(coalesce(rl.applied_rules, '[]'::jsonb)) AS e(rule)
+                          WHERE e.rule ->> 'ruleId' IS NOT NULL)
+       ORDER BY invoice_date ASC, invoice_id ASC, line_no ASC`)
     return result.rows.map((row: Record<string, unknown>) => ({
       invoiceId: String(row.invoice_id),
       invoiceNo: (row.invoice_no as string | null) ?? null,
