@@ -3,9 +3,12 @@
  *
  * Staff accounts are created with a TEMPORARY password — `tenancy.staff.create` and the platform
  * console's onboarding both set `must_change_password` — and the manager reads it out loud to the
- * person. The backend does not, and should not, refuse the rest of the API to that session: it
- * reports the flag on `auth.login` and leaves the decision to the app. So this screen is where the
- * flag is honoured, in the layout every app shares, and until it is cleared no other route renders.
+ * person; a shop's sign-in gets a first password the same way (DOS-400). The layout every app shares
+ * sends such a session here, and until the flag is cleared no other route renders. The SERVER holds
+ * the same line since the architect's ruling of 2026-09-29 (docs/22 §8): every service refuses that
+ * session with "Choose your own password first…", and the change answers with a token that is no
+ * longer walled, which the client puts in place before this screen moves on. A new password equal to
+ * the current one is refused here and on the server: keeping the desk's password is not choosing one.
  *
  * The same screen serves a voluntary change from Settings; only the way in differs.
  */
@@ -35,14 +38,17 @@ export default function ChangePassword(): React.JSX.Element {
 
   const forced = session?.user.mustChangePassword === true
   const mismatch = again !== '' && next !== again
-  const blocked = busy || current === '' || weak(next) || next !== again
+  const same = next !== '' && next === current
+  const blocked = busy || current === '' || weak(next) || next !== again || same
   /** UX-00 §6.1: a disabled button always prints WHY, never a grey word with no cause. */
   const reason =
     current === ''
       ? t('app.passwordNeedsCurrent')
       : weak(next)
         ? t('app.passwordRule')
-        : t('app.passwordMismatch')
+        : same
+          ? t('app.passwordSame')
+          : t('app.passwordMismatch')
 
   const submit = (): void => {
     if (blocked) return
@@ -89,6 +95,7 @@ export default function ChangePassword(): React.JSX.Element {
           onChange={setNext}
           secure
           helper={t('app.passwordRule')}
+          {...(same ? { error: t('app.passwordSame') } : {})}
           testID="change-password-new"
         />
         <TextInput

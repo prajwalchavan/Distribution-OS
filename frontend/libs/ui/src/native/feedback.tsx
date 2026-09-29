@@ -385,12 +385,16 @@ function DialogPanel({
           loading={busy === true}
           onPress={onConfirm}
         />
-        <View style={{ height: space[3] }} />
-        <Button
-          label={cancelLabel ?? theme.t('action.cancel')}
-          variant="secondary"
-          onPress={onClose}
-        />
+        {cancelLabel === null ? null : (
+          <>
+            <View style={{ height: space[3] }} />
+            <Button
+              label={cancelLabel ?? theme.t('action.cancel')}
+              variant="secondary"
+              onPress={onClose}
+            />
+          </>
+        )}
       </View>
     </View>
   )

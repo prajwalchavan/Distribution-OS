@@ -29,17 +29,24 @@ import {
   firstPassword,
   givePayload,
   hasMobile,
+  isSharedNumber,
   newGiveIntent,
   passwordPayload,
   stopPayload,
+  toldWords,
   toMobile,
   type GiveIntent,
+  type ToldWords,
 } from './sign-in-forms'
+
+/** What the shown-once dialog says under Copy and Share when nothing could be copied or shared. */
+type HandOver = 'copied' | 'copyRefused' | 'shareFailed' | null
 
 type Step =
   | { kind: 'give'; mobile: string; problem: string | null }
-  | { kind: 'shown'; username: string; password: string; copied: boolean }
-  | { kind: 'told'; username: string | null; already: boolean }
+  | { kind: 'shown'; username: string; password: string; handOver: HandOver }
+  | { kind: 'told'; username: string | null; words: ToldWords }
+  | { kind: 'shared' }
   | { kind: 'password'; password: string }
   | { kind: 'stop' }
   | null
@@ -121,18 +128,27 @@ export function ShopSignInRow({ shop, when, onToast }: ShopSignInRowProps): Reac
             kind: 'shown',
             username: result.signIn.username,
             password: current.password,
-            copied: false,
+            handOver: null,
           })
         } else {
           setStep({
             kind: 'told',
             username: result.signIn.username,
-            already: result.outcome === 'already',
+            words: toldWords(result.outcome, result.passwordChosen),
           })
         }
       },
-      () => {
-        /* the refusal prints in the dialog, which stays open */
+      (error: unknown) => {
+        /*
+         * A number whose sign-in another business made (ruling R1): say what the desk can do. A number
+         * the desk TYPED goes back to the field with the sentence, so another one can be entered here;
+         * the shop's own number has to be changed on the shop first. Nothing was written either way.
+         * Every other refusal prints in the dialog, which stays open.
+         */
+        if (!isSharedNumber(error)) return
+        setIntent(null)
+        if (needsMobile) setStep({ kind: 'give', mobile: typed, problem: t('si.sharedTyped') })
+        else setStep({ kind: 'shared' })
       },
     )
   }
@@ -223,7 +239,11 @@ export function ShopSignInRow({ shop, when, onToast }: ShopSignInRowProps): Reac
                 <Hint>{t('si.mobileHelp')}</Hint>
               </Stack>
             ) : null}
-            <Problem text={refusalText} testID="shop-sign-in-refusal" />
+            {/* A number known elsewhere is said on the mobile field, or in its own dialog, instead. */}
+            <Problem
+              text={refusal !== undefined && isSharedNumber(refusal) ? null : refusalText}
+              testID="shop-sign-in-refusal"
+            />
           </Stack>
         }
         confirmLabel={t('si.giveConfirm')}
@@ -255,27 +275,46 @@ export function ShopSignInRow({ shop, when, onToast }: ShopSignInRowProps): Reac
               <Row gap={2} wrap>
                 {clipboard.available ? (
                   <Button
-                    label={step.copied ? t('si.copied') : t('si.copy')}
+                    label={step.handOver === 'copied' ? t('si.copied') : t('si.copy')}
                     variant="secondary"
                     onPress={() => {
                       void clipboard.copy(shareText(step)).then((copied) => {
-                        if (copied) setStep({ ...step, copied: true })
+                        setStep({ ...step, handOver: copied ? 'copied' : 'copyRefused' })
                       })
                     }}
                     testID="shop-sign-in-copy"
                   />
                 ) : null}
-                {share.available ? (
+                {share.available && share.sheet ? (
                   <Button
                     label={t('si.share')}
                     variant="secondary"
                     onPress={() => {
-                      void share.share({ title: t('si.shownTitle'), message: shareText(step) })
+                      void share
+                        .share({ title: t('si.shownTitle'), message: shareText(step) })
+                        .then(
+                          (shared) => shared,
+                          () => false,
+                        )
+                        .then((shared) => {
+                          setStep({ ...step, handOver: shared ? null : 'shareFailed' })
+                        })
                     }}
                     testID="shop-sign-in-share"
                   />
                 ) : null}
               </Row>
+              {/* Copy and Share never fail silently (the second check's minor): say what to do instead. */}
+              {step.handOver === 'copyRefused' ? (
+                <Problem text={t('si.copyRefused')} testID="shop-sign-in-copy-refused" />
+              ) : step.handOver === 'shareFailed' ? (
+                <Problem text={t('si.shareFailed')} testID="shop-sign-in-share-failed" />
+              ) : null}
+              {!clipboard.available && !(share.available && share.sheet) ? (
+                <Hint>{t('si.nothingToCopy')}</Hint>
+              ) : clipboard.available && !(share.available && share.sheet) ? (
+                <Hint>{t('si.noShareSheet')}</Hint>
+              ) : null}
               <Hint>{t('si.shownOnce')}</Hint>
               <Txt field="body" desk="body">
                 {t('si.mustChange')}
@@ -289,16 +328,21 @@ export function ShopSignInRow({ shop, when, onToast }: ShopSignInRowProps): Reac
         testID="shop-sign-in-shown"
       />
 
-      {/* A number the app already knows, or a shop that already had a sign-in: nothing was made. */}
+      {/* A number this business already signs in, or a shop that already had a sign-in: nothing was
+          made, so there is nothing to cancel — one closing button. */}
       <Dialog
         open={step?.kind === 'told'}
         onClose={close}
-        title={t('si.existingTitle')}
+        title={
+          step?.kind === 'told' && step.words === 'si.already'
+            ? t('si.alreadyTitle')
+            : t('si.existingTitle')
+        }
         body={
           step?.kind === 'told' ? (
             <Stack gap={3}>
               <Txt field="body" desk="body" testID="shop-sign-in-told">
-                {step.already ? t('si.already') : t('si.existing')}
+                {t(step.words)}
               </Txt>
               {step.username === null ? null : (
                 <Big
@@ -311,8 +355,26 @@ export function ShopSignInRow({ shop, when, onToast }: ShopSignInRowProps): Reac
           ) : null
         }
         confirmLabel={t('si.ok')}
+        cancelLabel={null}
         onConfirm={close}
         testID="shop-sign-in-told-dialog"
+      />
+
+      {/* The shop's number already has a sign-in made at another business (ruling R1): nothing was
+          written, and the desk is told what it can do. Nothing about where the number is known. */}
+      <Dialog
+        open={step?.kind === 'shared'}
+        onClose={close}
+        title={t('si.sharedTitle')}
+        body={
+          <Txt field="body" desk="body" testID="shop-sign-in-shared">
+            {t('si.shared')}
+          </Txt>
+        }
+        confirmLabel={t('si.ok')}
+        cancelLabel={null}
+        onConfirm={close}
+        testID="shop-sign-in-shared-dialog"
       />
 
       {/* A new first password: say what happens, then act, then show it once. */}
@@ -335,7 +397,7 @@ export function ShopSignInRow({ shop, when, onToast }: ShopSignInRowProps): Reac
           const password = step.password
           void newPassword.mutateAsync({ shopId: shop.id, password }).then(
             () => {
-              setStep({ kind: 'shown', username, password, copied: false })
+              setStep({ kind: 'shown', username, password, handOver: null })
             },
             () => {
               /* the refusal prints in the dialog, which stays open */

@@ -1091,6 +1091,40 @@ describe('<Segments> at the field floor', () => {
  * the renderer-agnostic `<ThemeContextProvider>` lets a test set `touch` and `viewport` independently,
  * the way `web/ThemeProvider` itself never does for a live app (docs/08 §0).
  */
+describe('<Dialog> that only tells (DOS-400, the second check’s minor)', () => {
+  it('draws one closing button when `cancelLabel` is null, and the pair otherwise', () => {
+    const told = renderToStaticMarkup(
+      <ThemeContextProvider touch="phone" viewport="phone">
+        <Dialog
+          open
+          onClose={() => undefined}
+          title="Sign-in added"
+          body="Nothing was written."
+          confirmLabel="Close"
+          cancelLabel={null}
+          onConfirm={() => undefined}
+        />
+      </ThemeContextProvider>,
+    )
+    expect(told.match(/<button/g)).toHaveLength(1)
+    expect(told).toContain('Close')
+    expect(told).not.toContain('Cancel')
+    const asks = renderToStaticMarkup(
+      <ThemeContextProvider touch="phone" viewport="phone">
+        <Dialog
+          open
+          onClose={() => undefined}
+          title="Stop this sign-in"
+          body="The shop will no longer see your business."
+          confirmLabel="Stop the sign-in"
+          onConfirm={() => undefined}
+        />
+      </ThemeContextProvider>,
+    )
+    expect(asks.match(/<button/g)).toHaveLength(2)
+  })
+})
+
 describe('<Dialog> below the desk touch floor (DOS-122)', () => {
   function dialog(touch: 'phone' | 'field' | 'floor' | 'desk', viewport: 'desk' | 'phone'): string {
     return renderToStaticMarkup(

@@ -42,6 +42,8 @@ export const strings = {
   'app.passwordVoluntary': 'Choose a new password for this account.',
   'app.passwordRule': 'At least 8 characters, with a letter and a digit',
   'app.passwordMismatch': 'The two new passwords are not the same',
+  /** docs/22 §8 (2026-09-29): keeping the password somebody gave you is not choosing one. */
+  'app.passwordSame': 'Choose a new password, not the one you have now',
   'app.passwordNeedsCurrent': 'Enter the password you signed in with',
   'app.passwordRevokes': 'Your other devices will be signed out.',
   'app.setPassword': 'Set password',

@@ -351,12 +351,14 @@ export function Dialog({
             justifyContent: 'flex-end',
           }}
         >
-          <Button
-            label={cancelLabel ?? theme.t('action.cancel')}
-            variant="secondary"
-            size={stacked ? undefined : 'desk'}
-            onPress={onClose}
-          />
+          {cancelLabel === null ? null : (
+            <Button
+              label={cancelLabel ?? theme.t('action.cancel')}
+              variant="secondary"
+              size={stacked ? undefined : 'desk'}
+              onPress={onClose}
+            />
+          )}
           <div ref={confirmRef}>
             <Button
               label={confirmLabel}

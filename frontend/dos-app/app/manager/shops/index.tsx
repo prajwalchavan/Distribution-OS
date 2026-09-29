@@ -33,8 +33,10 @@ import {
   Txt,
   useColors,
   useStrings,
+  useTheme,
   type RegisterColumn,
 } from '@dos/ui'
+import { platform } from '@dos/ui/platform'
 import { useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 
@@ -68,9 +70,13 @@ import { useHotkeys, useRegisterKeys } from '../../../src/groups/manager/lib/key
 import { useWord } from '../../../src/groups/manager/lib/words'
 import { CreditDialog } from '../../../src/pricing/editors'
 import { ShopSignInRow } from '../../../src/shops/sign-in'
+import { appSignInCell } from '../../../src/shops/sign-in-forms'
 
 export default function Shops(): React.JSX.Element {
   const t = useStrings()
+  const density = useTheme().density
+  /** Where `<Register>` draws one row per shop instead of a table: a phone, or any native build. */
+  const cards = platform.kind === 'native' || density !== 'desk'
   const word = useWord()
   const colors = useColors()
   const api = useApi()
@@ -195,7 +201,7 @@ export default function Shops(): React.JSX.Element {
     phone: (at) => textColumn('phone', t('m14.phone'), (row) => row.phone, at),
     /* DOS-400: whether the shop signs in to the app, as whom; the panel carries the actions. */
     app: (at) =>
-      textColumn('app', t('si.title'), (row) => row.appSignIn?.username ?? t('si.noneShort'), at),
+      textColumn('app', t('si.title'), (row) => appSignInCell(t, row.appSignIn, cards), at),
   }
   const columns: readonly RegisterColumn<Retailer>[] = SHOP_COLUMNS.map((spec) =>
     cellOf[spec.key]({ priority: spec.priority }),

@@ -23,8 +23,10 @@ import {
   Toast,
   Txt,
   useStrings,
+  useTheme,
   type RegisterColumn,
 } from '@dos/ui'
+import { platform } from '@dos/ui/platform'
 import { useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 
@@ -42,9 +44,13 @@ import { useHotkeys, useRegisterKeys } from '../../../src/groups/owner/lib/keys'
 import { useWord } from '../../../src/groups/owner/lib/words'
 import { CreditDialog, useMayWrite } from '../../../src/pricing/editors'
 import { ShopSignInRow } from '../../../src/shops/sign-in'
+import { appSignInCell } from '../../../src/shops/sign-in-forms'
 
 export default function Shops(): React.JSX.Element {
   const t = useStrings()
+  const density = useTheme().density
+  /** Where `<Register>` draws one row per shop instead of a table: a phone, or any native build. */
+  const cards = platform.kind === 'native' || density !== 'desk'
   const word = useWord()
   const api = useApi()
   const names = useNames()
@@ -155,8 +161,13 @@ export default function Shops(): React.JSX.Element {
       ),
     },
     textColumn('phone', t('o6.phone'), (row) => row.phone),
-    /* DOS-400: whether the shop signs in to the app, as whom; the panel carries the actions. */
-    textColumn('app', t('si.title'), (row) => row.appSignIn?.username ?? t('si.noneShort')),
+    /*
+     * DOS-400: whether the shop signs in to the app, as whom; the panel carries the actions. The row's
+     * `value`, so a phone row shows it too (the second check's minor).
+     */
+    textColumn('app', t('si.title'), (row) => appSignInCell(t, row.appSignIn, cards), {
+      priority: 'value',
+    }),
   ]
 
   useRegisterKeys({

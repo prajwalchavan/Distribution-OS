@@ -68,6 +68,8 @@ export class FakeServer {
   /** While true every call throws the way a dead spot does. */
   offline = false
   upgradeRequired = false
+  /** While true the session is on a desk's first password: every op comes back unapplied (docs/22 §8). */
+  walled = false
   /** While set, `upload` waits on it — a batch in flight, so a test can pull mid-send. */
   private gate: Promise<void> | null = null
   private openGate: (() => void) | null = null
@@ -155,6 +157,19 @@ export class FakeServer {
               code: 'protocol_unsupported',
               messageEn: 'App update required',
               messageHi: 'ऐप अपडेट ज़रूरी है',
+            })
+          return out
+        }
+        if (this.walled) {
+          // As `sync.service.ts` answers it: nothing run, nothing stored, every op back.
+          for (const op of input.ops)
+            out.rejected.push({
+              opId: op.opId,
+              table: op.table,
+              rowId: op.id,
+              code: 'password_change_required',
+              messageEn: 'Choose your own password first.',
+              messageHi: 'पहले अपना पासवर्ड चुनें।',
             })
           return out
         }

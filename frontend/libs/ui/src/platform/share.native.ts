@@ -16,4 +16,5 @@ export const share: PlatformShare = {
     return result.action === Share.sharedAction
   },
   available: true,
+  sheet: true,
 }

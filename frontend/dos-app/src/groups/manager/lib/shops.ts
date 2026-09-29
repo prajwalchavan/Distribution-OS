@@ -117,8 +117,11 @@ export const SHOP_COLUMNS: readonly ShopColumnSpec[] = [
   { key: 'limit', priority: 'detail' },
   { key: 'mode', priority: 'chip' },
   { key: 'phone', priority: 'detail' },
-  /* DOS-400: the shop's app sign-in (its username), a desk column; the panel carries the actions. */
-  { key: 'app', priority: 'detail' },
+  /*
+   * DOS-400: the shop's app sign-in (its username). The row's `value`, so a PHONE row shows it too
+   * ("App: ramesh.gupta" / "No app sign-in yet", the second check's minor); the panel carries the actions.
+   */
+  { key: 'app', priority: 'value' },
 ]
 
 /** What a phone shows of a row: the kit's rule (`@dos/ui` web/list.tsx and native/list.tsx). */

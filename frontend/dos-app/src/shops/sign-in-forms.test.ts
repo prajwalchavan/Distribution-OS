@@ -12,12 +12,15 @@ import { describe, expect, it } from 'vitest'
 
 import { SHOP_SIGN_IN_STRINGS } from './strings'
 import {
+  appSignInCell,
   firstPassword,
   givePayload,
   hasMobile,
+  isSharedNumber,
   newGiveIntent,
   passwordPayload,
   stopPayload,
+  toldWords,
   toMobile,
 } from './sign-in-forms'
 
@@ -64,6 +67,33 @@ describe('the shop sign-in forms', () => {
   it('keeps one intent for a retry: the same ids and the same password', () => {
     const intent = newGiveIntent(null)
     expect(givePayload(shopId, intent, key)).toEqual(givePayload(shopId, intent, key))
+  })
+
+  it('knows the refusal of a number whose sign-in another business made, and nothing else as it (R1)', () => {
+    expect(isSharedNumber({ status: 409, data: { code: 'number_has_sign_in' } })).toBe(true)
+    expect(isSharedNumber({ status: 400, data: { code: 'mobile_needed' } })).toBe(false)
+    expect(isSharedNumber({ status: 409, message: 'This shop is switched off.' })).toBe(false)
+    expect(isSharedNumber(null)).toBe(false)
+  })
+
+  it('says the shopkeeper uses their own password only where that is true (R4)', () => {
+    expect(toldWords('already', false)).toBe('si.already')
+    expect(toldWords('existing', true)).toBe('si.existingOwn')
+    expect(toldWords('existing', false)).toBe('si.existingFirst')
+    expect(SHOP_SIGN_IN_STRINGS['si.existingOwn']).toContain('uses their own password')
+    expect(SHOP_SIGN_IN_STRINGS['si.existingFirst']).not.toContain('uses their own password')
+    expect(SHOP_SIGN_IN_STRINGS['si.shared']).toContain('Use another mobile number')
+    expect(SHOP_SIGN_IN_STRINGS['si.sharedTyped']).toContain('Enter another mobile number')
+  })
+
+  it('says what the register cell is where a phone row has no head, and stays terse under the desk head', () => {
+    const t = (key: 'si.rowAs' | 'si.rowNone' | 'si.noneShort', params?: { username: string }) =>
+      SHOP_SIGN_IN_STRINGS[key].replace('{username}', params?.username ?? '')
+    const signIn = { username: 'ramesh.gupta', since: '2026-09-29T08:00:00.000Z' }
+    expect(appSignInCell(t, signIn, false)).toBe('ramesh.gupta')
+    expect(appSignInCell(t, null, false)).toBe('Not yet')
+    expect(appSignInCell(t, signIn, true)).toBe('App: ramesh.gupta')
+    expect(appSignInCell(t, null, true)).toBe('No app sign-in yet')
   })
 
   it('never names membership, identity, tenant, link or role on the screen', () => {

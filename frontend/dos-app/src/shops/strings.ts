@@ -13,6 +13,9 @@ export const SHOP_SIGN_IN_STRINGS = {
   'si.none': 'This shop cannot use the app yet',
   /** The shops register's column, for a shop with no sign-in. */
   'si.noneShort': 'Not yet',
+  /** The same column on a phone row, which has no heads. */
+  'si.rowAs': 'App: {username}',
+  'si.rowNone': 'No app sign-in yet',
   'si.give': 'Give this shop a sign-in',
   'si.username': 'Username',
   'si.since': 'Since {when}',
@@ -37,13 +40,32 @@ export const SHOP_SIGN_IN_STRINGS = {
   'si.share': 'Share',
   'si.shareText': 'Your sign-in for {shop}: username {username}, first password {password}',
   'si.done': 'I have given it',
+  /** Copy and Share say what happened when nothing could be copied or shared (the second check). */
+  'si.copyRefused':
+    'This device did not let the app copy it. Write the password down or read it out to the shopkeeper.',
+  'si.noShareSheet': 'This device has no share sheet. Copy it, or read it out to the shopkeeper.',
+  'si.shareFailed': 'It was not shared. Try again, or copy it.',
+  'si.nothingToCopy':
+    'This device cannot copy or share from here. Write the password down or read it out to the shopkeeper.',
 
-  // --- a number the app already knows, or a shop that already has one ---------------------------------
+  // --- a number this business already signs in, or a shop that already has one ----------------------
   'si.existingTitle': 'Sign-in added',
-  'si.existing':
-    'This number already has a sign-in. The shopkeeper uses their own password and will now see your shop.',
+  'si.alreadyTitle': 'This shop has a sign-in',
+  /** A login of this business alone whose password the shopkeeper chose (ruling R4). */
+  'si.existingOwn':
+    'This number already has a sign-in with your business. The shopkeeper uses their own password and will now see this shop too.',
+  /** A login of this business alone that still has the first password a desk gave. */
+  'si.existingFirst':
+    'This number already has a sign-in with your business. The shopkeeper has not chosen their own password yet, so the first password given before still works. If it is lost, give a new first password.',
   'si.already': 'This shop already has a sign-in.',
   'si.ok': 'Close',
+
+  // --- a number whose sign-in another business made (ruling R1) -----------------------------------------
+  'si.sharedTitle': 'This number cannot be used',
+  'si.shared':
+    'This mobile number already has a Distribution OS sign-in, which cannot be shared yet. Use another mobile number of the shopkeeper: change it on the shop, then give the sign-in.',
+  'si.sharedTyped':
+    'This mobile number already has a Distribution OS sign-in, which cannot be shared yet. Enter another mobile number of the shopkeeper.',
 
   // --- a new first password ------------------------------------------------------------------------------
   'si.newPasswordBody':

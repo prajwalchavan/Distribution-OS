@@ -7,7 +7,14 @@
  * answers with a password, so nothing can read it back later: not a replay, not a reload, not the
  * desk's other device. Lose the screen before copying it and the desk gives a new first password.
  */
-import type { GiveShopSignInIn, ShopSignInPasswordIn, ShopSignInStopIn } from '@dos/contracts'
+import {
+  SHOP_SIGN_IN_CODES,
+  type GiveShopSignInIn,
+  type GiveShopSignInOutcome,
+  type ShopSignIn,
+  type ShopSignInPasswordIn,
+  type ShopSignInStopIn,
+} from '@dos/contracts'
 import { uuidv7 } from '@dos/domain'
 
 /** A 10-digit Indian mobile, however it was typed, as the contract's `+91XXXXXXXXXX`; null when it is not one. */
@@ -92,4 +99,45 @@ export function passwordPayload(
 
 export function stopPayload(shopId: string, idempotencyKey: string): ShopSignInStopIn {
   return { idempotencyKey, id: shopId }
+}
+
+/**
+ * THE SHOPS REGISTER's "App sign-in" cell (the second check's minor: a phone showed no sign-in state).
+ * At desk width it sits under its own head, so the username or "Not yet" is enough. Below it the
+ * register is one row per shop with no heads, so the same cell says what it is: "App: ramesh.gupta",
+ * "No app sign-in yet". `cards` is true exactly where `<Register>` draws rows instead of a table.
+ */
+export function appSignInCell(
+  t: (key: 'si.rowAs' | 'si.rowNone' | 'si.noneShort', params?: { username: string }) => string,
+  signIn: ShopSignIn | null | undefined,
+  cards: boolean,
+): string {
+  const username = signIn?.username ?? null
+  if (username === null) return cards ? t('si.rowNone') : t('si.noneShort')
+  return cards ? t('si.rowAs', { username }) : username
+}
+
+/**
+ * The give was refused because the number's sign-in was made at ANOTHER business (architect's ruling
+ * of 2026-09-29, docs/22 §8, R1): the service says so in `data.code`, the same for a shopkeeper, a
+ * member of staff or a console account elsewhere, and the screen asks for another number.
+ */
+export function isSharedNumber(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false
+  const data = (error as { data?: unknown }).data
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    (data as { code?: unknown }).code === SHOP_SIGN_IN_CODES.numberHasSignIn
+  )
+}
+
+/**
+ * What the desk is told when the give made no new login (ruling R4). "The shopkeeper uses their own
+ * password" only where it is true: a login of this business whose password the person has chosen.
+ */
+export type ToldWords = 'si.already' | 'si.existingOwn' | 'si.existingFirst'
+export function toldWords(outcome: GiveShopSignInOutcome, passwordChosen: boolean): ToldWords {
+  if (outcome === 'already') return 'si.already'
+  return passwordChosen ? 'si.existingOwn' : 'si.existingFirst'
 }

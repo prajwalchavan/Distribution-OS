@@ -896,6 +896,34 @@ describe('the protocol version', () => {
   })
 })
 
+describe('a session on a desk’s first password (docs/22 §8, 2026-09-29)', () => {
+  it('keeps every op queued, puts nothing in the tray, and sends them once the password is chosen', async () => {
+    const store = createMemoryStore()
+    const server = new FakeServer(TABLES)
+    server.queuePull({ changes: [] })
+    const engine = engineOn(store, server)
+    await engine.start()
+    server.walled = true
+    await engine.enqueue({ table: 'sales_orders', id: 'o1', op: 'PUT', data: {} })
+    await engine.flush()
+
+    expect((await engine.outbox()).map((op) => op.status)).toEqual(['queued'])
+    expect(await store.query(`SELECT * FROM ${SYNC_ERRORS_TABLE}`)).toEqual([])
+    expect(engine.status().upgradeRequired).toBe(false)
+    expect(engine.status().pending).toBe(1)
+    const sentOnce = server.uploadCalls.length
+
+    server.walled = false
+    await engine.flush()
+    expect(server.uploadCalls.length).toBe(sentOnce + 1)
+    expect(server.uploadCalls.at(-1)?.ops.map((op) => op.opId)).toEqual(
+      server.uploadCalls[sentOnce - 1]?.ops.map((op) => op.opId),
+    )
+    expect((await engine.outbox()).map((op) => op.status)).toEqual(['acked'])
+    await engine.stop()
+  })
+})
+
 describe('the local write is visible the instant it is queued', () => {
   it('writes the outbox row and the table row in one transaction', async () => {
     const store = createMemoryStore()
