@@ -62,8 +62,9 @@ tops it up every night.
        the owner and the manager every doorstep step), and the report says so. A login still driving an open trip
        (a step refused) stays on until the next run finishes the trip.
      - _A trip that has not left_ (the van load the old crew planned for the next morning, whatever its date) is
-       cancelled by the desk, its draft sheet with it; its bills go back on the planning board and ride the next
-       morning's vans of the new drivers.
+       cancelled by the desk, its draft sheet with it; its bills go back on the planning board and take the first
+       free doors of the next morning's vans of the new drivers (before the other waiting bills; a bill no door can
+       take waits for the day after, as every waiting bill does).
      - _A rep's beat_ goes to the new rep; the old assignment ends the day before the run's date, or on that date
        when the old crew already worked it.
      - _A wave_ is picked and packed by the new godown login (any godown login may).

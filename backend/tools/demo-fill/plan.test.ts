@@ -342,6 +342,32 @@ describe('the plan of a day', () => {
     expect(planCounts(plan).carriedBills).toBe(2)
   })
 
+  it('gives the bills of a van load the desk cancelled (D6) a door before the other waiting bills', () => {
+    // More waiting bills than the vans have free doors; the two of the cancelled van load sort last by order.
+    const carried = Array.from({ length: 14 }, (_, n) => ({
+      invoiceId: `inv-${String(n).padStart(2, '0')}`,
+      orderId: `o-${String(n).padStart(2, '0')}`,
+      shopId: id('5', 40 + n),
+      mustRideVan1: false,
+      first: n >= 12,
+    }))
+    const plan = planDay(input({ carried }))
+    const riding = new Set(
+      [...plan.trips.driver1, ...plan.trips.driver2].flatMap((d) =>
+        d.carried ? [d.carried.invoiceId, ...d.alsoCarried.map((c) => c.invoiceId)] : [],
+      ),
+    )
+    expect(plan.waiting.length).toBeGreaterThan(0)
+    expect(riding.has('inv-12')).toBe(true)
+    expect(riding.has('inv-13')).toBe(true)
+    expect(plan.waiting.map((c) => c.invoiceId)).not.toContain('inv-12')
+    // Van 1 first, the van it was loaded for.
+    expect(plan.trips.driver1.map((d) => d.carried?.invoiceId)).toContain('inv-12')
+    // Without the mark, the same two are the ones left waiting.
+    const plain = planDay(input({ carried: carried.map((c) => ({ ...c, first: false })) }))
+    expect(plain.waiting.map((c) => c.invoiceId)).toContain('inv-13')
+  })
+
   it('never bills a shop that holds real money on account or has credit stopped (rule 3b, DOS-314)', () => {
     // The product applies a shop's money on account to every new bill of it (DOS-312): a shop holding money the
     // tool did not put there would have the tool's bill paid with real money.

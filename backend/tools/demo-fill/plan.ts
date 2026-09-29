@@ -172,6 +172,11 @@ export interface CarriedBill {
    * leave a trip half made): it keeps that door, since a bill rides one trip at a time.
    */
   pin?: { driver: 'driver1' | 'driver2'; sequence: number } | undefined
+  /**
+   * On a van load the desk cancelled — the one a former crew planned for this morning (D6): it was due out today,
+   * so it takes a free door before the other waiting bills, on van 1 when it can (the van it was loaded for).
+   */
+  first?: boolean | undefined
 }
 
 export interface PlannedDoor {
@@ -560,8 +565,19 @@ export function planDay(input: PlanInput): DayPlan {
     return false
   }
   const loose = input.carried.filter((c) => !c.pin)
-  for (const c of [...loose.filter((x) => x.mustRideVan1), ...loose.filter((x) => !x.mustRideVan1)])
-    if (!place(c, c.mustRideVan1 ? ['driver1'] : ['driver2', 'driver1'])) waiting.push(c)
+  const order = [
+    ...loose.filter((x) => x.mustRideVan1),
+    ...loose.filter((x) => !x.mustRideVan1 && x.first),
+    ...loose.filter((x) => !x.mustRideVan1 && !x.first),
+  ]
+  for (const c of order)
+    if (
+      !place(
+        c,
+        c.mustRideVan1 ? ['driver1'] : c.first ? ['driver1', 'driver2'] : ['driver2', 'driver1'],
+      )
+    )
+      waiting.push(c)
   // A shop a carried bill already visits today is given no fresh door of its own as well.
   for (const c of input.carried) usedFresh.add(c.shopId)
   // The door whose money stays on account overnight takes the first clean shop before any other door does.

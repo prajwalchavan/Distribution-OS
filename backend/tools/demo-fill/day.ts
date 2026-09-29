@@ -2,7 +2,7 @@ import { contract } from '@dos/contracts'
 import type { Ctx } from './context.js'
 import { officeMoney, returnToApprove, supplierBills } from './desk.js'
 import { billOf, earlier, getOrder, istTime, maybe, pages } from './helpers.js'
-import { addDays, demoKey, unit } from './ids.js'
+import { addDays, demoKey, isDemoId, unit } from './ids.js'
 import {
   VAN_LOAD_DOORS,
   orderIdOf,
@@ -83,6 +83,30 @@ export async function findCarried(
         const hit = [...out.values()].find((c) => c.orderId === o.orderId)
         if (hit) hit.mustRideVan1 = true
       }
+    }
+  }
+  // A bill of a van load the desk cancelled — the one a former crew planned (D6) — was due out on that trip's date:
+  // it takes a free door before the other waiting bills (`CarriedBill.first`).
+  const waitingOnBoard = [...out.values()].filter((c) => !c.pin)
+  if (waitingOnBoard.length > 0) {
+    const cancelled = await pages(
+      (cursor) =>
+        ctx.read(contract.delivery.trips.list, {
+          states: ['cancelled'],
+          from: addDays(date, -7),
+          limit: 200,
+          ...(cursor ? { cursor } : {}),
+        }),
+      5,
+    )
+    for (const t of cancelled) {
+      if (!isDemoId(t.id)) continue
+      const trip = await readTrip(ctx, t.id)
+      for (const stop of trip?.stops ?? [])
+        for (const d of stop.deliveries) {
+          const hit = out.get(d.invoiceId)
+          if (hit && !hit.pin) hit.first = true
+        }
     }
   }
   return [...out.values()].sort((a, b) => a.orderId.localeCompare(b.orderId))
