@@ -445,9 +445,10 @@ export class CreditNotesService {
           return {
             pcs: acc.pcs + (c?.pcs ?? 0),
             taxablePaise: acc.taxablePaise + (c?.taxablePaise ?? 0),
+            taxPaise: acc.taxPaise + (c?.taxPaise ?? 0),
           }
         },
-        { pcs: 0, taxablePaise: 0 },
+        { pcs: 0, taxablePaise: 0, taxPaise: 0 },
       )
       const results = creditOrderLine(
         source.map((l) => ({
@@ -792,17 +793,18 @@ export class CreditNotesService {
     return kind === 'warehouse' ? reservableLocationId(tx) : (await damagedBinPlace(tx)).id
   }
 
-  /** Pieces and taxable already credited per invoice line, over every note that is not cancelled. */
+  /** Pieces, taxable and tax already credited per invoice line, over every note that is not cancelled. */
   private async creditedByLine(
     tx: Db,
     invoiceId: string,
-  ): Promise<Map<string, { pcs: number; taxablePaise: number }>> {
+  ): Promise<Map<string, { pcs: number; taxablePaise: number; taxPaise: number }>> {
     const { tenantId } = currentTenant()
     const rows = await tx
       .select({
         invoiceLineId: creditNoteLines.invoiceLineId,
         qtyPcs: sql<number>`COALESCE(SUM(${creditNoteLines.qtyPcs}), 0)::int`,
         taxablePaise: sql<number>`COALESCE(SUM(${creditNoteLines.taxablePaise}), 0)::bigint`,
+        taxPaise: sql<number>`COALESCE(SUM(${creditNoteLines.taxPaise}), 0)::bigint`,
       })
       .from(creditNoteLines)
       .innerJoin(creditNotes, eq(creditNotes.id, creditNoteLines.creditNoteId))
@@ -817,7 +819,11 @@ export class CreditNotesService {
     return new Map(
       rows.map((r) => [
         r.invoiceLineId,
-        { pcs: Number(r.qtyPcs), taxablePaise: Number(r.taxablePaise) },
+        {
+          pcs: Number(r.qtyPcs),
+          taxablePaise: Number(r.taxablePaise),
+          taxPaise: Number(r.taxPaise),
+        },
       ]),
     )
   }

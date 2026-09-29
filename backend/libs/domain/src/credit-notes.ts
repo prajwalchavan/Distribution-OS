@@ -134,7 +134,7 @@ export function creditOrderLine(
   source: readonly CreditSourceLine[],
   rate: GstRate,
   interState: boolean,
-  credited: { readonly pcs: number; readonly taxablePaise: number },
+  credited: { readonly pcs: number; readonly taxablePaise: number; readonly taxPaise?: number },
   asked: readonly { invoiceLineId: string; qtyPcs: number; ceilingPaise?: number | undefined }[],
 ): CreditedLine[] {
   const sum = (pick: (l: CreditSourceLine) => number): number =>
@@ -172,13 +172,39 @@ export function creditOrderLine(
   }
   const before = taxAt(credited.taxablePaise)
   const after = taxAt(taxable)
+  const note = {
+    cgstPaise: Math.max(0, after.cgstPaise - before.cgstPaise),
+    sgstPaise: Math.max(0, after.sgstPaise - before.sgstPaise),
+    igstPaise: Math.max(0, after.igstPaise - before.igstPaise),
+    cessPaise: Math.max(0, after.cessPaise - before.cessPaise),
+  }
+  // Never more than was billed: a note written before this rule rounded each batch line on its own, so what earlier
+  // notes took may be a paisa above the rule's figure. The tax this note gives back is capped by what is left of
+  // the bill's own tax for the order line — cess first, then IGST, then CGST and SGST alike (a paisa under, never over).
+  if (credited.taxPaise !== undefined) {
+    const billedTax = billed.cgstPaise + billed.sgstPaise + billed.igstPaise + billed.cessPaise
+    let over =
+      note.cgstPaise +
+      note.sgstPaise +
+      note.igstPaise +
+      note.cessPaise -
+      Math.max(0, billedTax - credited.taxPaise)
+    for (const key of ['cessPaise', 'igstPaise'] as const) {
+      const take = Math.min(note[key], Math.max(0, over))
+      note[key] -= take
+      over -= take
+    }
+    if (over > 0) {
+      const pair = Math.ceil(over / 2)
+      note.cgstPaise -= Math.min(note.cgstPaise, pair)
+      note.sgstPaise -= Math.min(note.sgstPaise, pair)
+    }
+  }
   const weights = values.map((v) => Math.max(0, v))
-  const share = (key: keyof typeof billed): number[] =>
-    shareOut(Math.max(0, after[key] - before[key]), weights)
-  const cgst = share('cgstPaise')
-  const sgst = share('sgstPaise')
-  const igst = share('igstPaise')
-  const cess = share('cessPaise')
+  const cgst = shareOut(note.cgstPaise, weights)
+  const sgst = shareOut(note.sgstPaise, weights)
+  const igst = shareOut(note.igstPaise, weights)
+  const cess = shareOut(note.cessPaise, weights)
   return asked.map((a, i) => ({
     invoiceLineId: a.invoiceLineId,
     qtyPcs: a.qtyPcs,

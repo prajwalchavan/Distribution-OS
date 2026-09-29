@@ -159,6 +159,32 @@ describe('creditOrderLine — returned pieces valued on the order line (QA DOS-3
     expect(first[0]?.taxablePaise).toBe(Math.floor((taxable * 17) / 130))
   })
 
+  it('never gives back more tax than was billed, even after a note written before the rule rounded a paisa up', () => {
+    // An earlier note (the old per-batch rounding) took a third of the pieces and 1 paisa more CGST and SGST than
+    // the rule gives for that taxable: the note that takes the rest stops at what is left of the bill's tax.
+    const taxableBefore = Math.floor((taxable * 41) / 130)
+    const ruleBefore = lineTax(taxableBefore, rate, false)
+    const rest = creditOrderLine(
+      old,
+      rate,
+      false,
+      {
+        pcs: 41,
+        taxablePaise: taxableBefore,
+        taxPaise: ruleBefore.taxPaise + 2,
+      },
+      [
+        { invoiceLineId: 'a', qtyPcs: 32 },
+        { invoiceLineId: 'b', qtyPcs: 44 },
+        { invoiceLineId: 'c', qtyPcs: 13 },
+      ],
+    )
+    const billedTax = old.reduce((s, l) => s + l.cgstPaise + l.sgstPaise, 0)
+    const given = rest.reduce((s, l) => s + l.cgstPaise + l.sgstPaise + l.igstPaise + l.cessPaise, 0)
+    expect(ruleBefore.taxPaise + 2 + given).toBeLessThanOrEqual(billedTax)
+    expect(rest.reduce((s, l) => s + l.cgstPaise, 0)).toBe(rest.reduce((s, l) => s + l.sgstPaise, 0))
+  })
+
   it('a rate-difference note keeps its own ceiling', () => {
     const [line] = creditOrderLine(old, rate, false, { pcs: 0, taxablePaise: 0 }, [
       { invoiceLineId: 'a', qtyPcs: 10, ceilingPaise: 10 * 50 },
