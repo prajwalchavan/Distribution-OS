@@ -19,27 +19,27 @@
 
 **The product is built. It is now being proved, and then it goes live.**
 
-| Milestone                                                | Date       | What it means                                                                                                                                                                             |
-| -------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Backend complete**                                     | 2026-09-06 | Every module of every service built, tested and gated — nothing left in the backend queue                                                                                                 |
-| **Frontend complete**                                    | 2026-09-07 | All seven apps built and gated green, each one codebase serving website + Android + iOS                                                                                                   |
-| **Realistic demo data**                                  | 2026-09-08 | 174 SKUs across 13 brands, 60 / 40 / 24 shops in named archetypes, 90 / 60 / 45 days of trading history, 120 seed invariants green                                                        |
-| **QA batch 1 approved and fixed**                        | 2026-09-12 | The 4 severe and 30 high findings on the order-to-cash chain, all fixed                                                                                                                  |
-| **QA batch 2 approved**                                  | 2026-09-13 | Founder: *"I want to fix everything identified."* Every open finding, severe to cosmetic                                                                                                 |
-| **QA batch 2 merged**                                    | 2026-09-20 | 153 of 158 findings on main across all 21 work groups                                                                                                                                    |
-| **Programme cut to seven days; hosting decided**         | 2026-09-21 | Live by **Saturday 27 September** on `distributionos.in`, if Thursday evening's books balance                                                                                            |
+| Milestone                                        | Date       | What it means                                                                                                                      |
+| ------------------------------------------------ | ---------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **Backend complete**                             | 2026-09-06 | Every module of every service built, tested and gated — nothing left in the backend queue                                          |
+| **Frontend complete**                            | 2026-09-07 | All seven apps built and gated green, each one codebase serving website + Android + iOS                                            |
+| **Realistic demo data**                          | 2026-09-08 | 174 SKUs across 13 brands, 60 / 40 / 24 shops in named archetypes, 90 / 60 / 45 days of trading history, 120 seed invariants green |
+| **QA batch 1 approved and fixed**                | 2026-09-12 | The 4 severe and 30 high findings on the order-to-cash chain, all fixed                                                            |
+| **QA batch 2 approved**                          | 2026-09-13 | Founder: _"I want to fix everything identified."_ Every open finding, severe to cosmetic                                           |
+| **QA batch 2 merged**                            | 2026-09-20 | 153 of 158 findings on main across all 21 work groups                                                                              |
+| **Programme cut to seven days; hosting decided** | 2026-09-21 | Live by **Saturday 27 September** on `distributionos.in`, if Thursday evening's books balance                                      |
 
 ## The build, in numbers
 
-| What                                        | Count | Where it comes from                                                              |
-| ------------------------------------------- | ----: | -------------------------------------------------------------------------------- |
-| Business modules                            |    23 | `backend/libs/core/src/modules` (plus health and identity, which are plumbing)   |
-| Services running independently              |     8 | auth, owner, manager, sales, warehouse, delivery, retailer, platform console     |
-| Database tables                             |   139 | seeded twice with identical row counts across every one of them                  |
-| Migrations applied                          |    48 | expand-only; a re-run is a no-op                                                 |
-| Apps                                        |     7 | owner, manager (accountant on it), sales, warehouse, delivery, retailer, console |
+| What                                        | Count | Where it comes from                                                               |
+| ------------------------------------------- | ----: | --------------------------------------------------------------------------------- |
+| Business modules                            |    23 | `backend/libs/core/src/modules` (plus health and identity, which are plumbing)    |
+| Services running independently              |     8 | auth, owner, manager, sales, warehouse, delivery, retailer, platform console      |
+| Database tables                             |   139 | seeded twice with identical row counts across every one of them                   |
+| Migrations applied                          |    48 | expand-only; a re-run is a no-op                                                  |
+| Apps                                        |     7 | owner, manager (accountant on it), sales, warehouse, delivery, retailer, console  |
 | Module specs                                |   646 | plus the permission matrix in all seven services and the database guarantee tests |
-| Endpoint calls exercised, ending "0 broken" | 1,618 | `pnpm smoke` on a fresh database                                                 |
+| Endpoint calls exercised, ending "0 broken" | 1,618 | `pnpm smoke` on a fresh database                                                  |
 
 **QA findings so far: 34 fixed in batch 1, 158 raised in batch 2 of which 153 are merged.** Five are still in flight, three of them raised on 20 September. The severe sign-out defect (DOS-167) — a shared phone showing the next person the previous rep's shops, orders and dues — is **closed on measured evidence across Android, iOS and the browser**: a person's unsent work survives sign-out on that device, goes first at that person's next sign-in, and never reaches anybody else.
 
@@ -94,17 +94,17 @@ Listed in build order. "Procedures" counts the routes that module declares in th
 
 Everything this page previously listed as "in progress" or "queued" is built, gated and pushed.
 
-| Module                     | What it gives the business                                                                                                                                                                                                             |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Document intake**        | "Zero manual entry": blind gate count → QR / IRN verification → vision extraction → validators → SKU match → human review on the phone → one idempotent goods receipt. **A human always reviews before the GRN is posted**              |
-| **Integrations**           | One generic importer for any source — TradeEzee, Marg, Busy, Tally, FieldAssist, Excel (upload → preview → map columns → save profile → dry run → commit) — plus Tally export and the export-job queue every later module uses          |
-| **Claims**                 | Scheme, damage and expiry claims to brands, built on billing's registers                                                                                                                                                              |
-| **Notifications**          | WhatsApp / SMS adapters, event-driven sends, templates — the invoice, proof of delivery and receipt to the shop, and the password-reset channel                                                                                        |
-| **Reporting**              | Dashboards, registers and chart-ready series — the graphs the owner app was promised                                                                                                                                                   |
-| **Incentives**             | Plans, targets, slabs and statements; closes the salesperson's own-targets screens                                                                                                                                                     |
-| **AI**                     | WhatsApp free-text and voice order capture, demand forecasting and reorder suggestions, route sequencing. Drafts are **always human-confirmed**; the driver may override a suggested route                                             |
+| Module                     | What it gives the business                                                                                                                                                                                                               |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Document intake**        | "Zero manual entry": blind gate count → QR / IRN verification → vision extraction → validators → SKU match → human review on the phone → one idempotent goods receipt. **A human always reviews before the GRN is posted**               |
+| **Integrations**           | One generic importer for any source — TradeEzee, Marg, Busy, Tally, FieldAssist, Excel (upload → preview → map columns → save profile → dry run → commit) — plus Tally export and the export-job queue every later module uses           |
+| **Claims**                 | Scheme, damage and expiry claims to brands, built on billing's registers                                                                                                                                                                 |
+| **Notifications**          | WhatsApp / SMS adapters, event-driven sends, templates — the invoice, proof of delivery and receipt to the shop, and the password-reset channel                                                                                          |
+| **Reporting**              | Dashboards, registers and chart-ready series — the graphs the owner app was promised                                                                                                                                                     |
+| **Incentives**             | Plans, targets, slabs and statements; closes the salesperson's own-targets screens                                                                                                                                                       |
+| **AI**                     | WhatsApp free-text and voice order capture, demand forecasting and reorder suggestions, route sequencing. Drafts are **always human-confirmed**; the driver may override a suggested route                                               |
 | **Platform admin (:3007)** | Distributor onboarding, plans and subscription state, and **time-boxed, owner-approved, audited** support access. The console reads counts, never trade; suspension stops every sign-in for that distributorship with a 423 and a reason |
-| **Three-distributor demo** | Three distributors, staff under each, shops linked to more than one — the only honest way to prove tenant isolation and a shopkeeper's multi-distributor sign-in                                                                        |
+| **Three-distributor demo** | Three distributors, staff under each, shops linked to more than one — the only honest way to prove tenant isolation and a shopkeeper's multi-distributor sign-in                                                                         |
 
 ## Progress, checkpoint by checkpoint
 
@@ -125,28 +125,28 @@ Everything this page previously listed as "in progress" or "queued" is built, ga
 
 Five pieces of work are running on the founder's machine today (Sunday 21 September):
 
-| Lane                                 | What it is                                                                                                                                                      |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **The cross-role chain**             | One order carried by real people through every app, end to end, then the days that go wrong, then a blind verifier. This is also the full regression            |
-| **Welcome and landing screens**      | Every app opens on a Distribution OS welcome, and lands after sign-in on the distributor's logo and name, the person's name and which app this is               |
-| **Role election at sign-in**         | The auth change that lets one person act as a lower role. Stops after integration for the architect to review by hand — it touches a contract and permissions   |
-| **Deployment plumbing**              | The path from repository to server, which did not exist: a Dockerfile that builds, compose for the VM, TLS, the migration step, backups, secrets, the web pipeline |
-| **The one-app layout plan**          | Planning only: how six apps become one. Approved by the architect before a single screen moves                                                                  |
+| Lane                            | What it is                                                                                                                                                         |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **The cross-role chain**        | One order carried by real people through every app, end to end, then the days that go wrong, then a blind verifier. This is also the full regression               |
+| **Welcome and landing screens** | Every app opens on a Distribution OS welcome, and lands after sign-in on the distributor's logo and name, the person's name and which app this is                  |
+| **Role election at sign-in**    | The auth change that lets one person act as a lower role. Stops after integration for the architect to review by hand — it touches a contract and permissions      |
+| **Deployment plumbing**         | The path from repository to server, which did not exist: a Dockerfile that builds, compose for the VM, TLS, the migration step, backups, secrets, the web pipeline |
+| **The one-app layout plan**     | Planning only: how six apps become one. Approved by the architect before a single screen moves                                                                     |
 
 ---
 
 # The seven days to go-live
 
-**Decided 2026-09-21, twice in one day.** The QA programme was cut from thirty days to ten, then to five — the founder has one week of architect subscription left and wants this closed this month. It then moved back to **seven**, because he asked for role election and the one store app **before** go-live, for the website as well as the phones: *"make sure of role election and one store app for both APPS and website before go live."* That costs about two days and it is the right order — what gets proved is then what ships.
+**Decided 2026-09-21, twice in one day.** The QA programme was cut from thirty days to ten, then to five — the founder has one week of architect subscription left and wants this closed this month. It then moved back to **seven**, because he asked for role election and the one store app **before** go-live, for the website as well as the phones: _"make sure of role election and one store app for both APPS and website before go live."_ That costs about two days and it is the right order — what gets proved is then what ships.
 
-| Day                   | What runs                                                                                                                                                                  |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **1 — Sun 21**        | The cross-role chain on the seven apps as they are · welcome + landing · role election starts · deployment plumbing starts in parallel                                       |
-| **2 — Mon 22**        | Role election lands after the architect's review · **the one app** starts: one project, six role groups, one website + one Android + one iOS                                 |
-| **3 — Tue 23**        | The one app finishes and is gated; the seven per-role web apps are retired · smoke and the chain re-walked **on** the one app                                                |
-| **4–5 — Wed 24 / Thu 25** | **The seven-day business simulation, on the one app** — two full days, a blind auditor, an arithmetic verdict                                                            |
-| **6 — Fri 26**        | Fix what the simulation found; check only where it pointed                                                                                                                  |
-| **7 — Sat 27**        | Android basics · the security slice public URLs require · **go live** at `www.distributionos.in` and `api.distributionos.in` · the architect's audit, folded into the handover |
+| Day                       | What runs                                                                                                                                                                      |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **1 — Sun 21**            | The cross-role chain on the seven apps as they are · welcome + landing · role election starts · deployment plumbing starts in parallel                                         |
+| **2 — Mon 22**            | Role election lands after the architect's review · **the one app** starts: one project, six role groups, one website + one Android + one iOS                                   |
+| **3 — Tue 23**            | The one app finishes and is gated; the seven per-role web apps are retired · smoke and the chain re-walked **on** the one app                                                  |
+| **4–5 — Wed 24 / Thu 25** | **The seven-day business simulation, on the one app** — two full days, a blind auditor, an arithmetic verdict                                                                  |
+| **6 — Fri 26**            | Fix what the simulation found; check only where it pointed                                                                                                                     |
+| **7 — Sat 27**            | Android basics · the security slice public URLs require · **go live** at `www.distributionos.in` and `api.distributionos.in` · the architect's audit, folded into the handover |
 
 **The honest shape is six days of scheduled work and one day of unknown.** Day 6 is the only day set aside for repairing what days 4–5 find. If Thursday evening's books balance, Saturday is live. If they do not, the unknown is the repair — likely about eight days rather than seven — and the founder hears that on Thursday night, not on Saturday with his URLs half-built.
 
@@ -159,7 +159,7 @@ Seven simulated trading days driven against the running services, with real peop
 - **opening stock + receipts − sales − damage − returns = closing stock**, per SKU per batch
 - **revenue = payments + outstanding**
 
-Any drift is a severe finding. Not a discussion, not a rounding note. It was moved from the end of the programme to the middle on the founder's word — *"Business simulation is imp"* — precisely because it is the test most likely to find something structural, and a structural fault found on the last day cannot be fixed on the last day.
+Any drift is a severe finding. Not a discussion, not a rounding note. It was moved from the end of the programme to the middle on the founder's word — _"Business simulation is imp"_ — precisely because it is the test most likely to find something structural, and a structural fault found on the last day cannot be fixed on the last day.
 
 ---
 
@@ -170,7 +170,7 @@ All seven apps are built and gated green (2026-09-07): owner, manager (with the 
 Three sign-in decisions of 2026-09-21 change what a person installs and what they can do, without changing one line of the server's security model:
 
 1. **Every app opens on a Welcome screen, then lands on who-you-are.** The Distribution OS mark, one line, this app's name, one Sign in button — shown once per device, never on every launch. After sign-in: the distributor's (or shop's) logo and name, the person's name, and which app this is. White label inside the app is unchanged.
-2. **Role election at sign-in, downward only.** *"Owner can use every role, others can use specific roles."* An owner may act as manager, accountant, warehouse, delivery or salesperson; a manager as warehouse, delivery or salesperson; everyone else only as themselves plus the extra roles the owner or manager grants. The token carries the **elected** role, so services, the permission matrix and row-level security are untouched, and the person stays the actor on every audit row. **An owner token never enters a field app** — a van phone must not hold a key to the owner service.
+2. **Role election at sign-in, downward only.** _"Owner can use every role, others can use specific roles."_ An owner may act as manager, accountant, warehouse, delivery or salesperson; a manager as warehouse, delivery or salesperson; everyone else only as themselves plus the extra roles the owner or manager grants. The token carries the **elected** role, so services, the permission matrix and row-level security are untouched, and the person stays the actor on every audit row. **An owner token never enters a field app** — a van phone must not hold a key to the owner service.
 3. **One app in the store, "Distribution OS", which becomes the right app after sign-in.** The saving is not store fees ($25 once for Google, $99 a year for Apple, any number of apps) — it is seven builds, seven review queues, seven update cycles, and a new hire being told which of six apps to install. **The seven per-role web apps are retired at the merge, not kept beside it** (founder confirmed, 2026-09-21): two front doors would be two things to prove for ever, and nothing is lost because every screen lives in the one app. The console stays separate — platform staff are not the distributor's users.
 
 **Android is the pilot platform.** iOS beyond boot sits outside the seven days; the complete validation of both platforms is a block of its own, run once, when the product is otherwise right (decided 2026-09-21, which turned the standing iOS gap into scheduled work rather than a running debt).
@@ -179,24 +179,24 @@ Three sign-in decisions of 2026-09-21 change what a person installs and what the
 
 # Then: offline, pilot, deployment
 
-| Phase                                        | Where it stands                                                                                                                                                                                                                                                                                                                                                                                                                |
-| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase                                        | Where it stands                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Offline**                                  | **Built and proved.** The upload endpoint never answers 4xx: rejections are recorded and shown, never lost — and every upload is checked against the same permission matrix the server enforces, so no role can do by sync what it cannot do online. A device's offline copy belongs to **one person in one distributorship**, is checked before anything is shown and deleted at sign-out; unsent changes stay with that person and go first at their next sign-in. When a browser or phone cannot keep an offline copy, **every** screen says so — the app never claims work is safe when it is not |
-| **Pilot at Tarsun Enterprises, Kalyan West** | Next, after go-live. Real beats, real shops, real money, alongside the existing ERP. Bills the brand raises in its own DMS are imported and linked, **never re-invoiced**. Gate: the distributor's day closes in Distribution OS — registers tie, cash settles, outstanding matches                                                                                                                                             |
-| **Deployment**                               | **Decided 2026-09-21, on verified terms** — see below. Day 7 of the plan                                                                                                                                                                                                                                                                                                                                                       |
+| **Pilot at Tarsun Enterprises, Kalyan West** | Next, after go-live. Real beats, real shops, real money, alongside the existing ERP. Bills the brand raises in its own DMS are imported and linked, **never re-invoiced**. Gate: the distributor's day closes in Distribution OS — registers tie, cash settles, outstanding matches                                                                                                                                                                                                                                                                                                                   |
+| **Deployment**                               | **Decided 2026-09-21, on verified terms** — see below. Day 7 of the plan                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 
 ## Hosting, decided on verified terms
 
 The earlier plan (2026-09-05) was AWS Lightsail with managed Postgres to follow. **It was dropped on 2026-09-21 for a reason that was checked rather than assumed: free managed Postgres cannot run this schema at all.** The database creates a worker role that bypasses row-level security, which requires a superuser — and Neon, Supabase and RDS all withhold it. Any hosting that starts with managed Postgres either fails at the first migration or forces the tenancy model to be rewritten.
 
-| Piece                  | Choice                                                                                                                       | Why                                                                                                 |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Server                 | **Oracle Cloud Always Free** — 2 OCPU / 12 GB ARM, home region **Mumbai** (irreversible once chosen)                          | The only free tier large enough to run the services and the database beside them, in India           |
-| Database               | **PostgreSQL 17, self-hosted on that VM**                                                                                    | The schema needs a superuser; no free managed service grants one                                    |
-| Apps (web)             | **Cloudflare Pages**                                                                                                         | Unlimited bandwidth, no card required                                                                |
-| Backups                | **Cloudflare R2**, off the Oracle account                                                                                    | A backup on the same account as the thing it protects is not a backup                               |
-| Domain                 | **`distributionos.in`** — `www.` for the website, `api.` for the services; the bare domain redirects to `www.`                | Bought on **Hostinger, 21 September 2026**, about **₹690 a year**; nameservers moving to Cloudflare   |
-| Monthly cost           | **₹0**                                                                                                                       | The domain is the only recurring spend                                                               |
+| Piece        | Choice                                                                                                         | Why                                                                                                 |
+| ------------ | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Server       | **Oracle Cloud Always Free** — 2 OCPU / 12 GB ARM, home region **Mumbai** (irreversible once chosen)           | The only free tier large enough to run the services and the database beside them, in India          |
+| Database     | **PostgreSQL 17, self-hosted on that VM**                                                                      | The schema needs a superuser; no free managed service grants one                                    |
+| Apps (web)   | **Cloudflare Pages**                                                                                           | Unlimited bandwidth, no card required                                                               |
+| Backups      | **Cloudflare R2**, off the Oracle account                                                                      | A backup on the same account as the thing it protects is not a backup                               |
+| Domain       | **`distributionos.in`** — `www.` for the website, `api.` for the services; the bare domain redirects to `www.` | Bought on **Hostinger, 21 September 2026**, about **₹690 a year**; nameservers moving to Cloudflare |
+| Monthly cost | **₹0**                                                                                                         | The domain is the only recurring spend                                                              |
 
 **The known risk, named:** Oracle reclaims idle Always Free instances, and it halved this shape on 15 June 2026 without announcement. Mitigation is pay-as-you-go inside the free limits plus backups that live off Oracle. **Builds must never run on the free VM** — it will run out of memory; artifacts are built on the Mac or in CI and shipped.
 
@@ -210,13 +210,13 @@ The scale rules remain binding on every module rather than being a later phase: 
 
 The thirty-day quality programme became seven days by removing work, not by claiming the work got faster. Everything below is cut **for a single-distributor pilot**, and each row names the event that brings it back.
 
-| Cut                                                 | Why it is safe for this pilot                                                                                                     | Comes back                           |
-| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| **Performance, database tuning and search**         | One distributor, ~36 shops. Performance is not the risk at this size, and the architecture was built for scale from day one       | Before about 10 paying tenants       |
-| **Accessibility and a hardened public surface**     | Every app gate already walked desk and phone widths. Accessibility is real work and not a pilot blocker                            | Before a public product              |
-| **Observability and DevOps**                        | Cut to exactly what hosting needs; nothing here loses money in a pilot                                                            | At go-live                           |
-| **Localization and the TradeEzee import**           | English-only pilot by decision. The import is a **cut-over** task, not a quality phase — it happens when the founder moves his book | At cut-over                          |
-| **A larger automated test suite**                   | 646 module specs, seven permission matrices and the database guarantee tests already exist. More tests are not what is missing     | Before customer #2                   |
+| Cut                                             | Why it is safe for this pilot                                                                                                       | Comes back                     |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| **Performance, database tuning and search**     | One distributor, ~36 shops. Performance is not the risk at this size, and the architecture was built for scale from day one         | Before about 10 paying tenants |
+| **Accessibility and a hardened public surface** | Every app gate already walked desk and phone widths. Accessibility is real work and not a pilot blocker                             | Before a public product        |
+| **Observability and DevOps**                    | Cut to exactly what hosting needs; nothing here loses money in a pilot                                                              | At go-live                     |
+| **Localization and the TradeEzee import**       | English-only pilot by decision. The import is a **cut-over** task, not a quality phase — it happens when the founder moves his book | At cut-over                    |
+| **A larger automated test suite**               | 646 module specs, seven permission matrices and the database guarantee tests already exist. More tests are not what is missing      | Before customer #2             |
 
 What stays is what can lose money, stock or another tenant's data, plus the proof that the product works end to end for real people.
 
@@ -228,7 +228,7 @@ Honest list.
 
 **Waiting on the founder**
 
-1. **The real data extract**, promised on 20 September. What it *is* decides which job runs: a Distribution OS book (a dump carrying rows the apps wrote) means a read-only money check against a copy, signed off trip by trip; an old-system export (TradeEzee, Tally, Excel) means nothing in Distribution OS is wrong and the work is an import through the generic importer. Either way it is copied before it is read and never edited in place.
+1. **The real data extract**, promised on 20 September. What it _is_ decides which job runs: a Distribution OS book (a dump carrying rows the apps wrote) means a read-only money check against a copy, signed off trip by trip; an old-system export (TradeEzee, Tally, Excel) means nothing in Distribution OS is wrong and the work is an import through the generic importer. Either way it is copied before it is read and never edited in place.
 2. **Invoice series at cut-over** from the existing ERP — continue the old numbers or start fresh. Configurable either way; the answer is needed before go-live.
 3. **Sample exports** from the existing ERP (party master, item master, outstanding) whenever convenient — the importer does not wait for them.
 4. **Which pilot shops, if any, are under the GST composition scheme.**
@@ -251,14 +251,14 @@ Branches — **one tenant is one distributorship**; multi-branch is v2, where ea
 
 # Where the live numbers are
 
-| Question                                                     | Source                                                |
-| ------------------------------------------------------------ | ----------------------------------------------------- |
-| What is built right now, with test and endpoint counts       | `docs/18-build-log.md`                                |
-| Where quality stands today, and what is running              | `QA/STATE.md`                                         |
-| The seven days to go-live, and everything that was cut       | `QA/10-DAY-PLAN.md`                                   |
-| What the founder decided, and when                           | `docs/22-source-of-truth.md` §8                       |
-| What can never be broken                                     | `docs/22-source-of-truth.md` §9                       |
-| Welcome, role election and the one store app                 | `docs/29-sign-in-roles-and-one-store-app.md`          |
-| Every screen of every app and the procedures it calls        | `docs/23-app-screens-and-api-gaps.md`                 |
-| The rules a module must follow to be called stable           | `docs/20-scale-rules.md`                              |
-| Where this space still disagrees with the build              | `docs/24-confluence-alignment.md` (audit, 2026-09-05) |
+| Question                                               | Source                                                |
+| ------------------------------------------------------ | ----------------------------------------------------- |
+| What is built right now, with test and endpoint counts | `docs/18-build-log.md`                                |
+| Where quality stands today, and what is running        | `QA/STATE.md`                                         |
+| The seven days to go-live, and everything that was cut | `QA/10-DAY-PLAN.md`                                   |
+| What the founder decided, and when                     | `docs/22-source-of-truth.md` §8                       |
+| What can never be broken                               | `docs/22-source-of-truth.md` §9                       |
+| Welcome, role election and the one store app           | `docs/29-sign-in-roles-and-one-store-app.md`          |
+| Every screen of every app and the procedures it calls  | `docs/23-app-screens-and-api-gaps.md`                 |
+| The rules a module must follow to be called stable     | `docs/20-scale-rules.md`                              |
+| Where this space still disagrees with the build        | `docs/24-confluence-alignment.md` (audit, 2026-09-05) |

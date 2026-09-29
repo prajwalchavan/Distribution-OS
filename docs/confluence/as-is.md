@@ -6,10 +6,10 @@
 | ------------ | ---------------------- |
 | Document     | AS-IS Business Process |
 | Product      | Distribution OS        |
-| Version      | 2.1                    |
+| Version      | 2.2                    |
 | Status       | Active                 |
-| Owner        | Business Analysis      |
-| Last Updated | 21 September 2026      |
+| Owner        | Prajwal Chavan         |
+| Last Updated | 29 September 2026      |
 
 ---
 
@@ -17,13 +17,13 @@
 
 This document describes how an Indian FMCG distributor operates **today, without Distribution OS**. It captures existing practices and operational dependencies, and establishes the baseline against which the future state is designed. It is the field truth of the product: every feature in the TO-BE has to point back to a step on this page.
 
-**New in version 2.0.** Version 1.0 described a generic distributor. This version keeps that structure and every observation that is still true, and tightens it with the **named ground truth** from the pilot customer — the actual software, the actual documents, the actual paper. Each step now carries the **pains it produces**, referenced to the ranked pain list in `docs/domain/operational-pain-points.md` (30 pains ranked by source count and recurrence, cited below as P1–P30), and states honestly whether that pain is answered in v1 or deliberately left alone. The product name is **Distribution OS** (decided 2026-09-05); version 1.0 wrote "DistributionOS".
+It is built on the **named ground truth** from the pilot customer — the actual software, the actual documents, the actual paper. Each step carries the **pains it produces**, cited as P1–P30 from a ranked list of thirty operational pains (ranked by source count and recurrence), and states honestly whether that pain is answered in v1 or deliberately left alone.
 
 ---
 
 # Ground Truth Behind This Document
 
-This is not a composite of interviews. It comes from field observation at the pilot customer, **Tarsun Enterprises, Kalyan West (Thane)**, in August 2026, plus six of their real operating documents:
+This is not a composite of interviews. It comes from field observation at the pilot customer, **Tarsun Enterprises, Kalyan West (Thane)**, plus six of their real operating documents:
 
 | Document observed                        | What it fixed for the design                                  |
 | ---------------------------------------- | ------------------------------------------------------------- |
@@ -36,13 +36,13 @@ This is not a composite of interviews. It comes from field observation at the pi
 
 These fixed the case-size conventions the product must parse (`x 90`, `_120`, `CS1`), the discount structures on a real bill (secondary %, cash %, free quantity, GST benefit), and the requirement that Distribution OS **coexists** with a brand-mandated DMS rather than replacing it.
 
-The workflow is FMCG-shaped because the pilot is FMCG. The same shape — buy in bulk, break into cases, sell on a beat, collect later — holds in pharma, electricals, dairy and agri distribution; Distribution OS positions across those markets with **FMCG first** (decided 2026-09-05). This page describes **one distributorship**: one tenant is one distributorship and multi-branch is a v2 topic (decided 2026-09-05).
+The workflow is FMCG-shaped because the pilot is FMCG. The same shape — buy in bulk, break into cases, sell on a beat, collect later — holds in pharma, electricals, dairy and agri distribution; Distribution OS positions across those markets with **FMCG first**. This page describes **one distributorship**: one tenant is one distributorship, and multi-branch comes after version 1.
 
 ---
 
 # Scope and Current Operational Flow
 
-Manufacturer onboarding · purchase ordering · goods receipt · inventory storage · order capture · scheme application · billing · warehouse dispatch · delivery · payment collection · end-of-day reconciliation · brand claims · returns and expiry · reporting. Version 1.0 stopped at reconciliation; **scheme application at billing, brand claim settlement, and returns / expiry are added in version 2.0** — they are the highest-frequency money-losing steps in the field and were missing from the baseline.
+Manufacturer onboarding · purchase ordering · goods receipt · inventory storage · order capture · scheme application · billing · warehouse dispatch · delivery · payment collection · end-of-day reconciliation · brand claims · returns and expiry · reporting. **Scheme application at billing, brand claim settlement, and returns / expiry** are part of the baseline because they are the highest-frequency money-losing steps in the field.
 
 The flow end to end: manufacturer → purchase order by phone or portal → truck dispatch with lorry receipt → goods receipt at the gate → warehouse storage → retailer orders by phone, by a rep on WhatsApp, or into the brand's own DMS → manual data entry → scheme applied by the operator → invoice printed → warehouse picking against that printout → loading → delivery → payment collected at the door → end-of-day cash handover and manual ledger update → month-end claims, returns and reports.
 
@@ -62,7 +62,7 @@ In a distributorship of this size these are **hats, not departments** — three 
 | Accounts    | Owner or a part-time accountant | Post collections, track outstanding, file GST               |
 | Management  | Owner                           | Watches everything, usually after the fact                  |
 
-**What changes in the TO-BE.** These become seven roles inside **one app** that becomes the right app after sign-in — owner; manager and accountant sharing one set of screens; sales; warehouse; delivery; retailer — plus a separate internal console, "Distribution OS - Admin", for onboarding, plans and support access (six role apps decided 2026-09-04, the console added 2026-09-05, the six merged into one on 2026-09-21). The **Billing Operator hat is deliberately not carried forward** — the invoice is issued by the warehouse at pack time from what was actually packed, so nobody re-types an order (decided 2026-09-04).
+**What changes in the TO-BE.** These become seven roles inside **one app** that becomes the right app after sign-in — owner; manager and accountant sharing one set of screens; sales; warehouse; delivery; retailer — plus a separate internal console, "Distribution OS - Admin", for onboarding, plans and support access. The **Billing Operator hat is deliberately not carried forward** — the invoice is issued by the warehouse at pack time from what was actually packed, so nobody re-types an order.
 
 ---
 
@@ -95,7 +95,7 @@ No integrated workflow exists between any two of these. **Three billing systems 
 
 **Pains carried.** Forecasting is experience only — no demand prediction, no reorder suggestion. Brands push **forced primary orders and month-end dumping** and the distributor has no days-of-stock view to argue with (P8). Slow movers are discovered near expiry, not at purchase (P9).
 
-**Changed for v1.** Demand forecasting and reorder suggestions for purchase planning are **in v1, before the pilot** (decided 2026-09-05), overriding the earlier plan that deferred forecasting past the pilot.
+**In v1.** Demand forecasting and reorder suggestions for purchase planning are part of v1.
 
 ## Step 3 — Goods Receipt
 
@@ -123,7 +123,7 @@ The most critical process, and the one with the most channels.
 
 **Pains carried.** Multiple channels with no single queue; duplicate orders, missed messages, free text interpreted by the operator. The rep promises a scheme at the door the operator may not apply (P27). Beats are built on habit with a stale outlet master and no proof of visit (P14). When a salesman leaves, the beat knowledge leaves with him (P13). Retailers ask for quantities below a full case (P26).
 
-**Changed for v1.** WhatsApp free-text and **voice order capture** are in v1: the message or the spoken order becomes a **draft** parsed against that shop's own purchase history, and a human always confirms before submission (decided 2026-09-05). This overrides the earlier decision to defer both past the pilot. Nothing is auto-committed.
+**In v1.** WhatsApp free-text and **voice order capture** are part of v1: the message or the spoken order becomes a **draft** parsed against that shop's own purchase history, and a human always confirms before submission. Nothing is auto-committed.
 
 ## Step 6 — Data Entry
 
@@ -137,7 +137,7 @@ The most critical process, and the one with the most channels.
 
 **Pains carried.** **Scheme misapplied or missed — the highest-frequency pain in the business, on every bill (P1).** Stacking of two schemes is the operator's judgement (P19). Free goods are booked as a percentage instead of units, so the claim later fails (P22). Cash discount is printed on the bill and given whether or not the retailer pays on time (P20). The rep's doorstep promise and the printed bill disagree (P27).
 
-**New in version 2.0.** This step happens in the field but was absent from the version 1.0 baseline. It is the strongest single justification for a server-side pricing engine.
+This step is the strongest single justification for a server-side pricing engine.
 
 ## Step 8 — Invoice Generation
 
@@ -163,9 +163,9 @@ The invoice is printed and becomes the operational document for everything downs
 
 **Pains carried.** No live visibility of the trip for the office or the shop (P10). Partial deliveries and shortages are argued at the door and hold up payment (P12). Returns come back in the same crate whether saleable or damaged (P28). Delivery windows and multi-trip sequencing are guesswork (P23).
 
-**Founder rule for the TO-BE.** Only the delivery crew collects at the door, or the shop pays online — **the salesperson never collects** (decided 2026-09-04). Where a distributor lets the rep collect today, that practice is not carried forward.
+**Rule for the TO-BE.** Only the delivery crew collects at the door, or the shop pays online — **the salesperson never collects**. Where a distributor lets the rep collect today, that practice is not carried forward.
 
-**Changed for v1.** Route sequencing — ordering stops by distance and time window, with the driver free to override — is **in v1** (decided 2026-09-05), overriding the earlier "must not build" entry for routing.
+**In v1.** Route sequencing — ordering stops by distance and time window, with the driver free to override — is part of v1.
 
 ## Step 12 — End-of-Day Return
 
@@ -179,13 +179,13 @@ The invoice is printed and becomes the operational document for everything downs
 
 **Pains carried.** **The owner learns what happened yesterday, tomorrow (P30).** Brand-facing secondary sales and closing stock reports take three to five days a month to compile and nobody fully trusts them (P15). There is no view of order lifecycle, delivery status, warehouse productivity or employee performance.
 
-**Changed for v1.** The owner app must show **graphs** — growth and how the distributorship is performing — not only tables (decided 2026-09-04).
+**In v1.** The owner's screens show **graphs** — growth and how the distributorship is performing — not only tables.
 
 ## Step 14 — Brand Claims
 
 **Owner, monthly.** He reconstructs from invoices and Excel what the brand owes for schemes, damages, expiry returns and price protection, and files the claim in the brand's format or inside the brand's DMS.
 
-**Pains carried.** **Claims are never raised or raised late — the field estimate is 30–50% missed (P2).** Those that are raised get rejected for missing evidence: no batch photo, no goods-receipt remark, no calculation sheet (P3). A GST or MRP rate change on stock in hand creates a price-protection claim nobody computes (P17). New in version 2.0: this step is pure margin and was missing from the baseline.
+**Pains carried.** **Claims are never raised or raised late — the field estimate is 30–50% missed (P2).** Those that are raised get rejected for missing evidence: no batch photo, no goods-receipt remark, no calculation sheet (P3). A GST or MRP rate change on stock in hand creates a price-protection claim nobody computes (P17). This step is pure margin.
 
 ## Step 15 — Returns, Damages and Expiry
 
@@ -197,18 +197,18 @@ The invoice is printed and becomes the operational document for everything downs
 
 # Current Pain Points
 
-| Area          | Problem today                                         | Answered in v1?                                                                                         |
-| ------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Orders        | Multiple channels: phone, WhatsApp, rep, brand DMS    | Partly — one order queue, plus AI-drafted WhatsApp and voice capture, always human-confirmed            |
-| Schemes       | Applied from memory at billing; free goods mis-booked | Yes — server-side pricing engine, rules stamped on every line                                           |
-| Billing       | Keyed by hand, twice, into two systems                | Yes — invoice derived from what was packed; brand-DMS bills imported, never re-invoiced                 |
-| Inventory     | Updated a day late from a typed invoice               | Yes — append-only stock ledger per movement                                                             |
-| Warehouse     | Manual picking, no batch record, no verification      | Partly — FEFO picklists and pack confirmation; **no bins, no barcode**                                  |
-| Delivery      | No tracking, no proof, no sequence                    | Yes — trips, stops, GPS, proof of delivery and route sequencing all built                              |
-| Payments      | Cash written on paper; outstanding in a physical file | Yes — receipts, allocation oldest bill first, double-entry journal                                      |
-| Claims        | Reconstructed monthly in Excel; 30–50% missed         | Yes — the claims module is built: raised, evidenced, tracked against the brand                          |
-| Reports       | End-of-day at best, month-end in practice             | Yes — the reporting module and the owner's graphs are built                                             |
-| Communication | Phone and WhatsApp dependency                         | Partly — outbound documents on WhatsApp, inbound capture                                                |
+| Area          | Problem today                                         | Answered in v1?                                                                              |
+| ------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Orders        | Multiple channels: phone, WhatsApp, rep, brand DMS    | Partly — one order queue, plus AI-drafted WhatsApp and voice capture, always human-confirmed |
+| Schemes       | Applied from memory at billing; free goods mis-booked | Yes — server-side pricing engine, rules stamped on every line                                |
+| Billing       | Keyed by hand, twice, into two systems                | Yes — invoice derived from what was packed; brand-DMS bills imported, never re-invoiced      |
+| Inventory     | Updated a day late from a typed invoice               | Yes — append-only stock ledger per movement                                                  |
+| Warehouse     | Manual picking, no batch record, no verification      | Partly — FEFO picklists and pack confirmation; **no bins, no barcode**                       |
+| Delivery      | No tracking, no proof, no sequence                    | Yes — trips, stops, GPS, proof of delivery and route sequencing                              |
+| Payments      | Cash written on paper; outstanding in a physical file | Yes — receipts, allocation oldest bill first, double-entry journal                           |
+| Claims        | Reconstructed monthly in Excel; 30–50% missed         | Yes — claims are raised, evidenced and tracked against the brand                             |
+| Reports       | End-of-day at best, month-end in practice             | Yes — the reporting module and the owner's graphs                                            |
+| Communication | Phone and WhatsApp dependency                         | Partly — outbound documents on WhatsApp, inbound capture                                     |
 
 ---
 
@@ -230,7 +230,7 @@ The invoice is printed and becomes the operational document for everything downs
 
 **Operational knowledge lives in people, not systems.** Beat knowledge, stock locations, scheme interpretation and which retailer pays late are all held by individuals. That is the ceiling on growth and the cost of attrition.
 
-**The field is not a desktop.** Everyone except the billing operator works on a phone, standing up, often on poor signal, while the current stack is a Windows desktop in the office. Distribution OS ships on web, Android and iOS (decided 2026-09-04) as one app that becomes the right app for the role signing in (decided 2026-09-21), in **English only for now** (decided 2026-09-04) — an honest constraint for staff who work in Marathi and Hindi, and the first candidate for a post-pilot enhancement.
+**The field is not a desktop.** Everyone except the billing operator works on a phone, standing up, often on poor signal, while the current stack is a Windows desktop in the office. Distribution OS is one app that becomes the right app for the role signing in, served as a website and an Android app (the iOS app is built from the same code and is not released yet), in **English only** — an honest constraint for staff who work in Marathi and Hindi, whose languages are not available yet.
 
 ---
 
@@ -238,7 +238,7 @@ The invoice is printed and becomes the operational document for everything downs
 
 **Carried into v1.** Digitize order capture across every channel · remove re-typing on both the inbound and outbound side · workflow status tracking instead of paper · batch, MRP and expiry per lot with FEFO picking · live delivery visibility with proof of delivery · digital collection with the receivables ledger inside the system · scheme rules applied by the server, never typed · demand forecasting and reorder suggestions · WhatsApp and voice order drafts, always human-confirmed · route sequencing.
 
-**Deliberately not built.** Rack, bin and zone management · barcode or carton scanning · per-tenant custom roles and configurable order states · payments aggregation or lending of any kind · multi-branch inside one tenant. Each is a recorded decision, not an oversight.
+**Deliberately out of scope.** Rack, bin and zone management · barcode or carton scanning · per-tenant custom roles and configurable order states · payments aggregation or lending of any kind · multi-branch inside one tenant. Each is deliberate, not an oversight.
 
 These opportunities are specified as the future state in **TO-BE Business Process**.
 

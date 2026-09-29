@@ -10,39 +10,45 @@ The space is organised into folders under the space root: **Home** (720897), **P
 
 ## Existing pages (updated in place, PM rewrite 2026-09-05)
 
-| Title                             | Page ID | Folder                    | URL                                                                                                        | Source file                            |
-| ---------------------------------- | ------- | --------------------------- | ------------------------------------------------------------------------------------------------------------ | --------------------------------------- |
+| Title                             | Page ID | Folder                   | URL                                                                                                       | Source file                            |
+| --------------------------------- | ------- | ------------------------ | --------------------------------------------------------------------------------------------------------- | -------------------------------------- |
 | DistributionOS Home               | 295181  | — (space overview, root) | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/overview                                     | `docs/confluence/space-overview.md`    |
-| Distribution OS — Product Home    | 1277953 | Home (720897)             | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/1277953/Distribution+OS+Product+Home   | `docs/confluence/home.md`              |
-| Vision                            | 1048577 | Product (753665)          | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/1048577/Vision                         | `docs/confluence/vision.md`            |
-| Mission                           | 1605635 | Product (753665)          | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/1605635/Mission                        | `docs/confluence/mission.md`           |
-| Goals                             | 1212417 | Product (753665)          | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/1212417/Goals                          | `docs/confluence/goals.md`             |
-| Problem Statement                 | 1081345 | Product (753665)          | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/1081345/Problem+Statement              | `docs/confluence/problem-statement.md` |
-| Pain Point Analysis               | 2097154 | Product (753665)          | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/2097154/Pain+Point+Analysis            | `docs/confluence/pain-points.md`       |
-| Success Metrics (KPIs)            | 1802241 | Product (753665)          | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/1802241/Success+Metrics+KPIs           | `docs/confluence/kpis.md`              |
-| Product Principles                | 1900545 | Product (753665)          | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/1900545/Product+Principles             | `docs/confluence/principles.md`        |
-| Personas                          | 1966081 | Product (753665)          | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/1966081/Personas                       | `docs/confluence/personas.md`          |
-| Target Market & Customer Segments | 786434  | Product (753665)          | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/786434/Target+Market+Customer+Segments | `docs/confluence/target-market.md`     |
-| AS-IS Business Process            | 1736714 | Business (819201)         | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/1736714/AS-IS+Business+Process         | `docs/confluence/as-is.md`             |
-| TO-BE Business Process            | 1441794 | Business (819201)         | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/1441794/TO-BE+Business+Process         | `docs/confluence/to-be.md`             |
+| Distribution OS — Product Home    | 1277953 | Home (720897)            | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/1277953/Distribution+OS+Product+Home   | `docs/confluence/home.md`              |
+| Vision                            | 1048577 | Product (753665)         | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/1048577/Vision                         | `docs/confluence/vision.md`            |
+| Mission                           | 1605635 | Product (753665)         | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/1605635/Mission                        | `docs/confluence/mission.md`           |
+| Goals                             | 1212417 | Product (753665)         | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/1212417/Goals                          | `docs/confluence/goals.md`             |
+| Problem Statement                 | 1081345 | Product (753665)         | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/1081345/Problem+Statement              | `docs/confluence/problem-statement.md` |
+| Pain Point Analysis               | 2097154 | Product (753665)         | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/2097154/Pain+Point+Analysis            | `docs/confluence/pain-points.md`       |
+| Success Metrics (KPIs)            | 1802241 | Product (753665)         | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/1802241/Success+Metrics+KPIs           | `docs/confluence/kpis.md`              |
+| Product Principles                | 1900545 | Product (753665)         | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/1900545/Product+Principles             | `docs/confluence/principles.md`        |
+| Personas                          | 1966081 | Product (753665)         | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/1966081/Personas                       | `docs/confluence/personas.md`          |
+| Target Market & Customer Segments | 786434  | Product (753665)         | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/786434/Target+Market+Customer+Segments | `docs/confluence/target-market.md`     |
+| AS-IS Business Process            | 1736714 | Business (819201)        | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/1736714/AS-IS+Business+Process         | `docs/confluence/as-is.md`             |
+| TO-BE Business Process            | 1441794 | Business (819201)        | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/1441794/TO-BE+Business+Process         | `docs/confluence/to-be.md`             |
 
 Two titles were renamed in the 2026-09-05 pass: "Home 0.1" → "Distribution OS — Product Home" (id 1277953), and "Target Market & Customer Segments." (trailing period) → "Target Market & Customer Segments" (id 786434). One more was renamed in the 2026-09-21 resync: **"Seven Apps & Workflows" → "Apps & Workflows"** (id 10453020), because the six business roles now ship as one app. The page id, its folder and its position are unchanged; Confluence redirects the old `/Seven+Apps+Workflows` slug to the new one.
 
 ## New pages (moved 2026-09-05 evening pass from the hub page, id 1277953, into their folders)
 
-| Title                          | Page ID  | Folder                 | URL                                                                                                      | Source file                                 |
-| -------------------------------- | -------- | ------------------------- | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
-| Architecture & Technology      | 10518600 | Architecture (851969)  | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/10518600/Architecture+Technology     | `docs/confluence/architecture.md`           |
-| Apps & Workflows               | 10453020 | Architecture (851969)  | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/10453020/Apps+Workflows              | `docs/confluence/apps-and-workflows.md`     |
-| Decisions Log                  | 10518639 | Product (753665)       | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/10518639/Decisions+Log               | `docs/confluence/decisions-log.md`          |
-| Build Status & Roadmap         | 10485781 | Backend (917505)       | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/10485781/Build+Status+Roadmap        | `docs/confluence/build-status-roadmap.md`   |
-| Data, Security & Multi-tenancy | 10321935 | Architecture (851969)  | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/10321935/Data+Security+Multi-tenancy | `docs/confluence/data-security-tenancy.md`  |
-| Integrations & Data Migration  | 10453040 | Architecture (851969)  | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/10453040/Integrations+Data+Migration | `docs/confluence/integrations-migration.md` |
-| Design System & Brand          | 10453060 | Frontend (950273)      | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/10453060/Design+System+Brand         | `docs/confluence/design-and-brand.md`       |
-| Phase 2 & Future Enhancements  | 10420246 | Product (753665)       | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/10420246/Phase+2+Future+Enhancements | `docs/confluence/phase-2-enhancements.md`   |
-| Open Questions & Risks         | 10321956 | Product (753665)       | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/10321956/Open+Questions+Risks        | `docs/confluence/open-questions-risks.md`   |
+| Title                          | Page ID  | Folder                | URL                                                                                                     | Source file                                 |
+| ------------------------------ | -------- | --------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| Architecture & Technology      | 10518600 | Architecture (851969) | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/10518600/Architecture+Technology     | `docs/confluence/architecture.md`           |
+| Apps & Workflows               | 10453020 | Architecture (851969) | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/10453020/Apps+Workflows              | `docs/confluence/apps-and-workflows.md`     |
+| Decisions Log                  | 10518639 | Product (753665)      | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/10518639/Decisions+Log               | `docs/confluence/decisions-log.md`          |
+| Build Status & Roadmap         | 10485781 | Backend (917505)      | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/10485781/Build+Status+Roadmap        | `docs/confluence/build-status-roadmap.md`   |
+| Data, Security & Multi-tenancy | 10321935 | Architecture (851969) | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/10321935/Data+Security+Multi-tenancy | `docs/confluence/data-security-tenancy.md`  |
+| Integrations & Data Migration  | 10453040 | Architecture (851969) | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/10453040/Integrations+Data+Migration | `docs/confluence/integrations-migration.md` |
+| Design System & Brand          | 10453060 | Frontend (950273)     | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/10453060/Design+System+Brand         | `docs/confluence/design-and-brand.md`       |
+| Phase 2 & Future Enhancements  | 10420246 | Product (753665)      | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/10420246/Phase+2+Future+Enhancements | `docs/confluence/phase-2-enhancements.md`   |
+| Open Questions & Risks         | 10321956 | Product (753665)      | https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/10321956/Open+Questions+Risks        | `docs/confluence/open-questions-risks.md`   |
 
 All 22 pages were verified after publishing: title, first heading and last line of the source file were confirmed present in the page body read back via `getConfluencePage`. Folder placement for all 22 was independently confirmed via `searchConfluenceUsingCql` (`parent = <folderId>`), since `getConfluencePage` does not surface `parentId` directly in its response.
+
+## The rule since 2026-09-29: app documentation only
+
+Founder, 2026-09-29 (docs/22 §8): **a Confluence page describes the product and nothing else.** No dated decisions ("Decided …"), no mention of the founder or of who decided, no build or test status, no plans and dates, no open questions, no to-do for anybody, no costs of accounts, no reference to a working document of the repository (anything under `docs/` or `QA/`, the build log, a decision record; the code layout belongs on the Architecture page). Scope (founder, same day): the eighteen documentation pages are cleaned; Decisions Log, Open Questions & Risks and Build Status & Roadmap stay as they are, and no cleaned page links to them. Where a rule below says otherwise (rule 4's "Decided [date]" in the changed sentence), this one wins. Decisions, status and open questions stay in the repository.
+
+Done: `space-overview.md` → page 295181, version 8, 2026-09-29. It was published as HTML: Confluence refuses a markdown replacement of a page that holds smart links ("would cause data loss"), so a page with links to other pages is sent with `contentFormat: "html"` and the links as `<a href="…" data-card-appearance="inline"></a>`.
 
 ## Keeping this space true
 
