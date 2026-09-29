@@ -6,9 +6,12 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
-    "lint": "eslint legacy import-legacy-extracts.mts check-stock-cancels.mts check-stock-negative.mts check-stranded.mts check-receipt-references.mts",
+    "lint": "eslint legacy import-legacy-extracts.mts check-stock-cancels.mts check-stock-negative.mts check-stranded.mts check-receipt-references.mts fill-demo-activity.mts check-demo-coverage.mts check-demo-rows.mts demo-fill testing vitest.demo-fill.config.ts",
+    "pretest": "vitest run --config vitest.demo-fill.config.ts",
     "test": "vitest run",
     "test:watch": "vitest",
+    "fill:demo": "tsx fill-demo-activity.mts",
+    "build:lookalike": "tsx testing/build-lookalike-tenant.mts",
     "import:legacy": "tsx import-legacy-extracts.mts"
   },
   "devDependencies": {

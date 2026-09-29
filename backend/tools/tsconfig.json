@@ -9,6 +9,12 @@
     "check-stock-cancels.mts",
     "check-stock-negative.mts",
     "check-receipt-references.mts",
+    "fill-demo-activity.mts",
+    "check-demo-coverage.mts",
+    "check-demo-rows.mts",
+    "demo-fill",
+    "testing",
+    "vitest.demo-fill.config.ts",
     "legacy",
     "vitest.config.ts"
   ]

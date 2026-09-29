@@ -29,6 +29,9 @@
     "check:stock-cancels": "tsx tools/check-stock-cancels.mts",
     "check:stock-negative": "tsx tools/check-stock-negative.mts",
     "check:receipt-references": "tsx tools/check-receipt-references.mts",
+    "fill:demo": "tsx tools/fill-demo-activity.mts",
+    "check:demo-coverage": "tsx tools/check-demo-coverage.mts",
+    "check:demo-rows": "tsx tools/check-demo-rows.mts",
     "import:legacy": "pnpm --filter @dos/tools import:legacy",
     "clean": "turbo run clean && rm -rf node_modules"
   },
