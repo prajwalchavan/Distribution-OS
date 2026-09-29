@@ -1,0 +1,161 @@
+LD
+Look-alike Distributors
+warehouse
+⋯
+Updated just now · Not kept in this browser
+Look-alike Distributors
+Pack
+BEING PICKED
+No order is being picked
+READY TO PACK
+Navratna General Stores
+SO-0052 · 31 pc
+picking
+Mauli Kirana and General 5
+SO-0051 · 19 pc
+picking
+PACKED WITHOUT A BILL
+Every pack has its bill
+PACKED TODAY
+Swami Samarth Daily Needs
+SO-0045 · Cartons 2
+INV/0046
+Mauli Mart
+SO-0053 · Cartons 2
+INV/0045
+Swami Samarth Daily Needs
+SO-0043 · Cartons 2
+INV/0044
+Shree Ganesh Kirana Stores
+SO-0042 · Cartons 2
+INV/0043
+Laxmi Narayan Cold Drinks House
+SO-0041 · Cartons 1
+INV/0042
+Laxmi Narayan Cold Drinks House
+SO-0046 · Cartons 2
+INV/0041
+Navratna Super Market
+SO-0040 · Cartons 2
+INV/0040
+Shree Ganesh Kirana Stores
+SO-0044 · Cartons 2
+INV/0039
+Shree Ganesh Kirana Stores 7
+SO-0054 · Cartons 2
+INV/0038
+Laxmi Narayan Mart
+SO-0034 · Cartons 1
+INV/0037
+Navratna Cold Drinks House
+SO-0037 · Cartons 1
+INV/0036
+Balaji Provision Stores
+SO-0036 · Cartons 1
+INV/0035
+Laxmi Narayan Kirana and General
+SO-0033 · Cartons 1
+INV/0034
+Om Sai Cold Drinks House
+SO-0035 · Cartons 2
+INV/0033
+Om Sai Mart
+SO-0038 · Cartons 2
+INV/0032
+Mauli Mart 5
+SO-0025 · Cartons 2
+INV/0031
+Swami Samarth Daily Needs
+SO-0030 · Cartons 2
+INV/0030
+Laxmi Narayan General Stores
+SO-0039 · Cartons 2
+INV/0029
+Shree Ganesh Kirana Stores
+SO-0029 · Cartons 1
+INV/0028
+Shree Ganesh Kirana Stores
+SO-0027 · Cartons 2
+INV/0027
+Swami Samarth Daily Needs
+SO-0028 · Cartons 1
+INV/0026
+Laxmi Narayan Cold Drinks House
+SO-0026 · Cartons 1
+INV/0025
+Laxmi Narayan Cold Drinks House
+SO-0031 · Cartons 2
+INV/0024
+Om Sai Cold Drinks House
+SO-0019 · Cartons 2
+INV/0023
+Siddhivinayak Kirana and General
+SO-0021 · Cartons 1
+INV/0022
+Ekvira Daily Needs
+SO-0022 · Cartons 1
+INV/0021
+Saraswati Traders
+SO-0018 · Cartons 1
+INV/0020
+Balaji General Stores 2
+SO-0020 · Cartons 1
+INV/0019
+Jai Ambe Kirana Stores
+SO-0010 · Cartons 2
+INV/0018
+Vighnaharta Daily Needs 4
+SO-0002 · Cartons 2
+INV/0017
+Ekvira Traders
+SO-0009 · Cartons 1
+INV/0016
+Swami Samarth Daily Needs
+SO-0008 · Cartons 1
+INV/0015
+Navratna Mart
+SO-0001 · Cartons 1
+INV/0014
+Vighnaharta Super Market
+SO-0005 · Cartons 1
+INV/0013
+Shree Ganesh Kirana Stores
+SO-0014 · Cartons 2
+INV/0012
+Mauli Mart
+SO-0024 · Cartons 2
+INV/0011
+Shree Ganesh Kirana Stores
+SO-0007 · Cartons 1
+INV/0010
+Laxmi Narayan Daily Needs 3
+SO-0011 · Cartons 2
+INV/0009
+Laxmi Narayan Cold Drinks House
+SO-0006 · Cartons 1
+INV/0008
+Laxmi Narayan Cold Drinks House
+SO-0016 · Cartons 1
+INV/0007
+Shree Ganesh Enterprises 5
+SO-0003 · Cartons 1
+INV/0006
+Shree Ganesh Kirana Stores 7
+SO-0004 · Cartons 2
+INV/0005
+Mauli Kirana Stores
+SO-0013 · Cartons 1
+INV/0004
+Swami Samarth Daily Needs
+SO-0015 · Cartons 2
+INV/0003
+Saraswati Traders
+SO-0023 · Cartons 2
+INV/0002
+Jai Ambe Daily Needs 5
+SO-0012 · Cartons 2
+INV/0001
+Inbound
+Pick
+Pack
+Load

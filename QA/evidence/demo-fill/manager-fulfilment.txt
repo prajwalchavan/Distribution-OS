@@ -1,0 +1,51 @@
+LD
+Look-alike Distributors
+manager
+⋯
+Updated just now
+Fulfilment
+Waves
+Pick & pack
+Load-out
+Trips
+Waiting to be picked
+Nothing is waiting to be picked
+The picker gets one sheet, in FEFO order, for every order you tick.
+Picking sheets
+PICK-0011
+Open
+0
+PICK-0010
+Picked
+50
+PICK-0009
+Packed
+200
+PICK-0008
+Packed
+11
+PICK-0007
+Packed
+45
+PICK-0006
+Packed
+34
+PICK-0005
+Packed
+169
+PICK-0004
+Packed
+25
+PICK-0003
+Packed
+32
+PICK-0002
+Packed
+25
+PICK-0001
+Packed
+296
+Today
+Orders
+Fulfilment
+Billing
