@@ -93,7 +93,8 @@ export function usernameCandidates(
     if (!taken.has(name) && !reserved.has(name) && !out.includes(name)) out.push(name)
   }
   offer(withSuffix(key, suffix))
-  for (let n = 2; out.length < count && n < 100; n++) offer(withSuffix(`${stem}${String(n)}`, suffix))
+  for (let n = 2; out.length < count && n < 100; n++)
+    offer(withSuffix(`${stem}${String(n)}`, suffix))
   return out.slice(0, count)
 }
 

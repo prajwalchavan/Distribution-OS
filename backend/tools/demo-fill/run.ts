@@ -95,9 +95,7 @@ async function prepare(
   )
   const hadYesterday = dayBefore.some(
     (t) =>
-      isDemoId(t.id) &&
-      t.state !== 'cancelled' &&
-      !(t.state === 'planned' && t.vehicleId === van1),
+      isDemoId(t.id) && t.state !== 'cancelled' && !(t.state === 'planned' && t.vehicleId === van1),
   )
   const leadIn = hadYesterday ? null : yesterday
   const standing = await ensureStanding(ctx, world, date, leadIn ?? date)
@@ -168,14 +166,12 @@ export async function runFill(opts: RunOptions): Promise<RunResult> {
       ctx.api,
       { owner: ctx.owner, userIds: Object.fromEntries(ctx.userIds) },
       date,
-    ).catch(
-      (e: unknown) => {
-        summary.note(
-          `could not read the result back: ${e instanceof ApiRefusal ? e.label : String(e)}`,
-        )
-        return { seen: [], notes: [] }
-      },
-    )
+    ).catch((e: unknown) => {
+      summary.note(
+        `could not read the result back: ${e instanceof ApiRefusal ? e.label : String(e)}`,
+      )
+      return { seen: [], notes: [] }
+    })
     for (const s of read.seen) {
       const gap = KNOWN_GAPS[`${s.row}:${s.feature}`]
       summary.feature(

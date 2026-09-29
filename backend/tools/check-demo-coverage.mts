@@ -114,7 +114,8 @@ try {
     const username = member.username
     const line = logins.get(username)
     if (!line) gap(`${username}: not in the logins file`)
-    else if (line.role !== t.role) gap(`${username}: the logins file says ${line.role}, not ${t.role}`)
+    else if (line.role !== t.role)
+      gap(`${username}: the logins file says ${line.role}, not ${t.role}`)
     else if (line.password !== DEMO_PASSWORD)
       gap(`${username}: the logins file does not give the demo password`)
     if (member.status !== 'active') {

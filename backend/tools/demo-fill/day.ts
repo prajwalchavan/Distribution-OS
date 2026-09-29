@@ -386,7 +386,13 @@ async function planTrip(
   }
   if (existing) {
     ctx.summary.foundOne('driver', 'trip planned')
-    await addMissingStops(ctx, date, existing.id, await plannedStops(ctx, date, driver, plan), 'driver')
+    await addMissingStops(
+      ctx,
+      date,
+      existing.id,
+      await plannedStops(ctx, date, driver, plan),
+      'driver',
+    )
   } else {
     if (!van || !driverId || !id || !key) {
       ctx.summary.refusedOne('driver', 'trip planned', 'no van or no driver')

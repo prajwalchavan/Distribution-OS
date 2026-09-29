@@ -43,7 +43,13 @@ function userIdOf(s: CoverageSessions, key: 'sales1' | 'sales2' | 'driver1' | 'd
 }
 
 /** A van's trip of `date`, by its driver (null when that driver is unknown or the trip is not there). */
-function dayTrip(api: Api, s: CoverageSessions, session: Session, date: string, van: 'driver1' | 'driver2') {
+function dayTrip(
+  api: Api,
+  s: CoverageSessions,
+  session: Session,
+  date: string,
+  van: 'driver1' | 'driver2',
+) {
   const driver = userIdOf(s, van)
   return driver
     ? tripOf(api, session, tripIdOf(s.owner.tenantId, date, van, driver))
