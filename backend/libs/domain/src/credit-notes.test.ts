@@ -180,9 +180,14 @@ describe('creditOrderLine — returned pieces valued on the order line (QA DOS-3
       ],
     )
     const billedTax = old.reduce((s, l) => s + l.cgstPaise + l.sgstPaise, 0)
-    const given = rest.reduce((s, l) => s + l.cgstPaise + l.sgstPaise + l.igstPaise + l.cessPaise, 0)
+    const given = rest.reduce(
+      (s, l) => s + l.cgstPaise + l.sgstPaise + l.igstPaise + l.cessPaise,
+      0,
+    )
     expect(ruleBefore.taxPaise + 2 + given).toBeLessThanOrEqual(billedTax)
-    expect(rest.reduce((s, l) => s + l.cgstPaise, 0)).toBe(rest.reduce((s, l) => s + l.sgstPaise, 0))
+    expect(rest.reduce((s, l) => s + l.cgstPaise, 0)).toBe(
+      rest.reduce((s, l) => s + l.sgstPaise, 0),
+    )
   })
 
   it('a rate-difference note keeps its own ceiling', () => {

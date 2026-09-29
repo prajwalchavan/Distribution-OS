@@ -761,7 +761,8 @@ async function readDayBook(db: Db, tenantId: string): Promise<DayBook> {
     marginByDay.set(r.day, entry)
   }
   const schemeSpendByDay = new Map<string, { company: number; distributor: number }>()
-  for (const r of ( // QA DOS-330: counted once per order line (`invoiceRulesGiven`), as the owner's live rollup does.
+  // QA DOS-330: counted once per order line (`invoiceRulesGiven`), as the owner's live rollup does.
+  for (const r of (
     await db.execute(sql`
       with ${invoiceRulesGiven(sql`
         select l.invoice_id, l.id as line_id, l.line_no, l.order_line_id, l.variant_id, l.qty_pcs,
