@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { demoId, isDemoId } from './ids.js'
+import { DAY_SLOTS, SHIFTS } from './day.js'
+import { demoId, isDemoId, stopIdOf, tripIdOf } from './ids.js'
 import {
   ON_ACCOUNT_DOOR,
   SLOT_DOORS,
@@ -13,6 +14,7 @@ import {
   leftOutNote,
   offerShops,
   offerStep,
+  orderIdOf,
   planCounts,
   planDay,
   quantityFor,
@@ -491,5 +493,64 @@ describe('the plan of a day', () => {
     const plan = planDay(input({ items: ITEMS.map((i) => ({ ...i, available: 0 })) }))
     expect(plan.orders).toHaveLength(0)
     expect(plan.emptySlots.length).toBeGreaterThan(0)
+  })
+})
+
+describe('the shift of a date a former crew already made (D6)', () => {
+  it('keeps the ids the tool always made for a date one crew makes, and tags them for a second shift', () => {
+    const own = planDay(input())
+    // A date one crew makes: the order ids are the ones the tool before 2026-09-29 gave the same slots.
+    for (const o of own.orders) expect(o.id).toBe(demoId(TENANT, '2026-09-29', 'order', o.slot))
+    for (const o of own.orders) expect(orderIdOf(TENANT, '2026-09-29', o.slot)).toBe(o.id)
+    const second = planDay(input({ shift: 's2' }))
+    expect(second.orders.length).toBeGreaterThanOrEqual(20)
+    const ownIds = new Set(own.orders.map((o) => o.id))
+    for (const o of second.orders) {
+      expect(isDemoId(o.id)).toBe(true)
+      expect(ownIds.has(o.id)).toBe(false)
+      expect(o.id).toBe(orderIdOf(TENANT, '2026-09-29', o.slot, 's2'))
+      for (const l of o.lines) expect(isDemoId(l.id)).toBe(true)
+    }
+    // The same shift of the same date is the same plan (a second run of it writes nothing).
+    expect(planDay(input({ shift: 's2' }))).toEqual(second)
+  })
+
+  it('lists every slot a plan can fill, so the shift is read off whichever order is there', () => {
+    const slots = new Set(DAY_SLOTS)
+    for (const shift of [undefined, 's2'])
+      for (const o of planDay(input({ shift })).orders) expect(slots.has(o.slot), o.slot).toBe(true)
+    expect(SHIFTS[0]).toBe('')
+    expect(new Set(SHIFTS).size).toBe(SHIFTS.length)
+  })
+
+  it('gives no second-shift bill to a shop holding the first shift’s payment to match (DOS-312)', () => {
+    const standing = new Set([...Object.values(input().creditShops), ...input().slotShops])
+    const free = planDay(input({ shift: 's2' }))
+    const chosen = free.orders.map((o) => o.shopId).find((x) => !standing.has(x))
+    expect(chosen).toBeDefined()
+    const shops = SHOPS.map((s) => (s.id === chosen ? { ...s, toolOnAccountPaise: 7_000 } : s))
+    // The second shift leaves that shop out; a date one crew makes is not asked to.
+    expect(planDay(input({ shops, shift: 's2' })).orders.some((o) => o.shopId === chosen)).toBe(
+      false,
+    )
+    expect(planDay(input({ shops })).orders.map((o) => o.id)).toEqual(
+      planDay(input()).orders.map((o) => o.id),
+    )
+  })
+})
+
+describe("a van's trip and its doors", () => {
+  it('carry the driver: the trip of a van a new driver takes is never the former driver’s (D6)', () => {
+    const a = '0199a0c0-2222-7abc-8def-00000000000a'
+    const b = '0199a0c0-2222-7abc-8def-00000000000b'
+    const date = '2026-09-29'
+    expect(tripIdOf(TENANT, date, 'driver1', a)).toBe(tripIdOf(TENANT, date, 'driver1', a))
+    expect(tripIdOf(TENANT, date, 'driver1', a)).not.toBe(tripIdOf(TENANT, date, 'driver1', b))
+    expect(tripIdOf(TENANT, date, 'driver1', a)).not.toBe(tripIdOf(TENANT, date, 'driver2', a))
+    // Never the id the tool before 2026-09-29 gave van 1's trip of the date.
+    expect(tripIdOf(TENANT, date, 'driver1', a)).not.toBe(demoId(TENANT, date, 'trip', 'driver1'))
+    const trip = tripIdOf(TENANT, date, 'driver1', a)
+    expect(stopIdOf(TENANT, date, trip, 1)).not.toBe(stopIdOf(TENANT, date, trip, 2))
+    expect(isDemoId(stopIdOf(TENANT, date, trip, 1))).toBe(true)
   })
 })

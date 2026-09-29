@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, it } from 'vitest'
 import { validatePassword } from '@dos/db'
 import { checkCommonArgs } from './args.js'
+import { ApiRefusal } from './client.js'
 import { demoId } from './ids.js'
 import {
   DEMO_PASSWORD,
@@ -25,6 +26,7 @@ import {
   writeLogins,
 } from './people.js'
 import { expectedFromReports, TOOL_KINDS, VIOLATIONS } from './rows.js'
+import { probeAnswer } from './setup.js'
 import { ROW_FEATURES, ROWS, Summary } from './summary.js'
 
 const dir = mkdtempSync(join(tmpdir(), 'demo-fill-people-'))
@@ -96,13 +98,38 @@ describe('the tester people (founder, 2026-09-29: plain usernames, the demo pass
   it('tell the former testers apart from the crew, and leave everyone else out (D5, D6)', () => {
     const d = '2026-09-25'
     const staff = [
-      { userId: '0199a0c0-2222-7abc-8def-000000000004', username: 'owner.look', role: 'owner', status: 'active' },
+      {
+        userId: '0199a0c0-2222-7abc-8def-000000000004',
+        username: 'owner.look',
+        role: 'owner',
+        status: 'active',
+      },
       // The distributor's own godown, whose username is a tester's plain one: not the tool's.
-      { userId: '0199a0c0-3333-7abc-8def-000000000005', username: 'godown', role: 'warehouse', status: 'active' },
-      { userId: personId(TENANT, d, 'manager'), username: 'manager', role: 'manager', status: 'active' },
-      { userId: personId(TENANT, d, 'godown'), username: 'godown2', role: 'warehouse', status: 'active' },
+      {
+        userId: '0199a0c0-3333-7abc-8def-000000000005',
+        username: 'godown',
+        role: 'warehouse',
+        status: 'active',
+      },
+      {
+        userId: personId(TENANT, d, 'manager'),
+        username: 'manager',
+        role: 'manager',
+        status: 'active',
+      },
+      {
+        userId: personId(TENANT, d, 'godown'),
+        username: 'godown2',
+        role: 'warehouse',
+        status: 'active',
+      },
       // A second manager the tool made on a later date (a run that could not see the first): former.
-      { userId: personId(TENANT, '2026-09-26', 'manager'), username: 'manager2', role: 'manager', status: 'active' },
+      {
+        userId: personId(TENANT, '2026-09-26', 'manager'),
+        username: 'manager2',
+        role: 'manager',
+        status: 'active',
+      },
       // The tool before 2026-09-29.
       {
         userId: demoId(TENANT, '2026-09-10', 'person', 'tester.sales1'),
@@ -111,7 +138,12 @@ describe('the tester people (founder, 2026-09-29: plain usernames, the demo pass
         status: 'active',
       },
       // A crew of another suffix.
-      { userId: personId(TENANT, d, 'driver1', 'old'), username: 'driver1.old', role: 'delivery', status: 'disabled' },
+      {
+        userId: personId(TENANT, d, 'driver1', 'old'),
+        username: 'driver1.old',
+        role: 'delivery',
+        status: 'disabled',
+      },
     ]
     const { crew, former } = sortStaff(TENANT, staff)
     expect([...crew.keys()].sort()).toEqual(['godown', 'manager'])
@@ -127,6 +159,26 @@ describe('the tester people (founder, 2026-09-29: plain usernames, the demo pass
     expect(formerKeyOf('manager3.x')).toBe('manager')
     expect(formerKeyOf('sales3')).toBeNull()
     expect(formerKeyOf(null)).toBeNull()
+  })
+
+  it('read a plain username as free only when the product says the only person it found is the owner (D5)', () => {
+    // The probe: `staff.create` with the username and the OWNER's phone; the product refuses it either way.
+    const refusal = (status: number, message: string) =>
+      new ApiRefusal(status, 'CONFLICT', message, null)
+    expect(probeAnswer(refusal(409, 'This person is already a member of this distributor'))).toBe(
+      'free',
+    )
+    expect(
+      probeAnswer(
+        refusal(409, 'That username and that phone number belong to two different people'),
+      ),
+    ).toBe('taken')
+    expect(probeAnswer(refusal(409, 'That username or phone number is already taken'))).toBe(
+      'taken',
+    )
+    expect(probeAnswer(refusal(400, 'Username must be 3–32 characters'))).toBe('taken')
+    expect(probeAnswer(refusal(503, 'already a member'))).toBe('taken')
+    expect(probeAnswer(new Error('boom'))).toBe('taken')
   })
 
   it('get a phone of the +91 70 block that is nobody else in the distributor', () => {
@@ -177,6 +229,7 @@ describe('the tester people (founder, 2026-09-29: plain usernames, the demo pass
         'check-demo-rows.mts',
         'README.md',
         '../infra/oracle-vm/fill-demo.sh',
+        '../../docs/plans/demo-activity-fill.md',
       ].map((f) => join(tools, f)),
     ]
     expect(files.length).toBeGreaterThan(20)
