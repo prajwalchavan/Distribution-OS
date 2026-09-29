@@ -380,6 +380,7 @@ const CycleCountItemOutput = z.object({ item: CycleCountDetailSchema })
  */
 export const OpenCycleCountInput = MutationBase.extend({
   id: IdSchema,
+  /** A place that is switched on; a switched-off one is refused 409 `location_switched_off` in words. */
   locationId: IdSchema,
   lotIds: z.array(IdSchema).max(500).optional(),
   note: z.string().trim().max(200).optional(),

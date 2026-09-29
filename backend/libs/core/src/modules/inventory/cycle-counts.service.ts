@@ -81,12 +81,19 @@ export class CycleCountsService {
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
         const [location] = await tx
-          .select({ id: locations.id })
+          .select({ id: locations.id, name: locations.name, active: locations.active })
           .from(locations)
           .where(and(eq(locations.tenantId, ctx.tenantId), eq(locations.id, input.locationId)))
           .limit(1)
         if (!location)
           throw new ORPCError('NOT_FOUND', { message: `location ${input.locationId} not found` })
+        // A switched-off place is not counted (the bin lane's fourth blind check, minor): a count opened there could
+        // be counted, but its post adds nothing to a switched-off place and a count has no cancel, so it hung open.
+        if (!location.active)
+          throw new ORPCError('CONFLICT', {
+            message: `Nothing was saved: ${location.name} is switched off, so it is not counted. Switch it back on first, then count it; pieces a switched-off place still holds come out with a stock transfer.`,
+            data: { code: 'location_switched_off', locationId: location.id },
+          })
         // QA DOS-358: a van is not counted by hand while a trip of it is loading, out or not yet settled.
         await this.inventory.assertVehicleNotOut(tx, input.locationId, { untilSettled: true })
         const [clash] = await tx

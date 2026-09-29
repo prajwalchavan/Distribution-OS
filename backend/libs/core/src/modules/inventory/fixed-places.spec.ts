@@ -706,6 +706,25 @@ describeDb('inventory: the fixed places and the owner’s correction (DATABASE_U
     expect(out.status, JSON.stringify(out.body)).toBe(200)
     expect(await onHandAt(lot, old)).toBe(0)
     expect(await onHandAt(lot, godown)).toBe(20)
+
+    // and a switched-off place is not counted (the fourth blind check, minor): a count opened there could never be
+    // posted or cancelled, so it is refused when it is opened, in words, and nothing is saved
+    const countId = uuidv7()
+    const counted = await call<Refusal>(app, store, 'POST', '/inventory/cycle-counts', {
+      idempotencyKey: `count-off-${run}`,
+      id: countId,
+      locationId: annex,
+      lotIds: [lot],
+    })
+    expect(counted.status, JSON.stringify(counted.body)).toBe(409)
+    expect(counted.body.data?.code).toBe('location_switched_off')
+    expect(counted.body.message).toBe(
+      `Nothing was saved: Annex off ${run} is switched off, so it is not counted. Switch it back on first, then count it; pieces a switched-off place still holds come out with a stock transfer.`,
+    )
+    const saved = await db.execute(
+      sql`select count(*)::int as n from cycle_counts where id = ${countId}`,
+    )
+    expect((saved.rows[0] as { n: number }).n).toBe(0)
   })
 
   it('a distributor without its bin gets a sentence, never a 500: the godown’s damage write-off and a receipt with damaged pieces are refused with nothing written, and a receipt with nothing for the bin posts', async () => {
