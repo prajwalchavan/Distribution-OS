@@ -308,23 +308,34 @@ describeDb('inventory: nothing leaves the damaged bin for sale, on any path (DAT
   // ---------------------------------------------------------------------------------------------------------------
   // V10 / V8 — an order never names the bin as the place it is packed from
 
-  it('DOS-352 (V10): an order cannot name the damaged bin, the dock or a place that is not the distributor’s as where it is packed from — not the rep, not the owner — and nothing is drafted', async () => {
+  it('DOS-352 (V10): an order cannot name the damaged bin, the dock, a van or a place that is not the distributor’s as where it is packed from — not the rep, not the owner — and nothing is drafted', async () => {
+    // The architect ruling of 2026-09-28 (the last stock row, "an order is never served from a van") answers one of
+    // this distributor's places that no order is served from with 409, the conflict it is; an id that is not one of
+    // its places stays a 400.
     const byRep = draftOrder(rep, 'rep-bin', bin)
     const refusedRep = await byRep.res
-    expect(refusedRep.status).toBe(400)
+    expect(refusedRep.status).toBe(409)
     expect(refusedRep.body.data?.code).toBe('fulfil_location_not_sellable')
     expect(refusedRep.body.message).toBe(notFromBin)
 
     const byOwner = draftOrder(owner, 'owner-bin', bin)
     const refusedOwner = await byOwner.res
-    expect(refusedOwner.status).toBe(400)
+    expect(refusedOwner.status).toBe(409)
     expect(refusedOwner.body.message).toBe(notFromBin)
 
     const fromDock = draftOrder(owner, 'owner-dock', dock)
     const refusedDock = await fromDock.res
-    expect(refusedDock.status).toBe(400)
+    expect(refusedDock.status).toBe(409)
     expect(refusedDock.body.message).toBe(
       'An order is packed from a godown, not from In transit: the pieces standing there are already packed for other bills. Place the order without a location and it is packed from the godown.',
+    )
+    // ...and a van: only the van sale's own door serves an order from a van (the same ruling)
+    const fromVan = draftOrder(owner, 'owner-van', van)
+    const refusedVan = await fromVan.res
+    expect(refusedVan.status).toBe(409)
+    expect(refusedVan.body.data?.code).toBe('fulfil_location_not_sellable')
+    expect(refusedVan.body.message).toBe(
+      `An order is packed from a godown, not from Van ${run}: a van carries its own trip’s bills and van stock, and sells from it only through a van sale on that trip. Place the order without a location and it is packed from the godown.`,
     )
     const stranger = uuidv7()
     const fromNowhere = draftOrder(owner, 'owner-nowhere', stranger)
@@ -333,15 +344,13 @@ describeDb('inventory: nothing leaves the damaged bin for sale, on any path (DAT
     expect(refusedNowhere.body.data?.code).toBe('fulfil_location_not_sellable')
     expect(refusedNowhere.body.message).toMatch(new RegExp(`not from location ${stranger}`))
 
-    for (const id of [byRep.id, byOwner.id, fromDock.id, fromNowhere.id])
+    for (const id of [byRep.id, byOwner.id, fromDock.id, fromVan.id, fromNowhere.id])
       expect(await orderRow(id)).toBeUndefined()
 
-    // a godown and a van-sale vehicle are places an order is packed from
+    // a godown is the place an order is packed from
     const fromGodown = draftOrder(owner, 'owner-godown', godown)
     expect((await fromGodown.res).status).toBe(200)
     expect((await orderRow(fromGodown.id))?.fulfilFromLocationId).toBe(godown)
-    const fromVan = draftOrder(owner, 'owner-van', van)
-    expect((await fromVan.res).status).toBe(200)
   })
 
   it('DOS-352 (V10): a device upload cannot draft an order packed from the bin, nor re-head a draft onto it — a sync rejection in words, and nothing changes', async () => {

@@ -332,12 +332,15 @@ export class OrdersService {
    * `paidAtDoorPaise` is the van sale's cash or UPI taken in the same transaction (QA DOS-240): paid in full,
    * the sale is not credit and the credit gate does not trip (`approvalFlags`). `creditWaived` and
    * `creditNotice` tell the van sale why, so it can hold the sale to the bill and say it in words.
+   *
+   * `vanSale` is passed by the van sale's own door and nobody else: its order is served from its trip's van, which
+   * no other order may name (architect ruling of 2026-09-28, the last stock row).
    */
   async submitInTx(
     tx: Db,
     order: OrderRow,
     deviceId: string | null,
-    options: { paidAtDoorPaise?: number } = {},
+    options: { paidAtDoorPaise?: number; vanSale?: boolean } = {},
   ): Promise<{
     item: OrderDetail
     flags: ApprovalKind[]
@@ -346,8 +349,9 @@ export class OrdersService {
   }> {
     const ctx = currentTenant()
     const to = transition(order.state, 'submit')
-    // QA DOS-352: never numbered or held while its place is the damaged bin, the dock or a shop's floor
-    await assertPackablePlace(tx, order)
+    // QA DOS-352: never numbered or held while its place is the damaged bin, the dock, a shop's floor or a van (the
+    // van sale's own order excepted, architect ruling of 2026-09-28)
+    await assertPackablePlace(tx, order, { vanSale: options.vanSale === true })
     const lines = await tx
       .select()
       .from(salesOrderLines)
@@ -380,10 +384,11 @@ export class OrdersService {
     if (flags.length === 0) {
       // The credit gate has just run on this transaction under the shop's lock (`approvalFlags`); a van
       // sale paid in full at the door passed it on purpose (DOS-240), so confirm does not ask again.
+      const confirmOptions = { creditChecked: true, vanSale: options.vanSale === true }
       const confirmed =
         ctx.actorRole === 'retailer'
-          ? await asSystem(tx, () => this.confirmInTx(tx, next, deviceId, { creditChecked: true }))
-          : await this.confirmInTx(tx, next, deviceId, { creditChecked: true })
+          ? await asSystem(tx, () => this.confirmInTx(tx, next, deviceId, confirmOptions))
+          : await this.confirmInTx(tx, next, deviceId, confirmOptions)
       return { item: confirmed.item, flags, creditNotice, creditWaived }
     }
     // One gate per kind, except `bargain`: one gate per request it waits on, naming that request, so deciding
@@ -461,15 +466,16 @@ export class OrdersService {
     tx: Db,
     order: OrderRow,
     deviceId: string | null,
-    options: { creditChecked?: boolean } = {},
+    options: { creditChecked?: boolean; vanSale?: boolean } = {},
   ): Promise<ConfirmOut> {
     // DOS-078: an idempotent re-confirm reads the stored record back, never an empty list.
     if (order.state === 'confirmed')
       return { item: await this.detail(tx, order), shortages: order.stockShortages }
     const to = transition(order.state, 'confirm')
     // QA DOS-352 (ruling 2): the hold below is taken where the order is packed from, so that place must be one
-    // an order may be packed from — the approvals' last decision confirms through here too.
-    await assertPackablePlace(tx, order)
+    // an order may be packed from — the approvals' last decision confirms through here too. A van only for the van
+    // sale's own order, inside its own door (architect ruling of 2026-09-28, the last stock row; QA verify 4, N1).
+    await assertPackablePlace(tx, order, { vanSale: options.vanSale === true })
     const waiting = await tx
       .select({ id: approvals.id, kind: approvals.kind })
       .from(approvals)

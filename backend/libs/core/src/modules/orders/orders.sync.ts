@@ -88,8 +88,9 @@ export async function applyOrderSync(tx: Db, op: SyncOp, orders: OrdersService):
       `Order ${existing.orderNo ?? existing.id} is already ${existing.state}`,
       `ऑर्डर ${existing.orderNo ?? existing.id} पहले ही ${existing.state} है`,
     )
-  // QA DOS-352 (ruling 2): the device door answers the damaged bin, the dock or a shop's floor as the place an
-  // order is packed from exactly as `orders.create` does — the same sentence, as a sync rejection.
+  // QA DOS-352 (ruling 2): the device door answers the damaged bin, the dock, a shop's floor or a van as the place an
+  // order is packed from exactly as `orders.create` does — the same sentence, as a sync rejection. An offline upload
+  // is never the van sale's door, so a van is refused here too (architect ruling of 2026-09-28, the last stock row).
   const place = str(data.fulfil_from_location_id)
   if (place !== null) {
     const refusal = await fulfilPlaceRefusal(tx, place)
@@ -97,7 +98,7 @@ export async function applyOrderSync(tx: Db, op: SyncOp, orders: OrdersService):
       throw new SyncRejection(
         refusal.code,
         refusal.message,
-        'ऑर्डर गोदाम से पैक होता है, डैमेज / एक्सपायरी बिन, डॉक या दुकान से नहीं। बिना लोकेशन के ऑर्डर भेजें, वह गोदाम से पैक होगा।',
+        'ऑर्डर गोदाम से पैक होता है — वैन, डैमेज / एक्सपायरी बिन, डॉक या दुकान से नहीं। बिना लोकेशन के ऑर्डर भेजें, वह गोदाम से पैक होगा।',
       )
   }
   if (existing) {

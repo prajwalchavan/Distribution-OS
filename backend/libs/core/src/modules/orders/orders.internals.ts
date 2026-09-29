@@ -60,6 +60,12 @@ export interface DraftInput {
   fulfilFromLocationId?: string | null | undefined
   expectedDeliveryDate?: string | null | undefined
   note?: string | null | undefined
+  /**
+   * Set ONLY by the van sale's own door (`VanSalesService.create`), which serves its order from its trip's van. No
+   * contract carries it, so a rep, the desk, the shop's app, a repeat or a device upload never names a van
+   * (architect ruling of 2026-09-28, the last stock row).
+   */
+  vanSale?: boolean | undefined
 }
 
 /**
@@ -77,12 +83,16 @@ export async function createDraft(
       message: 'a retailer may only place orders with source retailer_app',
     })
   await quotes.loadRetailer(tx, ctx, input.retailerId)
-  // QA DOS-352 (ruling 2): an order is packed from a godown or sold off a van, never from the damaged bin, the
-  // dock or a shop's floor. Refused before anything is written, for every placer and the van sale alike.
+  // QA DOS-352 (ruling 2): an order is packed from a godown, never from the damaged bin, the dock or a shop's floor;
+  // and never from a van, unless it is the van sale's own order (architect ruling of 2026-09-28, the last stock
+  // row; QA verify 4, N1). Refused before anything is written: 409 for one of this distributor's places that no
+  // order is served from, 400 for an id that is not one of its places.
   if (input.fulfilFromLocationId) {
-    const refusal = await fulfilPlaceRefusal(tx, input.fulfilFromLocationId)
+    const refusal = await fulfilPlaceRefusal(tx, input.fulfilFromLocationId, {
+      vanSale: input.vanSale === true && input.source === 'van_sale',
+    })
     if (refusal)
-      throw new ORPCError('BAD_REQUEST', {
+      throw new ORPCError(refusal.kind === null ? 'BAD_REQUEST' : 'CONFLICT', {
         message: refusal.message,
         data: { code: refusal.code, locationId: refusal.locationId },
       })
@@ -132,9 +142,18 @@ export async function createDraft(
  * billed — or written by any path that check does not see. Submit and confirm refuse it before a number is
  * allocated or a piece is held; the desk cancels it and places it again, and it is packed from the godown.
  */
-export async function assertPackablePlace(tx: Db, order: OrderRow): Promise<void> {
+export async function assertPackablePlace(
+  tx: Db,
+  order: OrderRow,
+  options: { vanSale?: boolean } = {},
+): Promise<void> {
   if (!order.fulfilFromLocationId) return
-  const refusal = await fulfilPlaceRefusal(tx, order.fulfilFromLocationId)
+  // The van sale's own order is submitted and confirmed inside its own door, off its trip's van; any other order
+  // naming a van — one drafted before the ruling, or written by a path the draft check does not see — is refused
+  // here when it is sent and when it is confirmed (architect ruling of 2026-09-28, the last stock row).
+  const refusal = await fulfilPlaceRefusal(tx, order.fulfilFromLocationId, {
+    vanSale: options.vanSale === true && order.source === 'van_sale',
+  })
   if (!refusal) return
   const which = order.orderNo ? `Order ${order.orderNo}` : 'This order'
   throw new ORPCError('CONFLICT', {

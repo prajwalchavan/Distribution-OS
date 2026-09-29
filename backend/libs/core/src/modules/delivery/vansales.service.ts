@@ -236,7 +236,9 @@ export class VanSalesService {
           await this.notForSale(tx, trip.id, vehicle.locationId),
         )
 
-        // the order, priced like any other, from the vehicle
+        // the order, priced like any other, from the vehicle: the one door that serves an order from a van — this
+        // trip's own, with every other trip's pieces held out above (architect ruling of 2026-09-28, the last stock
+        // row). `vanSale` is what lets the orders module accept the van as its place; no contract carries it.
         const draft = await this.orders.insertDraft(tx, {
           id: input.id,
           retailerId: retailer.id,
@@ -244,6 +246,7 @@ export class VanSalesService {
           pricingDateMode: 'order',
           fulfilFromLocationId: vehicle.locationId,
           note: input.note ?? null,
+          vanSale: true,
         })
         const lined = await this.orders.writeLines(tx, draft, input.lines)
         // QA DOS-240: cash or UPI taken for the whole bill in this same call is not credit, so a strict or
@@ -256,7 +259,7 @@ export class VanSalesService {
           tx,
           lined,
           input.deviceId ?? null,
-          paidAtDoorPaise === undefined ? {} : { paidAtDoorPaise },
+          paidAtDoorPaise === undefined ? { vanSale: true } : { paidAtDoorPaise, vanSale: true },
         )
         if (submitted.flags.length > 0)
           throw new ORPCError('CONFLICT', {

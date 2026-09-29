@@ -302,6 +302,12 @@ export const CreateOrderInput = MutationBase.extend({
   pricingDateMode: OrderPricingDateModeSchema.default('order'),
   /** Defaults to the retailer's terms. */
   paymentTerms: PaymentTermsSchema.optional(),
+  /**
+   * A godown; left out, the order is served from the godown. A van, the dock, the damaged / expiry bin or a shop's
+   * floor is refused 409 `fulfil_location_not_sellable` in words, an id that is not one of the distributor's places
+   * 400: an order is served from a godown, and only the van sale's own door sells off a van (architect ruling of
+   * 2026-09-28, the last stock row).
+   */
   fulfilFromLocationId: IdSchema.nullable().optional(),
   expectedDeliveryDate: IsoDateSchema.nullable().optional(),
   note: z.string().trim().max(500).nullable().optional(),

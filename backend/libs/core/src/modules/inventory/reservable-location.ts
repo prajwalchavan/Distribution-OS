@@ -99,6 +99,9 @@ const NOT_PACKED_FROM: Readonly<Record<string, string>> = {
   damaged: 'pieces in the damaged / expiry bin never go back for sale.',
   in_transit: 'the pieces standing there are already packed for other bills.',
   customer: 'those pieces stand at a shop, not in the godown.',
+  // Architect ruling of 2026-09-28 (the last stock row, QA verify 4 N1): an order is never served from a van.
+  vehicle:
+    'a van carries its own trip’s bills and van stock, and sells from it only through a van sale on that trip.',
 }
 
 /** An order's fulfilment place that no order may name, and the sentence that says so. */
@@ -117,15 +120,21 @@ export interface FulfilPlaceRefusal {
  * WHERE AN ORDER MAY BE PACKED FROM (QA DOS-352, architect ruling 2 of 2026-09-28: nothing leaves the damaged
  * bin for sale). An order names its place in `fulfil_from_location_id`, and the pick, the pack and the bill
  * all take their pieces from there: an owner or a rep who named the damaged / expiry bin had twelve damaged
- * pieces picked, packed and billed to a shop. Only a godown (`warehouse`) or the vehicle a van sale sells off
- * (`vehicle`) — the two kinds `sellable_stock` holds — may be named; the bin, the dock and a shop's floor are
- * refused, and so is an id that is not one of this distributor's places. Null when the place is allowed.
- * Every member reads `locations` (`locations_read`), a shop included, so a retailer's own draft is judged the
- * same way.
+ * pieces picked, packed and billed to a shop. Only a godown (`warehouse`) may be named; the bin, the dock, a
+ * shop's floor and a van are refused, and so is an id that is not one of this distributor's places. Null when
+ * the place is allowed. Every member reads `locations` (`locations_read`), a shop included, so a retailer's own
+ * draft is judged the same way.
+ *
+ * AN ORDER IS NEVER SERVED FROM A VAN (architect ruling of 2026-09-28, the last stock row; QA verify 4, N1): a
+ * rep's order naming van C held, at confirm, the pieces of another trip's loaded bill on that van, and its pack
+ * took them off while that trip was on the road. The one door that serves an order from a van is the van sale's
+ * own (`delivery.vanSales.create`: the crew of a trip sells from that trip's van, other trips' pieces held out),
+ * and only it passes `vanSale` — never a caller's field, so no rep, desk, shop, repeat or device upload reaches it.
  */
 export async function fulfilPlaceRefusal(
   tx: Db,
   locationId: string,
+  options: { vanSale?: boolean } = {},
 ): Promise<FulfilPlaceRefusal | null> {
   const { tenantId } = currentTenant()
   const [row] = await tx
@@ -133,7 +142,8 @@ export async function fulfilPlaceRefusal(
     .from(locations)
     .where(and(eq(locations.tenantId, tenantId), eq(locations.id, locationId)))
     .limit(1)
-  if (row && (row.kind === 'warehouse' || row.kind === 'vehicle')) return null
+  if (row && (row.kind === 'warehouse' || (row.kind === 'vehicle' && options.vanSale === true)))
+    return null
   const why = row
     ? (NOT_PACKED_FROM[row.kind] ?? 'no order is packed from there.')
     : 'it is not one of this distributor’s places.'
