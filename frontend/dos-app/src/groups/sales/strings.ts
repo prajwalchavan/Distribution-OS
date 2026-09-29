@@ -308,7 +308,7 @@ export const strings = {
   's4.askedRate': 'Rate you are asking for (₹ per piece)',
   's4.askedHelp': 'Below the rate now, and above zero',
   's4.askedInvalid': 'That is not below the rate now',
-  's4.autoApproves': 'Inside your limit — approves at once',
+  's4.autoApproves': 'Inside your limit — usually approved at once',
   's4.needsApproval': 'Over your limit — the office decides',
   's4.outcome': 'Answer: {status}',
   's4.needsSignal': 'A rate request needs a signal',

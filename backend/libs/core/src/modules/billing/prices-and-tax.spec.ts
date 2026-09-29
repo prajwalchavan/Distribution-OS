@@ -922,8 +922,21 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
     const below = await ask(rep, shop, v.marie, 2000, '335-below')
     expect(below.status).toBe(200)
     expect(below.body.item.status).toBe('requested')
+    // Blind check 1 (minor): the bound reaches ₹17.96, below the ₹20.37 Marie cost, so NO ask on Marie is approved on
+    // the spot — ₹21.00 (above cost) waits exactly like ₹20.00 (below it). Answering "approved" above the cost and
+    // "waits" below it told the rep the cost to the paisa in a few asks.
     const above = await ask(rep, shop, v.marie, 2100, '335-above')
-    expect(above.body.item.status).toBe('auto_approved')
+    expect(above.body.item.status).toBe('requested')
+    // an item whose cost the bound does not reach is still approved on the spot inside the bound
+    await db.insert(tenantProductCosts).values({
+      id: uuidv7(),
+      tenantId,
+      variantId: v.masala,
+      purchaseRatePaise: 4_800,
+      landedCostPaise: 5_000,
+    })
+    const inside = await ask(rep, shop, v.masala, 7_000, '335-inside')
+    expect(inside.body.item.status).toBe('auto_approved')
     // purchase cost never reaches the rep, whatever the request
     const mine = await call<{ items: Bargain[] }>(app, rep, 'GET', '/pricing/bargains', {
       retailerId: shop,
@@ -955,6 +968,13 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
       retailerId: shop,
     })
     expect(after.body.items.find((b) => b.id === below.body.item.id)?.status).toBe('approved')
+
+    // the owner's own ask below cost is worded as an ask, not as a decision on a request
+    const ownAsk = await ask(owner, shop, v.marie, 1990, '335-owner-ask')
+    expect(ownAsk.status).toBe(409)
+    expect(ownAsk.body.message).toBe(
+      '₹19.90 a piece for Marie 250 g is below what it cost (₹20.37), ₹0.47 a piece under cost. To sell it below cost, ask again saying you mean to sell below cost; or ask ₹20.37 or more',
+    )
 
     // ₹0.00 approved over a request: refused in words, owner or not
     const another = await ask(rep, shop, v.marie, 1950, '335-another')

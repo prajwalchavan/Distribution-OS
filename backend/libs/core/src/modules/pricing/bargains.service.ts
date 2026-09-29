@@ -122,7 +122,7 @@ export class BargainsService {
         const cost = await this.costOf(tx, ctx, input.variantId)
         const belowCost = cost !== null && input.askedRatePaise < cost
         if (belowCost && ctx.actorRole === 'owner' && input.confirmBelowCost !== true)
-          throw belowCostToConfirm(item, input.askedRatePaise, cost)
+          throw belowCostToConfirm(item, input.askedRatePaise, cost, 'ask')
         const decision = belowCost
           ? ctx.actorRole === 'owner'
             ? 'approved'
@@ -132,6 +132,7 @@ export class BargainsService {
               listRate,
               asked: input.askedRatePaise,
               qtyPcs: input.qtyPcs,
+              cost,
             })
         const now = new Date()
         const [row] = await tx
@@ -259,7 +260,13 @@ export class BargainsService {
   private async autoDecision(
     tx: Db,
     ctx: TenantContext,
-    p: { brandId: string | null; listRate: number; asked: number; qtyPcs: number | undefined },
+    p: {
+      brandId: string | null
+      listRate: number
+      asked: number
+      qtyPcs: number | undefined
+      cost: number | null
+    },
   ): Promise<'approved' | 'auto_approved' | null> {
     // Only the owner and the manager file a bargain already approved (the database's
     // bargain_requests insert policy says the same); the accountant's request waits like a rep's.
@@ -279,6 +286,11 @@ export class BargainsService {
       )
     const bound = bounds.find((b) => b.brandId !== null) ?? bounds.find((b) => b.brandId === null)
     if (!bound) return null
+    // Blind check 1 (minor): where the rep's bound reaches below what the item cost, NO ask on that item is approved
+    // on the spot — above cost or below, every one waits for the desk. Deciding per asked rate answered a rep inside
+    // the bound "approved" above the cost and "waits" below it, so a few asks told the rep the cost to the paisa.
+    const floorRate = p.listRate - Math.floor((bound.maxDiscountBps * p.listRate) / 10_000)
+    if (p.cost !== null && floorRate < p.cost) return null
     const discountBps = Math.ceil(((p.listRate - p.asked) * 10_000) / p.listRate)
     if (discountBps > bound.maxDiscountBps) return null
     if (bound.maxOrderDiscountPaise !== null) {
@@ -430,10 +442,22 @@ export async function pendingBargainsForOrder(
   return rows.map((r) => r.id)
 }
 
-/** The owner asked (or approves) below cost without having said so: the sentence that asks her to. */
-function belowCostToConfirm(item: string, rate: number, cost: number): ORPCError<string, unknown> {
+/**
+ * The owner approves (or asks for) a rate below cost without having said so: the sentence that asks her to. An ask is
+ * not a decision on a request, so it is worded as an ask (blind check 1, minor).
+ */
+function belowCostToConfirm(
+  item: string,
+  rate: number,
+  cost: number,
+  as: 'approve' | 'ask' = 'approve',
+): ORPCError<string, unknown> {
+  const again =
+    as === 'ask'
+      ? `To sell it below cost, ask again saying you mean to sell below cost; or ask ${rupees(cost)} or more`
+      : `To sell below cost, approve it again with "sell below cost" ticked; or approve ${rupees(cost)} or more`
   return new ORPCError('CONFLICT', {
-    message: `${rupees(rate)} a piece for ${item} is below what it cost (${rupees(cost)}), ${rupees(cost - rate)} a piece under cost. To sell below cost, approve it again with "sell below cost" ticked; or approve ${rupees(cost)} or more`,
+    message: `${rupees(rate)} a piece for ${item} is below what it cost (${rupees(cost)}), ${rupees(cost - rate)} a piece under cost. ${again}`,
     data: { code: 'below_cost_confirm', costPaise: cost, ratePaise: rate },
   })
 }
