@@ -11,13 +11,7 @@ import { unit } from './ids.js'
  */
 
 export type TesterKey =
-  | 'manager'
-  | 'accounts'
-  | 'sales1'
-  | 'sales2'
-  | 'godown'
-  | 'driver1'
-  | 'driver2'
+  'manager' | 'accounts' | 'sales1' | 'sales2' | 'godown' | 'driver1' | 'driver2'
 
 export interface Tester {
   key: TesterKey
@@ -39,17 +33,27 @@ export const TESTERS: readonly Tester[] = [
 /** The shopkeeper logins the brief asks for and the API cannot give (DOS-400). */
 export const SHOP_USERNAMES = ['tester.shop1', 'tester.shop2', 'tester.shop3'] as const
 
-export function testerOf(key: TesterKey): Tester {
-  const t = TESTERS.find((x) => x.key === key)
-  if (!t) throw new Error(`no tester ${key}`)
-  return t
+/**
+ * The tester people of one run. `suffix` (`--login-suffix`) is for a second distributor on the same
+ * database, and for the spec that builds one: usernames are global, so `tester.manager` can belong to one
+ * distributor only; the second gets `tester.manager.<suffix>`. Without it the usernames are the brief's.
+ */
+export const LOGIN_SUFFIX = /^[a-z0-9]{1,8}$/
+export function testersFor(suffix?: string): Tester[] {
+  if (suffix !== undefined && !LOGIN_SUFFIX.test(suffix))
+    throw new Error('a login suffix is 1 to 8 lowercase letters or digits')
+  return TESTERS.map((t) => (suffix ? { ...t, username: `${t.username}.${suffix}` } : { ...t }))
 }
 
 /**
  * A profile phone for a tester: an Indian mobile in the +91 70 000… block, derived from the tenant and the
  * username, shifted past any number `taken` holds (the tenant's own staff and shops). Never printed.
  */
-export function testerPhone(tenantId: string, username: string, taken: ReadonlySet<string>): string {
+export function testerPhone(
+  tenantId: string,
+  username: string,
+  taken: ReadonlySet<string>,
+): string {
   for (let attempt = 0; attempt < 50; attempt++) {
     const n = Math.floor(unit(`phone:${tenantId}:${username}:${String(attempt)}`) * 1e8)
     const phone = `+9170${String(n).padStart(8, '0')}`

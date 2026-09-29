@@ -1,4 +1,5 @@
 import { assertIsoDate, todayIst } from './ids.js'
+import { LOGIN_SUFFIX } from './people.js'
 
 /**
  * The arguments the tool and the coverage check share: which API, which distributor, who signs in, and the
@@ -11,6 +12,7 @@ export interface CommonArgs {
   passwordFile: string
   loginsFile: string
   date: string
+  loginSuffix: string | undefined
 }
 
 export interface RawCommonArgs {
@@ -20,6 +22,7 @@ export interface RawCommonArgs {
   'owner-password-file'?: string | undefined
   'logins-file'?: string | undefined
   date?: string | undefined
+  'login-suffix'?: string | undefined
   'allow-remote'?: boolean | undefined
 }
 
@@ -30,6 +33,7 @@ export const COMMON_OPTIONS = {
   'owner-password-file': { type: 'string' },
   'logins-file': { type: 'string' },
   date: { type: 'string' },
+  'login-suffix': { type: 'string' },
   'allow-remote': { type: 'boolean', default: false },
 } as const
 
@@ -65,6 +69,9 @@ export function checkCommonArgs(
     return { refused: '--date must be YYYY-MM-DD' }
   }
   if (date > today) return { refused: `--date ${date} has not come yet (today is ${today} IST)` }
+  const loginSuffix = raw['login-suffix']
+  if (loginSuffix !== undefined && !LOGIN_SUFFIX.test(loginSuffix))
+    return { refused: '--login-suffix is 1 to 8 lowercase letters or digits' }
   return {
     api,
     tenant,
@@ -72,5 +79,6 @@ export function checkCommonArgs(
     passwordFile,
     loginsFile,
     date,
+    loginSuffix,
   }
 }

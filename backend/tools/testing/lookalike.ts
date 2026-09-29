@@ -185,7 +185,9 @@ export function lookalikePlan(options: LookalikeOptions): {
     for (const size of base.sizes) titles.push({ ...base, title: `${base.title} ${size}` })
   const items: PlannedItem[] = []
   const headingOfRate = new Map<number, number[]>()
-  HEADING_RATES.forEach((rate, n) => headingOfRate.set(rate, [...(headingOfRate.get(rate) ?? []), n]))
+  HEADING_RATES.forEach((rate, n) =>
+    headingOfRate.set(rate, [...(headingOfRate.get(rate) ?? []), n]),
+  )
   for (let i = 0; i < 84; i++) {
     const t = titles[i % titles.length] ?? { title: 'Assorted Item', maker: 0, gst: 500 }
     const title = i < titles.length ? t.title : `${t.title} Family Pack`
@@ -195,7 +197,8 @@ export function lookalikePlan(options: LookalikeOptions): {
     const priced = i < 76
     const salePaise = priced ? int(5, 300) * 100 : null
     const atCost = priced && i % 2 === 0 && i < 72
-    const cost = salePaise === null ? int(4, 250) * 100 : atCost ? salePaise : Math.round(salePaise * 0.88)
+    const cost =
+      salePaise === null ? int(4, 250) * 100 : atCost ? salePaise : Math.round(salePaise * 0.88)
     const mrpPaise = Math.round(((salePaise ?? cost) * 1.18) / 100) * 100 + 100
     items.push({
       code: `IT${String(i + 1).padStart(3, '0')}`,
@@ -234,7 +237,11 @@ export function lookalikePlan(options: LookalikeOptions): {
       gstin: i % 17 === 0 ? gstin(`27ABCDE${String(1000 + i).slice(-4)}F1Z`) : null,
       pan: null,
       stateCode: '27',
-      address: { line1: `Shop ${String(int(1, 40))}, Lane ${String(int(1, 12))}`, area: beat, pincode: '421301' },
+      address: {
+        line1: `Shop ${String(int(1, 40))}, Lane ${String(int(1, 12))}`,
+        area: beat,
+        pincode: '421301',
+      },
       beatName: beat,
     })
   }
@@ -317,7 +324,10 @@ export async function buildLookalikeTenant(
   const tenantId = await db.transaction(async (tx) => {
     const [tenant] = await tx.select().from(tenants).where(eq(tenants.slug, options.slug))
     if (!tenant) throw new Error('the tenant row did not land')
-    const [existing] = await tx.select().from(users).where(eq(users.username, options.ownerUsername))
+    const [existing] = await tx
+      .select()
+      .from(users)
+      .where(eq(users.username, options.ownerUsername))
     const ownerId = existing?.id ?? uuidv7()
     if (!existing)
       await tx.insert(users).values({
@@ -373,7 +383,9 @@ export async function buildLookalikeTenant(
 
 /** A password that satisfies the product's policy (letters and digits, 20 characters). */
 export function newPassword(): string {
-  const raw = randomBytes(24).toString('base64').replace(/[^A-Za-z0-9]/g, '')
+  const raw = randomBytes(24)
+    .toString('base64')
+    .replace(/[^A-Za-z0-9]/g, '')
   return `${raw.slice(0, 16)}Dq7${raw.slice(16, 17) || 'x'}`
 }
 

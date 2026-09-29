@@ -36,7 +36,11 @@ async function allPages<T>(
 
 export async function readWorld(ctx: Ctx): Promise<World> {
   const shopsRaw = await allPages((cursor) =>
-    ctx.read(contract.retailers.list, { limit: 500, activeOnly: true, ...(cursor ? { cursor } : {}) }),
+    ctx.read(contract.retailers.list, {
+      limit: 500,
+      activeOnly: true,
+      ...(cursor ? { cursor } : {}),
+    }),
   )
   const owing = await allPages((cursor) =>
     ctx.read(contract.receivables.outstanding.list, {
@@ -92,9 +96,7 @@ export async function readWorld(ctx: Ctx): Promise<World> {
   const costs = await ctx.read(contract.tenantCatalog.costs, { limit: 500 })
   const costOf = new Map<string, number>()
   for (const c of costs.items) if (c.lotId === null) costOf.set(c.variantId, c.purchaseRatePaise)
-  const hsnCodes = [
-    ...new Set(catalog.map((c) => c.hsnCode).filter((h) => /^\d{4,8}$/.test(h))),
-  ]
+  const hsnCodes = [...new Set(catalog.map((c) => c.hsnCode).filter((h) => /^\d{4,8}$/.test(h)))]
   const gstOf = new Map<string, number>()
   for (let at = 0; at < hsnCodes.length; at += 50) {
     const chunk = hsnCodes.slice(at, at + 50)

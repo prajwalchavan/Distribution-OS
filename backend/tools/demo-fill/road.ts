@@ -41,10 +41,16 @@ export async function loadAndDepart(
   let trip = await readTrip(ctx, tripId)
   if (!trip) return
   if (trip.state === 'planned') {
-    await ctx.write('driver', 'loading started', () => ctx.as('godown'), contract.delivery.trips.startLoading, {
-      idempotencyKey: demoKey(date, 'trip', tripId, 'loading'),
-      id: tripId,
-    })
+    await ctx.write(
+      'driver',
+      'loading started',
+      () => ctx.as('godown'),
+      contract.delivery.trips.startLoading,
+      {
+        idempotencyKey: demoKey(date, 'trip', tripId, 'loading'),
+        id: tripId,
+      },
+    )
     trip = (await readTrip(ctx, tripId)) ?? trip
   }
   if (trip.state !== 'loading') return
@@ -68,15 +74,24 @@ export async function loadAndDepart(
   }
   const ownSheet = demoId(date, 'sheet', tripId)
   const loose = packed.filter((o) => !onDraft.has(o))
-  if (loose.length > 0 && !(await maybe(ctx.read(contract.warehouse.loadSheets.get, { id: ownSheet })))) {
-    const made = await ctx.write('godown', 'load sheet', () => ctx.as('godown'), contract.warehouse.loadSheets.create, {
-      idempotencyKey: demoKey(date, 'sheet', tripId),
-      id: ownSheet,
-      toLocationId: trip.vehicleLocationId,
-      tripId,
-      sheetDate: date,
-      orderIds: loose,
-    })
+  if (
+    loose.length > 0 &&
+    !(await maybe(ctx.read(contract.warehouse.loadSheets.get, { id: ownSheet })))
+  ) {
+    const made = await ctx.write(
+      'godown',
+      'load sheet',
+      () => ctx.as('godown'),
+      contract.warehouse.loadSheets.create,
+      {
+        idempotencyKey: demoKey(date, 'sheet', tripId),
+        id: ownSheet,
+        toLocationId: trip.vehicleLocationId,
+        tripId,
+        sheetDate: date,
+        orderIds: loose,
+      },
+    )
     if (made) for (const o of loose) onDraft.set(o, ownSheet)
   }
   const sheets = [...new Set(packed.map((o) => onDraft.get(o)).filter((s): s is string => !!s))]
@@ -96,16 +111,28 @@ export async function signOffAndLoad(ctx: Ctx, sheetId: string, date: string): P
   const sheet = await maybe(ctx.read(contract.warehouse.loadSheets.get, { id: sheetId }))
   if (!sheet || sheet.item.status !== 'draft') return
   if (!sheet.item.approvedAt)
-    await ctx.write('manager', 'load sheet signed off', () => ctx.as('manager'), contract.warehouse.loadSheets.approve, {
-      idempotencyKey: demoKey(date, 'sheet', sheetId, 'approve'),
+    await ctx.write(
+      'manager',
+      'load sheet signed off',
+      () => ctx.as('manager'),
+      contract.warehouse.loadSheets.approve,
+      {
+        idempotencyKey: demoKey(date, 'sheet', sheetId, 'approve'),
+        id: sheetId,
+      },
+    )
+  await ctx.write(
+    'godown',
+    'van loaded',
+    () => ctx.as('godown'),
+    contract.warehouse.loadSheets.confirm,
+    {
+      idempotencyKey: demoKey(date, 'sheet', sheetId, 'confirm'),
       id: sheetId,
-    })
-  await ctx.write('godown', 'van loaded', () => ctx.as('godown'), contract.warehouse.loadSheets.confirm, {
-    idempotencyKey: demoKey(date, 'sheet', sheetId, 'confirm'),
-    id: sheetId,
-    countedPackages: sheet.item.expectedPackages,
-    challanId: demoId(date, 'challan', sheetId),
-  })
+      countedPackages: sheet.item.expectedPackages,
+      challanId: demoId(date, 'challan', sheetId),
+    },
+  )
 }
 
 /**
@@ -161,7 +188,11 @@ async function deliverDoor(
     const lines = bill.item.lines.map((l, n) => {
       const all = l.qtyPcs + l.freeQtyPcs
       const back =
-        outcome === 'refused' ? all : outcome === 'part' && n === 0 ? Math.max(1, Math.floor(all / 3)) : 0
+        outcome === 'refused'
+          ? all
+          : outcome === 'part' && n === 0
+            ? Math.max(1, Math.floor(all / 3))
+            : 0
       return {
         id: demoId(date, 'delivery-line', planned.id, String(n)),
         invoiceLineId: l.id,
@@ -214,29 +245,40 @@ async function takeMoney(
   if (amount <= 0) return
   const id = demoId(date, 'collection', stop.id)
   const hex = id.replace(/-/g, '')
-  await ctx.write('driver', `paid ${mode}`, () => ctx.as(driver), contract.delivery.collections.record, {
-    idempotencyKey: demoKey(date, 'collection', stop.id),
-    id,
-    receiptId: demoId(date, 'receipt', stop.id),
-    tripId: trip.id,
-    stopId: stop.id,
-    retailerId: stop.retailerId,
-    mode,
-    amountPaise: amount,
-    ...(mode === 'upi' ? { reference: digitsFrom(hex.slice(-15), 12) } : {}),
-    ...(mode === 'cheque'
-      ? {
-          reference: digitsFrom(hex.slice(-12), 6),
-          chequeDate: date,
-          bankName: BANKS[Math.floor(unit(id) * BANKS.length)] ?? 'Saraswat Bank',
-        }
-      : {}),
-    allocations,
-  })
+  await ctx.write(
+    'driver',
+    `paid ${mode}`,
+    () => ctx.as(driver),
+    contract.delivery.collections.record,
+    {
+      idempotencyKey: demoKey(date, 'collection', stop.id),
+      id,
+      receiptId: demoId(date, 'receipt', stop.id),
+      tripId: trip.id,
+      stopId: stop.id,
+      retailerId: stop.retailerId,
+      mode,
+      amountPaise: amount,
+      ...(mode === 'upi' ? { reference: digitsFrom(hex.slice(-15), 12) } : {}),
+      ...(mode === 'cheque'
+        ? {
+            reference: digitsFrom(hex.slice(-12), 6),
+            chequeDate: date,
+            bankName: BANKS[Math.floor(unit(id) * BANKS.length)] ?? 'Saraswat Bank',
+          }
+        : {}),
+      allocations,
+    },
+  )
 }
 
 /** Back at the godown: the driver checks in. */
-export async function returnTrip(ctx: Ctx, tripId: string, driver: DriverKey, date: string): Promise<void> {
+export async function returnTrip(
+  ctx: Ctx,
+  tripId: string,
+  driver: DriverKey,
+  date: string,
+): Promise<void> {
   const trip = await readTrip(ctx, tripId)
   if (!trip || trip.state !== 'active') return
   await ctx.write('driver', 'checked in', () => ctx.as(driver), contract.delivery.trips.return, {
@@ -254,14 +296,20 @@ export async function settleTrip(ctx: Ctx, tripId: string, date: string): Promis
   const trip = await readTrip(ctx, tripId)
   if (!trip || trip.state !== 'closing') return
   const preview = await ctx.read(contract.delivery.trips.settlementPreview, { id: tripId })
-  await ctx.write('accountant', 'trip settled', () => ctx.as('accounts'), contract.delivery.trips.settle, {
-    idempotencyKey: demoKey(date, 'trip', tripId, 'settle'),
-    id: demoId(date, 'settlement', tripId),
-    tripId,
-    handedOverCashPaise: preview.expectedCashPaise,
-    counted: preview.expectedVanStock.map((l) => ({ lotId: l.lotId, countedPcs: l.expectedPcs })),
-    note: 'Cash and returns counted at the godown',
-  })
+  await ctx.write(
+    'accountant',
+    'trip settled',
+    () => ctx.as('accounts'),
+    contract.delivery.trips.settle,
+    {
+      idempotencyKey: demoKey(date, 'trip', tripId, 'settle'),
+      id: demoId(date, 'settlement', tripId),
+      tripId,
+      handedOverCashPaise: preview.expectedCashPaise,
+      counted: preview.expectedVanStock.map((l) => ({ lotId: l.lotId, countedPcs: l.expectedPcs })),
+      note: 'Cash and returns counted at the godown',
+    },
+  )
 }
 
 /** Stand-alone day time for a door, for readable timestamps. */

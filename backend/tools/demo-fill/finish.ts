@@ -38,12 +38,20 @@ async function decideHeldOrders(ctx: Ctx, date: string): Promise<void> {
     if (!earlier(a.orderId, date)) continue
     // The shop over its limit is refused until it pays; a rate asked for a regular shop is granted.
     const reject = a.kind === 'credit_limit'
-    await ctx.write('yesterday', reject ? 'held order refused' : 'held order approved', () => ctx.as('manager'), contract.orders.approvals.decide, {
-      idempotencyKey: demoKey(date, 'approval', a.id),
-      id: a.id,
-      decision: reject ? 'reject' : 'approve',
-      note: reject ? 'Over the credit limit: collect the dues first' : 'Rate agreed for a regular shop',
-    })
+    await ctx.write(
+      'yesterday',
+      reject ? 'held order refused' : 'held order approved',
+      () => ctx.as('manager'),
+      contract.orders.approvals.decide,
+      {
+        idempotencyKey: demoKey(date, 'approval', a.id),
+        id: a.id,
+        decision: reject ? 'reject' : 'approve',
+        note: reject
+          ? 'Over the credit limit: collect the dues first'
+          : 'Rate agreed for a regular shop',
+      },
+    )
   }
   // An order an earlier run left as a draft (a crash between create and submit) is placed now.
   const drafts = await pages((cursor) =>
@@ -51,10 +59,16 @@ async function decideHeldOrders(ctx: Ctx, date: string): Promise<void> {
   )
   for (const o of drafts)
     if (earlier(o.id, date))
-      await ctx.write('yesterday', 'draft placed', () => ctx.as('manager'), contract.orders.submit, {
-        idempotencyKey: demoKey(date, 'finish', 'submit', o.id),
-        id: o.id,
-      })
+      await ctx.write(
+        'yesterday',
+        'draft placed',
+        () => ctx.as('manager'),
+        contract.orders.submit,
+        {
+          idempotencyKey: demoKey(date, 'finish', 'submit', o.id),
+          id: o.id,
+        },
+      )
 }
 
 // ------------------------------------------------------------------------------------------- trips
@@ -109,27 +123,39 @@ async function finishWaves(ctx: Ctx, date: string): Promise<void> {
 async function finishWave(ctx: Ctx, date: string, id: string, label: string): Promise<void> {
   let pl = await ctx.read(contract.warehouse.picklists.get, { id })
   if (pl.item.status === 'open') {
-    const started = await ctx.write('yesterday', 'wave started', () => ctx.as('godown'), contract.warehouse.picklists.start, {
-      idempotencyKey: demoKey(date, 'finish', 'wave', id, 'start'),
-      id,
-      assignedTo: ctx.userIds.get('godown'),
-    })
+    const started = await ctx.write(
+      'yesterday',
+      'wave started',
+      () => ctx.as('godown'),
+      contract.warehouse.picklists.start,
+      {
+        idempotencyKey: demoKey(date, 'finish', 'wave', id, 'start'),
+        id,
+        assignedTo: ctx.userIds.get('godown'),
+      },
+    )
     if (!started) return
     pl = started
   }
   if (pl.item.status === 'picking') {
     const todo = pl.item.lines.filter((l) => l.pickedAt === null && (l.lotId ?? l.suggestedLotId))
     if (todo.length > 0) {
-      const picked = await ctx.write('yesterday', 'wave picked', () => ctx.as('godown'), contract.warehouse.picklists.pick, {
-        idempotencyKey: demoKey(date, 'finish', 'wave', id, 'pick'),
-        id,
-        lines: todo.map((l) => ({
-          id: l.id,
-          orderLineId: l.orderLineId,
-          lotId: (l.lotId ?? l.suggestedLotId) as string,
-          pickedQtyPcs: l.requestedQtyPcs,
-        })),
-      })
+      const picked = await ctx.write(
+        'yesterday',
+        'wave picked',
+        () => ctx.as('godown'),
+        contract.warehouse.picklists.pick,
+        {
+          idempotencyKey: demoKey(date, 'finish', 'wave', id, 'pick'),
+          id,
+          lines: todo.map((l) => ({
+            id: l.id,
+            orderLineId: l.orderLineId,
+            lotId: (l.lotId ?? l.suggestedLotId) as string,
+            pickedQtyPcs: l.requestedQtyPcs,
+          })),
+        },
+      )
       if (!picked) return
       pl = { item: picked.item }
     }
@@ -141,9 +167,16 @@ async function finishWave(ctx: Ctx, date: string, id: string, label: string): Pr
 // ----------------------------------------------------------------------------------- supplier bills
 
 async function finishSupplierBills(ctx: Ctx, date: string): Promise<void> {
-  const review = await ctx.read(contract.procurement.supplierInvoices.list, { status: 'in_review', limit: 200 })
+  const review = await ctx.read(contract.procurement.supplierInvoices.list, {
+    status: 'in_review',
+    limit: 200,
+  })
   const catalog = await pages((cursor) =>
-    ctx.read(contract.tenantCatalog.list, { listedOnly: false, limit: 500, ...(cursor ? { cursor } : {}) }),
+    ctx.read(contract.tenantCatalog.list, {
+      listedOnly: false,
+      limit: 500,
+      ...(cursor ? { cursor } : {}),
+    }),
   )
   for (const si of review.items) {
     if (!earlier(si.id, date)) continue
@@ -152,23 +185,35 @@ async function finishSupplierBills(ctx: Ctx, date: string): Promise<void> {
       // The desk recognises the supplier's code: the item it was printed for.
       const hit = catalog.find((c) => supplierCodeOf(c.variantId) === line.supplierCode)
       if (!hit) continue
-      await ctx.write('yesterday', 'supplier line matched', () => ctx.as('manager'), contract.procurement.supplierInvoices.matchLine, {
-        idempotencyKey: demoKey(date, 'finish', 'match', line.id),
-        id: si.id,
-        lineId: line.id,
-        variantId: hit.variantId,
-      })
+      await ctx.write(
+        'yesterday',
+        'supplier line matched',
+        () => ctx.as('manager'),
+        contract.procurement.supplierInvoices.matchLine,
+        {
+          idempotencyKey: demoKey(date, 'finish', 'match', line.id),
+          id: si.id,
+          lineId: line.id,
+          variantId: hit.variantId,
+        },
+      )
     }
   }
   // Every approved earlier bill without a receipt gets one; every earlier receipt is counted and posted.
-  const approved = await ctx.read(contract.procurement.supplierInvoices.list, { status: 'approved', limit: 200 })
+  const approved = await ctx.read(contract.procurement.supplierInvoices.list, {
+    status: 'approved',
+    limit: 200,
+  })
   for (const si of approved.items) if (earlier(si.id, date)) await openGate(ctx, date, si.id)
   for (const status of ['counting', 'reconciled'] as const) {
     const grns = await ctx.read(contract.procurement.grns.list, { status, limit: 200 })
     for (const g of grns.items) {
-      if (!isDemoId(g.supplierInvoiceId) || (demoIdDate(g.supplierInvoiceId) ?? date) >= date) continue
+      if (!isDemoId(g.supplierInvoiceId) || (demoIdDate(g.supplierInvoiceId) ?? date) >= date)
+        continue
       if (g.status === 'counting') {
-        const bill = await ctx.read(contract.procurement.supplierInvoices.get, { id: g.supplierInvoiceId })
+        const bill = await ctx.read(contract.procurement.supplierInvoices.get, {
+          id: g.supplierInvoiceId,
+        })
         const grn = await ctx.read(contract.procurement.grns.get, { id: g.id })
         const lines = grn.item.lines.map((l) => {
           const printed = bill.item.lines.find((b) => b.id === l.supplierInvoiceLineId)
@@ -178,17 +223,29 @@ async function finishSupplierBills(ctx: Ctx, date: string): Promise<void> {
             damagedQtyPcs: 0,
           }
         })
-        const counted = await ctx.write('yesterday', 'goods counted at the gate', () => ctx.as('godown'), contract.procurement.grns.count, {
-          idempotencyKey: demoKey(date, 'finish', 'count', g.id),
-          id: g.id,
-          lines,
-        })
+        const counted = await ctx.write(
+          'yesterday',
+          'goods counted at the gate',
+          () => ctx.as('godown'),
+          contract.procurement.grns.count,
+          {
+            idempotencyKey: demoKey(date, 'finish', 'count', g.id),
+            id: g.id,
+            lines,
+          },
+        )
         if (!counted || counted.item.status !== 'reconciled') continue
       }
-      await ctx.write('yesterday', 'goods receipt posted', () => ctx.as('manager'), contract.procurement.grns.post, {
-        idempotencyKey: demoKey(date, 'finish', 'post', g.id),
-        id: g.id,
-      })
+      await ctx.write(
+        'yesterday',
+        'goods receipt posted',
+        () => ctx.as('manager'),
+        contract.procurement.grns.post,
+        {
+          idempotencyKey: demoKey(date, 'finish', 'post', g.id),
+          id: g.id,
+        },
+      )
     }
   }
 }
@@ -199,10 +256,16 @@ async function issueReturns(ctx: Ctx, date: string): Promise<void> {
   const drafts = await ctx.read(contract.billing.creditNotes.list, { state: 'draft', limit: 200 })
   for (const n of drafts.items)
     if (earlier(n.id, date))
-      await ctx.write('yesterday', 'return issued', () => ctx.as('manager'), contract.billing.creditNotes.issue, {
-        idempotencyKey: demoKey(date, 'finish', 'return', n.id),
-        id: n.id,
-      })
+      await ctx.write(
+        'yesterday',
+        'return issued',
+        () => ctx.as('manager'),
+        contract.billing.creditNotes.issue,
+        {
+          idempotencyKey: demoKey(date, 'finish', 'return', n.id),
+          id: n.id,
+        },
+      )
 }
 
 // -------------------------------------------------------------------------------------------- money
@@ -217,7 +280,12 @@ async function matchAndBank(ctx: Ctx, date: string): Promise<void> {
     }),
   )
   for (const r of onAccount) {
-    if (!earlier(r.id, date) || r.unallocatedPaise <= 0 || r.status !== 'collected' && r.status !== 'deposited') continue
+    if (
+      !earlier(r.id, date) ||
+      r.unallocatedPaise <= 0 ||
+      (r.status !== 'collected' && r.status !== 'deposited')
+    )
+      continue
     const bills = await openToolBills(ctx, r.retailerId)
     let left = r.unallocatedPaise
     const lines: { id: string; invoiceId: string; amountPaise: number }[] = []
@@ -229,13 +297,19 @@ async function matchAndBank(ctx: Ctx, date: string): Promise<void> {
       left -= amount
     }
     if (lines.length === 0) continue
-    await ctx.write('yesterday', 'payment matched to a bill', () => ctx.as('accounts'), contract.receivables.allocations.create, {
-      idempotencyKey: demoKey(date, 'finish', 'match', r.id),
-      id: demoId(date, 'match', r.id),
-      sourceType: 'receipt',
-      sourceId: r.id,
-      lines,
-    })
+    await ctx.write(
+      'yesterday',
+      'payment matched to a bill',
+      () => ctx.as('accounts'),
+      contract.receivables.allocations.create,
+      {
+        idempotencyKey: demoKey(date, 'finish', 'match', r.id),
+        id: demoId(date, 'match', r.id),
+        sourceType: 'receipt',
+        sourceId: r.id,
+        lines,
+      },
+    )
   }
   const inHand: string[] = []
   for (const mode of ['cash', 'cheque'] as const) {
@@ -251,19 +325,29 @@ async function matchAndBank(ctx: Ctx, date: string): Promise<void> {
     for (const r of rows) if (earlier(r.id, date)) inHand.push(r.id)
   }
   if (inHand.length > 0)
-    await ctx.write('yesterday', 'cash and cheques banked', () => ctx.as('accounts'), contract.receivables.receipts.deposit, {
-      idempotencyKey: demoKey(date, 'finish', 'deposit'),
-      id: demoId(date, 'deposit'),
-      receiptIds: inHand.sort(),
-      depositAccountCode: 'BANK',
-      depositedAt: new Date().toISOString(),
-      depositRef: `SLIP-${date.replace(/-/g, '')}`,
-    })
+    await ctx.write(
+      'yesterday',
+      'cash and cheques banked',
+      () => ctx.as('accounts'),
+      contract.receivables.receipts.deposit,
+      {
+        idempotencyKey: demoKey(date, 'finish', 'deposit'),
+        id: demoId(date, 'deposit'),
+        receiptIds: inHand.sort(),
+        depositAccountCode: 'BANK',
+        depositedAt: new Date().toISOString(),
+        depositRef: `SLIP-${date.replace(/-/g, '')}`,
+      },
+    )
 }
 
 /** A shop's open bills that the tool made (its order carries the marker), oldest first. */
 async function openToolBills(ctx: Ctx, retailerId: string) {
-  const bills = await ctx.read(contract.billing.invoices.list, { retailerId, openOnly: true, limit: 200 })
+  const bills = await ctx.read(contract.billing.invoices.list, {
+    retailerId,
+    openOnly: true,
+    limit: 200,
+  })
   return bills.items
     .filter((b) => b.orderId !== null && isDemoId(b.orderId) && b.amountDuePaise > 0)
     .sort((a, b) => a.invoiceDate.localeCompare(b.invoiceDate) || a.id.localeCompare(b.id))
@@ -273,7 +357,11 @@ async function openToolBills(ctx: Ctx, retailerId: string) {
 async function payOldBills(ctx: Ctx, date: string): Promise<void> {
   const cutoff = addDays(date, -7)
   const open = await pages((cursor) =>
-    ctx.read(contract.billing.invoices.list, { openOnly: true, limit: 200, ...(cursor ? { cursor } : {}) }),
+    ctx.read(contract.billing.invoices.list, {
+      openOnly: true,
+      limit: 200,
+      ...(cursor ? { cursor } : {}),
+    }),
   )
   const byShop = new Map<string, { id: string; amountDuePaise: number }[]>()
   for (const b of open) {
@@ -285,20 +373,26 @@ async function payOldBills(ctx: Ctx, date: string): Promise<void> {
   for (const [retailerId, bills] of [...byShop.entries()].sort()) {
     const id = demoId(date, 'transfer', retailerId)
     const amount = bills.reduce((n, b) => n + b.amountDuePaise, 0)
-    await ctx.write('yesterday', 'old bills paid by transfer', () => ctx.as('accounts'), contract.receivables.receipts.create, {
-      idempotencyKey: demoKey(date, 'transfer', retailerId),
-      id,
-      retailerId,
-      mode: 'bank_transfer',
-      amountPaise: amount,
-      reference: `NEFT${digitsFrom(id.replace(/-/g, '').slice(-15), 10)}`,
-      strategy: 'explicit',
-      allocations: bills.map((b) => ({
-        id: demoId(date, 'transfer', retailerId, b.id),
-        invoiceId: b.id,
-        amountPaise: b.amountDuePaise,
-      })),
-    })
+    await ctx.write(
+      'yesterday',
+      'old bills paid by transfer',
+      () => ctx.as('accounts'),
+      contract.receivables.receipts.create,
+      {
+        idempotencyKey: demoKey(date, 'transfer', retailerId),
+        id,
+        retailerId,
+        mode: 'bank_transfer',
+        amountPaise: amount,
+        reference: `NEFT${digitsFrom(id.replace(/-/g, '').slice(-15), 10)}`,
+        strategy: 'explicit',
+        allocations: bills.map((b) => ({
+          id: demoId(date, 'transfer', retailerId, b.id),
+          invoiceId: b.id,
+          amountPaise: b.amountDuePaise,
+        })),
+      },
+    )
   }
 }
 

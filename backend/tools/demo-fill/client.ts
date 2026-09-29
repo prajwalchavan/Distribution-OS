@@ -83,9 +83,10 @@ function queryString(input: Record<string, unknown>, skip: ReadonlySet<string>):
   const q = new URLSearchParams()
   for (const [k, v] of Object.entries(input)) {
     if (skip.has(k) || v === undefined || v === null) continue
+    // oRPC's OpenAPI handler reads an array in bracket notation: `states[0]=planned&states[1]=loading`.
     if (Array.isArray(v)) v.forEach((x, i) => q.append(`${k}[${String(i)}]`, String(x)))
-    else if (typeof v === 'object') continue
-    else q.append(k, String(v))
+    else if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean')
+      q.append(k, String(v))
   }
   const s = q.toString()
   return s ? `?${s}` : ''
@@ -97,7 +98,7 @@ export class Api {
   constructor(
     readonly base: string,
     /** The client name the auth service records for every sign-in the tool makes. */
-    private readonly deviceName = 'Office tablet',
+    private readonly deviceName = 'Nightly activity',
   ) {}
 
   private async http(

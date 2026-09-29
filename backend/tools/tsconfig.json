@@ -11,6 +11,7 @@
     "check-demo-rows.mts",
     "demo-fill",
     "testing",
+    "vitest.demo-fill.config.ts",
     "legacy",
     "vitest.config.ts"
   ]

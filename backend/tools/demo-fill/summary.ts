@@ -21,7 +21,13 @@ export type Section = Row | 'people' | 'masters' | 'yesterday'
 export const ROW_FEATURES: Record<Row, readonly string[]> = {
   shopkeeper: ['login', 'on-the-way', 'delivered-bill', 'dues', 'offer', 'order-again'],
   sales: ['beat-today', 'two-orders', 'over-limit-shop'],
-  manager: ['approvals-waiting', 'held-for-credit', 'load-sheet-to-sign', 'supplier-bill-review', 'return-to-approve'],
+  manager: [
+    'approvals-waiting',
+    'held-for-credit',
+    'load-sheet-to-sign',
+    'supplier-bill-review',
+    'return-to-approve',
+  ],
   godown: ['gate-to-count', 'wave-to-pick', 'packs-to-make', 'van-to-load'],
   driver: ['trip-today', 'doors-paid', 'door-part', 'door-refused', 'doors-to-do'],
   accountant: ['collections-to-match', 'cheques-to-deposit', 'yesterday-settled', 'dues-by-age'],
@@ -85,7 +91,8 @@ export class Summary {
     })
     const produced = names.length - missing.length
     if (produced === 0) return { state: 'not made', missing }
-    if (this.dryRun) return { state: missing.length === 0 ? 'would be made' : 'would be partly', missing }
+    if (this.dryRun)
+      return { state: missing.length === 0 ? 'would be made' : 'would be partly', missing }
     return { state: missing.length === 0 ? 'made' : 'partly', missing }
   }
 
@@ -119,11 +126,15 @@ export class Summary {
     section('already there', this.found)
     section('would make (dry run)', this.would)
     section('refused by the API (status code)', this.refused)
-    out.push('the brief\'s table')
+    out.push("the brief's table")
     for (const r of ROWS) {
       const { state, missing } = this.rowState(r)
-      const gaps = missing.map((n) => KNOWN_GAPS[`${r}:${n}`] ? `${n} (${KNOWN_GAPS[`${r}:${n}`] ?? ''})` : n)
-      out.push(`  ${r.padEnd(11)} ${state.padEnd(16)}${gaps.length ? ` missing: ${gaps.join(', ')}` : ''}`)
+      const gaps = missing.map((n) =>
+        KNOWN_GAPS[`${r}:${n}`] ? `${n} (${KNOWN_GAPS[`${r}:${n}`] ?? ''})` : n,
+      )
+      out.push(
+        `  ${r.padEnd(11)} ${state.padEnd(16)}${gaps.length ? ` missing: ${gaps.join(', ')}` : ''}`,
+      )
     }
     for (const n of this.notes) out.push(`note: ${n}`)
     return out

@@ -20,11 +20,11 @@ import { parseArgs } from 'node:util'
 import { COMMON_OPTIONS, checkCommonArgs } from './demo-fill/args.js'
 import { Api, ApiRefusal, type Session } from './demo-fill/client.js'
 import { allRows, type CoverageSessions } from './demo-fill/coverage.js'
-import { TESTERS, readLogins, readPasswordFile, type TesterKey } from './demo-fill/people.js'
+import { readLogins, readPasswordFile, testersFor, type TesterKey } from './demo-fill/people.js'
 import { KNOWN_GAPS } from './demo-fill/summary.js'
 
 const HELP = `usage: check-demo-coverage.mts --api <url> --tenant <slug> --owner-password-file <path> --logins-file <path>
-                                [--owner-username <name>] [--date YYYY-MM-DD] [--json <file>]`
+                                [--owner-username <name>] [--date YYYY-MM-DD] [--json <file>] [--login-suffix <x>]`
 
 const say = (line = ''): void => {
   process.stdout.write(`${line}\n`)
@@ -70,7 +70,8 @@ try {
   stop('cannot read the owner password file')
 }
 const logins = readLogins(args.loginsFile)
-if (logins.size === 0) stop('the logins file is missing or empty: run pnpm fill:demo --commit first')
+if (logins.size === 0)
+  stop('the logins file is missing or empty: run pnpm fill:demo --commit first')
 
 const opened: Session[] = []
 const signIn = async (username: string, password: string): Promise<Session> => {
@@ -79,14 +80,16 @@ const signIn = async (username: string, password: string): Promise<Session> => {
     opened.push(s)
     return s
   } catch (e) {
-    return stop(`${username} could not sign in (${e instanceof ApiRefusal ? e.label : 'no answer'})`)
+    return stop(
+      `${username} could not sign in (${e instanceof ApiRefusal ? e.label : 'no answer'})`,
+    )
   }
 }
 
 let failed = 0
 try {
   const sessions: CoverageSessions = { owner: await signIn(args.ownerUsername, ownerPassword) }
-  for (const t of TESTERS) {
+  for (const t of testersFor(args.loginSuffix)) {
     const line = logins.get(t.username)
     if (!line) {
       say(`GAP  people      ${t.username}: not in the logins file`)
@@ -125,7 +128,9 @@ try {
       `${JSON.stringify({ tenant: args.tenant, date: args.date, failed, rows, notes: read.notes }, null, 2)}\n`,
     )
 } catch (e) {
-  stop(`could not read: ${e instanceof ApiRefusal ? `the API answered ${e.label}` : e instanceof Error ? e.message : String(e)}`)
+  stop(
+    `could not read: ${e instanceof ApiRefusal ? `the API answered ${e.label}` : e instanceof Error ? e.message : String(e)}`,
+  )
 } finally {
   for (const s of opened) await api.signOut(s)
 }

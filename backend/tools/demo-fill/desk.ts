@@ -37,16 +37,29 @@ export async function returnToApprove(ctx: Ctx, date: string): Promise<void> {
   const bill = await ctx.read(contract.billing.invoices.get, { id: door.delivery.invoiceId })
   const line = bill.item.lines.find((l) => l.qtyPcs >= 2)
   if (!line) return
-  await ctx.write('manager', 'return to approve', () => ctx.as('driver2'), contract.billing.creditNotes.create, {
-    idempotencyKey: demoKey(date, 'return', 'driver2'),
-    id,
-    invoiceId: door.delivery.invoiceId,
-    reason: 'return_damaged',
-    deliveryId: door.delivery.id,
-    note: 'Two packets torn, found after the van left',
-    autoIssue: false,
-    lines: [{ id: demoId(date, 'return', 'driver2', 'line'), invoiceLineId: line.id, qtyPcs: 2, saleable: false }],
-  })
+  await ctx.write(
+    'manager',
+    'return to approve',
+    () => ctx.as('driver2'),
+    contract.billing.creditNotes.create,
+    {
+      idempotencyKey: demoKey(date, 'return', 'driver2'),
+      id,
+      invoiceId: door.delivery.invoiceId,
+      reason: 'return_damaged',
+      deliveryId: door.delivery.id,
+      note: 'Two packets torn, found after the van left',
+      autoIssue: false,
+      lines: [
+        {
+          id: demoId(date, 'return', 'driver2', 'line'),
+          invoiceLineId: line.id,
+          qtyPcs: 2,
+          saleable: false,
+        },
+      ],
+    },
+  )
 }
 
 /**
@@ -60,27 +73,35 @@ export async function officeMoney(ctx: Ctx, date: string): Promise<void> {
     ctx.summary.foundOne('accountant', 'cheque at the counter')
   else {
     const door = await doorBill(ctx, date, 'driver2', 4)
-    const bill = door ? await ctx.read(contract.billing.invoices.get, { id: door.delivery.invoiceId }) : null
+    const bill = door
+      ? await ctx.read(contract.billing.invoices.get, { id: door.delivery.invoiceId })
+      : null
     if (door && bill && bill.item.amountDuePaise > 0) {
       const hex = cheque.replace(/-/g, '')
-      await ctx.write('accountant', 'cheque at the counter', () => ctx.as('accounts'), contract.receivables.receipts.create, {
-        idempotencyKey: demoKey(date, 'office', 'cheque'),
-        id: cheque,
-        retailerId: door.stop.retailerId,
-        mode: 'cheque',
-        amountPaise: bill.item.amountDuePaise,
-        reference: digitsFrom(hex.slice(-12), 6),
-        chequeDate: date,
-        bankName: 'Cosmos Bank',
-        strategy: 'explicit',
-        allocations: [
-          {
-            id: demoId(date, 'office', 'cheque', 'allocation'),
-            invoiceId: door.delivery.invoiceId,
-            amountPaise: bill.item.amountDuePaise,
-          },
-        ],
-      })
+      await ctx.write(
+        'accountant',
+        'cheque at the counter',
+        () => ctx.as('accounts'),
+        contract.receivables.receipts.create,
+        {
+          idempotencyKey: demoKey(date, 'office', 'cheque'),
+          id: cheque,
+          retailerId: door.stop.retailerId,
+          mode: 'cheque',
+          amountPaise: bill.item.amountDuePaise,
+          reference: digitsFrom(hex.slice(-12), 6),
+          chequeDate: date,
+          bankName: 'Cosmos Bank',
+          strategy: 'explicit',
+          allocations: [
+            {
+              id: demoId(date, 'office', 'cheque', 'allocation'),
+              invoiceId: door.delivery.invoiceId,
+              amountPaise: bill.item.amountDuePaise,
+            },
+          ],
+        },
+      )
     }
   }
   const upi = demoId(date, 'office', 'upi')
@@ -88,18 +109,26 @@ export async function officeMoney(ctx: Ctx, date: string): Promise<void> {
     ctx.summary.foundOne('accountant', 'payment to match')
   else {
     const door = await doorBill(ctx, date, 'driver1', 4)
-    const bill = door ? await ctx.read(contract.billing.invoices.get, { id: door.delivery.invoiceId }) : null
+    const bill = door
+      ? await ctx.read(contract.billing.invoices.get, { id: door.delivery.invoiceId })
+      : null
     if (door && bill && bill.item.amountDuePaise > 0) {
-      await ctx.write('accountant', 'payment to match', () => ctx.as('accounts'), contract.receivables.receipts.create, {
-        idempotencyKey: demoKey(date, 'office', 'upi'),
-        id: upi,
-        retailerId: door.stop.retailerId,
-        mode: 'upi',
-        amountPaise: bill.item.amountDuePaise,
-        reference: digitsFrom(upi.replace(/-/g, '').slice(-15), 12),
-        strategy: 'none',
-        note: 'UPI received, bill not named by the shop',
-      })
+      await ctx.write(
+        'accountant',
+        'payment to match',
+        () => ctx.as('accounts'),
+        contract.receivables.receipts.create,
+        {
+          idempotencyKey: demoKey(date, 'office', 'upi'),
+          id: upi,
+          retailerId: door.stop.retailerId,
+          mode: 'upi',
+          amountPaise: bill.item.amountDuePaise,
+          reference: digitsFrom(upi.replace(/-/g, '').slice(-15), 12),
+          strategy: 'none',
+          note: 'UPI received, bill not named by the shop',
+        },
+      )
     }
   }
 }
@@ -141,8 +170,7 @@ export function supplierLines(
 ): BillLine[] {
   const pool = [...items]
     .filter(
-      (i) =>
-        i.costPaise !== null && i.costPaise > 0 && i.gstBps !== null && !skip.has(i.variantId),
+      (i) => i.costPaise !== null && i.costPaise > 0 && i.gstBps !== null && !skip.has(i.variantId),
     )
     .sort((a, b) => a.available - b.available || a.variantId.localeCompare(b.variantId))
     .slice(0, count * 3)
@@ -205,7 +233,11 @@ export async function supplierBills(ctx: Ctx, date: string, world: World): Promi
     if (!have) {
       const lines = supplierLines(date, kind, world.items, used, kind === 'review' ? 3 : 4)
       if (lines.length === 0) {
-        ctx.summary.refusedOne(kind === 'review' ? 'manager' : 'godown', 'supplier bill', 'no item with a purchase rate')
+        ctx.summary.refusedOne(
+          kind === 'review' ? 'manager' : 'godown',
+          'supplier bill',
+          'no item with a purchase rate',
+        )
         continue
       }
       for (const l of lines) used.add(l.variantId ?? '')
@@ -249,13 +281,22 @@ export async function supplierBills(ctx: Ctx, date: string, world: World): Promi
 export async function openGate(ctx: Ctx, date: string, supplierInvoiceId: string): Promise<void> {
   const grns = await ctx.read(contract.procurement.grns.list, { supplierInvoiceId, limit: 5 })
   if (grns.items.some((g) => g.status !== 'cancelled')) return
-  const locations = await ctx.read(contract.inventory.locations.list, { kind: 'warehouse', activeOnly: true })
+  const locations = await ctx.read(contract.inventory.locations.list, {
+    kind: 'warehouse',
+    activeOnly: true,
+  })
   const godown = [...locations.items].sort((a, b) => a.id.localeCompare(b.id))[0]
   if (!godown) return
-  await ctx.write('godown', 'goods at the gate', () => ctx.as('manager'), contract.procurement.grns.open, {
-    idempotencyKey: demoKey(date, 'grn', supplierInvoiceId),
-    id: demoId(date, 'grn', supplierInvoiceId),
-    supplierInvoiceId,
-    locationId: godown.id,
-  })
+  await ctx.write(
+    'godown',
+    'goods at the gate',
+    () => ctx.as('manager'),
+    contract.procurement.grns.open,
+    {
+      idempotencyKey: demoKey(date, 'grn', supplierInvoiceId),
+      id: demoId(date, 'grn', supplierInvoiceId),
+      supplierInvoiceId,
+      locationId: godown.id,
+    },
+  )
 }

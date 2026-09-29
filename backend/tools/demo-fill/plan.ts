@@ -66,16 +66,7 @@ export interface PlannedLine {
 }
 
 export type OrderSlot =
-  | `t1.${number}`
-  | `t2.${number}`
-  | 'h1'
-  | 'h2'
-  | 'w1'
-  | 'w2'
-  | 'k1'
-  | 'k2'
-  | 'l1'
-  | 'l2'
+  `t1.${number}` | `t2.${number}` | 'h1' | 'h2' | 'w1' | 'w2' | 'k1' | 'k2' | 'l1' | 'l2'
 
 export interface PlannedOrder {
   slot: OrderSlot
@@ -222,7 +213,10 @@ export function quantityFor(seed: string, item: ItemInfo): number {
 /** What the plan may still take of an item today: the godown's figure less a reserve for real orders. */
 export function stockBudget(items: readonly ItemInfo[]): Map<string, number> {
   return new Map(
-    items.map((i) => [i.variantId, Math.max(0, i.available - Math.max(5, Math.ceil(i.available / 10)))]),
+    items.map((i) => [
+      i.variantId,
+      Math.max(0, i.available - Math.max(5, Math.ceil(i.available / 10))),
+    ]),
   )
 }
 
@@ -271,8 +265,16 @@ export function planDay(input: PlanInput): DayPlan {
   // and no credit gate holds an order that is meant to go out today.
   const eligible = input.shops.filter((s) => s.active && !credit.has(s.id) && !slots.has(s.id))
   const fresh = [
-    ...shuffled(eligible.filter((s) => s.outstandingPaise <= 0), `fresh-shops:${date}`, (s) => s.id),
-    ...shuffled(eligible.filter((s) => s.outstandingPaise > 0), `fresh-shops:${date}`, (s) => s.id),
+    ...shuffled(
+      eligible.filter((s) => s.outstandingPaise <= 0),
+      `fresh-shops:${date}`,
+      (s) => s.id,
+    ),
+    ...shuffled(
+      eligible.filter((s) => s.outstandingPaise > 0),
+      `fresh-shops:${date}`,
+      (s) => s.id,
+    ),
   ]
   let freshAt = 0
   const nextFresh = (): string | null => fresh[freshAt++]?.id ?? null
@@ -314,9 +316,7 @@ export function planDay(input: PlanInput): DayPlan {
   const carriedAny = input.carried.filter((c) => !c.mustRideVan1)
   const waiting: CarriedBill[] = []
   const freeDoors = (driver: 'driver1' | 'driver2'): number[] =>
-    TRIP_DOORS[driver]
-      .map((_o, i) => i)
-      .filter((i) => !slotAt.has(`${driver}:${String(i)}`))
+    TRIP_DOORS[driver].map((_o, i) => i).filter((i) => !slotAt.has(`${driver}:${String(i)}`))
   const takes = new Map<string, CarriedBill>()
   const van1 = freeDoors('driver1')
   const van2 = freeDoors('driver2')

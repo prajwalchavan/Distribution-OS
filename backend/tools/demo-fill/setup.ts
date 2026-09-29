@@ -1,7 +1,7 @@
 import { contract } from '@dos/contracts'
 import type { Ctx } from './context.js'
 import { addDays, demoId, demoKey, isDemoId, unit } from './ids.js'
-import { TESTERS, newPassword, testerPhone } from './people.js'
+import { newPassword, testerPhone } from './people.js'
 import {
   chooseCreditShop,
   chooseRepBeats,
@@ -44,7 +44,7 @@ const manager = (ctx: Ctx) => (): ReturnType<Ctx['as']> => ctx.as('manager')
 export async function ensurePeople(ctx: Ctx, world: World, date: string): Promise<void> {
   const staff = await ctx.read(contract.tenancy.staff.list, {})
   const taken = new Set([...world.staffPhones, ...world.shopPhones])
-  for (const t of TESTERS) {
+  for (const t of ctx.testers) {
     const member = staff.items.find((m) => m.username === t.username)
     if (member) {
       ctx.userIds.set(t.key, member.userId)
@@ -61,21 +61,29 @@ export async function ensurePeople(ctx: Ctx, world: World, date: string): Promis
     }
     const temporary = newPassword()
     const userId = demoId(date, 'person', t.username)
-    const made = await ctx.write('people', 'tester login', ctx.owner, contract.tenancy.staff.create, {
-      idempotencyKey: demoKey(date, 'person', t.username, 'create'),
-      id: demoId(date, 'membership', t.username),
-      userId,
-      username: t.username,
-      name: t.name,
-      phone: testerPhone(ctx.tenantId, t.username, taken),
-      role: t.role,
-      locale: 'en-IN',
-      temporaryPassword: temporary,
-    })
+    const made = await ctx.write(
+      'people',
+      'tester login',
+      ctx.owner,
+      contract.tenancy.staff.create,
+      {
+        idempotencyKey: demoKey(date, 'person', t.username, 'create'),
+        id: demoId(date, 'membership', t.username),
+        userId,
+        username: t.username,
+        name: t.name,
+        phone: testerPhone(ctx.tenantId, t.username, taken),
+        role: t.role,
+        locale: 'en-IN',
+        temporaryPassword: temporary,
+      },
+    )
     if (!made) continue
     ctx.userIds.set(t.key, made.userId)
     if (made.userId !== userId)
-      ctx.summary.note(`${t.username}: the API attached the login to an existing person ${made.userId}`)
+      ctx.summary.note(
+        `${t.username}: the API attached the login to an existing person ${made.userId}`,
+      )
     const final = ctx.logins.get(t.username)?.password ?? newPassword()
     await ctx.finishPassword(t, temporary, final)
   }
@@ -94,15 +102,21 @@ async function ensureVans(ctx: Ctx, world: World, date: string): Promise<Standin
       vans[driver] = { id: have.id, locationId: have.locationId }
       continue
     }
-    const made = await ctx.write('masters', 'van', manager(ctx), contract.delivery.vehicles.upsert, {
-      idempotencyKey: demoKey(date, 'van', regNo),
-      id: demoId(date, 'van', regNo),
-      regNo,
-      name: n === 1 ? 'Tata Ace' : 'Mahindra Supro',
-      kind: 'tempo',
-      capacityCases: 120,
-      active: true,
-    })
+    const made = await ctx.write(
+      'masters',
+      'van',
+      manager(ctx),
+      contract.delivery.vehicles.upsert,
+      {
+        idempotencyKey: demoKey(date, 'van', regNo),
+        id: demoId(date, 'van', regNo),
+        regNo,
+        name: n === 1 ? 'Tata Ace' : 'Mahindra Supro',
+        kind: 'tempo',
+        capacityCases: 120,
+        active: true,
+      },
+    )
     if (made) vans[driver] = { id: made.item.id, locationId: made.item.locationId }
   }
   return vans
@@ -110,11 +124,7 @@ async function ensureVans(ctx: Ctx, world: World, date: string): Promise<Standin
 
 // --------------------------------------------------------------------------------- beats and credit
 
-async function ensureRepBeats(
-  ctx: Ctx,
-  world: World,
-  from: string,
-): Promise<Standing['repBeats']> {
+async function ensureRepBeats(ctx: Ctx, world: World, from: string): Promise<Standing['repBeats']> {
   const existing: Standing['repBeats'] = {}
   for (const rep of ['sales1', 'sales2'] as const) {
     const userId = ctx.userIds.get(rep)
@@ -136,20 +146,14 @@ async function ensureRepBeats(
       ctx.summary.foundOne('masters', 'beat assignment')
       continue
     }
-    await ctx.write(
-      'masters',
-      'beat assignment',
-      manager(ctx),
-      contract.retailers.beats.assign,
-      {
-        idempotencyKey: demoKey(from, 'beat', rep, beatId),
-        id: beatId,
-        assignmentId: demoId(from, 'beat', rep, beatId),
-        userId,
-        validFrom: from,
-        validTo: null,
-      },
-    )
+    await ctx.write('masters', 'beat assignment', manager(ctx), contract.retailers.beats.assign, {
+      idempotencyKey: demoKey(from, 'beat', rep, beatId),
+      id: beatId,
+      assignmentId: demoId(from, 'beat', rep, beatId),
+      userId,
+      validFrom: from,
+      validTo: null,
+    })
   }
   return chosen
 }
@@ -197,7 +201,11 @@ async function ensureCreditShops(
 // ---------------------------------------------------------------------------------------------- offer
 
 async function ensureOffer(ctx: Ctx, world: World, date: string): Promise<void> {
-  const live = await ctx.read(contract.pricing.schemes.list, { activeOnly: true, on: date, limit: 200 })
+  const live = await ctx.read(contract.pricing.schemes.list, {
+    activeOnly: true,
+    on: date,
+    limit: 200,
+  })
   if (live.items.some((s) => isDemoId(s.id))) {
     ctx.summary.foundOne('masters', 'offer')
     return

@@ -127,7 +127,8 @@ export interface Violation {
 export const VIOLATIONS: readonly Violation[] = [
   {
     rule: '3',
-    holds: "the tool's money (its receipts, the credit notes on its bills) is only against its own bills",
+    holds:
+      "the tool's money (its receipts, the credit notes on its bills) is only against its own bills",
     what: "an allocation of the tool's money to a bill the tool did not make",
     sql: `select a.id from allocations a
            where a.tenant_id = $1
@@ -145,8 +146,8 @@ export const VIOLATIONS: readonly Violation[] = [
   },
   {
     rule: '3',
-    holds: "no opening bill carries money of the tool",
-    what: "an opening bill with money of the tool on it",
+    holds: 'no opening bill carries money of the tool',
+    what: 'an opening bill with money of the tool on it',
     sql: `select distinct i.id from invoices i join allocations a on a.invoice_id = i.id and a.tenant_id = i.tenant_id
            where i.tenant_id = $1 and i.order_id is null
              and (a.receipt_id in (${TOOL_RECEIPTS}) or a.credit_note_id in (${TOOL_NOTES}))
@@ -172,8 +173,9 @@ export const VIOLATIONS: readonly Violation[] = [
   },
   {
     rule: '7',
-    holds: "every shop's dues are its bills less its receipts, credit notes and write-offs, to the paisa",
-    what: "a shop whose dues are not its bills less its receipts, credit notes and write-offs",
+    holds:
+      "every shop's dues are its bills less its receipts, credit notes and write-offs, to the paisa",
+    what: 'a shop whose dues are not its bills less its receipts, credit notes and write-offs',
     sql: `with bills as (
               select retailer_id, sum(total_paise)::bigint as p from invoices
                where tenant_id = $1 and state in ('issued', 'partially_paid', 'paid', 'written_off') group by 1),

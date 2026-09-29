@@ -1,11 +1,17 @@
 import { authContract, contract } from '@dos/contracts'
-import { Api, ApiRefusal, type InputOf, type OutputOf, type ProcLike, type Session } from './client.js'
+import {
+  Api,
+  ApiRefusal,
+  type InputOf,
+  type OutputOf,
+  type ProcLike,
+  type Session,
+} from './client.js'
 import { demoId, demoKey } from './ids.js'
 import {
-  TESTERS,
   newPassword,
   readLogins,
-  testerOf,
+  testersFor,
   writeLogins,
   type LoginLine,
   type Tester,
@@ -27,6 +33,8 @@ export interface RunOptions {
   loginsFile: string
   date: string
   commit: boolean
+  /** `tester.manager.<suffix>` instead of `tester.manager` (a second distributor on one database). */
+  loginSuffix?: string | undefined
   log: (line: string) => void
 }
 
@@ -37,6 +45,8 @@ export class Ctx {
   readonly logins: Map<string, LoginLine>
   /** Person → user id, filled from the staff list. */
   readonly userIds = new Map<TesterKey, string>()
+  /** This run's tester people (their usernames carry `loginSuffix` when one is given). */
+  readonly testers: readonly Tester[]
   private loginsDirty = false
 
   constructor(
@@ -45,6 +55,13 @@ export class Ctx {
   ) {
     this.api = new Api(opts.api)
     this.logins = readLogins(opts.loginsFile)
+    this.testers = testersFor(opts.loginSuffix)
+  }
+
+  tester(key: TesterKey): Tester {
+    const t = this.testers.find((x) => x.key === key)
+    if (!t) throw new Error(`no tester ${key}`)
+    return t
   }
 
   get commit(): boolean {
@@ -58,7 +75,11 @@ export class Ctx {
   }
 
   async signInOwner(): Promise<void> {
-    this.owner = await this.api.signIn(this.opts.ownerUsername, this.opts.ownerPassword, this.opts.tenant)
+    this.owner = await this.api.signIn(
+      this.opts.ownerUsername,
+      this.opts.ownerPassword,
+      this.opts.tenant,
+    )
     if (this.owner.role !== 'owner')
       throw new Error(`the owner login signed in as ${this.owner.role}, not owner`)
   }
@@ -121,7 +142,7 @@ export class Ctx {
     const have = this.sessions.get(key)
     if (have) return have
     if (!this.commit) return null
-    const t = testerOf(key)
+    const t = this.tester(key)
     const line = this.logins.get(t.username)
     if (line) {
       try {
@@ -132,7 +153,11 @@ export class Ctx {
         }
       } catch (e) {
         if (!(e instanceof ApiRefusal) || e.status !== 401) {
-          this.summary.refusedOne('people', `sign-in ${t.username}`, e instanceof ApiRefusal ? e.label : 'error')
+          this.summary.refusedOne(
+            'people',
+            `sign-in ${t.username}`,
+            e instanceof ApiRefusal ? e.label : 'error',
+          )
           return null
         }
       }
@@ -153,7 +178,13 @@ export class Ctx {
       this.owner,
       contract.tenancy.staff.setPassword,
       {
-        idempotencyKey: demoKey(date, 'person', t.username, 'reset', demoId(date, 'reset', temporary)),
+        idempotencyKey: demoKey(
+          date,
+          'person',
+          t.username,
+          'reset',
+          demoId(date, 'reset', temporary),
+        ),
         userId,
         temporaryPassword: temporary,
       },
@@ -178,7 +209,11 @@ export class Ctx {
       this.summary.madeOne('people', 'password set')
       return again
     } catch (e) {
-      this.summary.refusedOne('people', `password ${t.username}`, e instanceof ApiRefusal ? e.label : 'error')
+      this.summary.refusedOne(
+        'people',
+        `password ${t.username}`,
+        e instanceof ApiRefusal ? e.label : 'error',
+      )
       return null
     }
   }
@@ -186,9 +221,9 @@ export class Ctx {
   /** Rewrites the logins file (mode 600) when a password changed, keeping every tester's line. */
   saveLogins(): void {
     if (!this.loginsDirty) return
-    const lines = TESTERS.map((t) => this.logins.get(t.username)).filter(
-      (l): l is LoginLine => l !== undefined,
-    )
+    const lines = this.testers
+      .map((t) => this.logins.get(t.username))
+      .filter((l): l is LoginLine => l !== undefined)
     writeLogins(this.opts.loginsFile, this.opts.tenant, lines)
     this.loginsDirty = false
   }

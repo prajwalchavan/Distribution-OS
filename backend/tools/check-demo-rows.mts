@@ -59,14 +59,17 @@ const reports = (values.expect ?? []).map((path) => {
 })
 
 loadDotenv(resolve(fileURLToPath(new URL('.', import.meta.url)), '..'))
-const url = process.env.DATABASE_URL ?? stop('DATABASE_URL is not set (backend/.env or the environment)')
+const url =
+  process.env.DATABASE_URL ?? stop('DATABASE_URL is not set (backend/.env or the environment)')
 
 const pool = createPool(url, 1)
 const client = await pool.connect()
 let failures = 0
 try {
   await client.query('begin transaction isolation level repeatable read read only')
-  const tenant = await client.query<{ id: string }>('select id from tenants where slug = $1', [slug])
+  const tenant = await client.query<{ id: string }>('select id from tenants where slug = $1', [
+    slug,
+  ])
   const tenantId = tenant.rows[0]?.id ?? stop(`no distributor "${slug}" in this database`)
   const count = async (sql: string): Promise<number> =>
     (await client.query<{ n: number }>(sql, [tenantId, DEMO_ID_LIKE])).rows[0]?.n ?? 0

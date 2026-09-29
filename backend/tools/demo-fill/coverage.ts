@@ -164,7 +164,11 @@ export async function salesRow(api: Api, s: CoverageSessions, date: string): Pro
             orderTotalPaise: 0,
           }),
         )
-        if (c && c.creditLimitPaise > 0 && c.outstandingPaise + c.undeliveredPaise > c.creditLimitPaise)
+        if (
+          c &&
+          c.creditLimitPaise > 0 &&
+          c.outstandingPaise + c.undeliveredPaise > c.creditLimitPaise
+        )
           over++
       }
     }
@@ -184,16 +188,25 @@ export async function salesRow(api: Api, s: CoverageSessions, date: string): Pro
 
 export async function managerRow(api: Api, s: CoverageSessions): Promise<Seen[]> {
   const m = s.manager ?? s.owner
-  const pending = await api.call(m, contract.orders.approvals.list, { status: 'pending', limit: 200 })
+  const pending = await api.call(m, contract.orders.approvals.list, {
+    status: 'pending',
+    limit: 200,
+  })
   const ours = pending.items.filter((a) => isDemoId(a.orderId))
   const credit = ours.filter((a) => a.kind === 'credit_limit')
-  const drafts = await api.call(m, contract.warehouse.loadSheets.list, { status: 'draft', limit: 200 })
+  const drafts = await api.call(m, contract.warehouse.loadSheets.list, {
+    status: 'draft',
+    limit: 200,
+  })
   const toSign = drafts.items.filter((d) => d.approvedAt === null)
   const review = await api.call(m, contract.procurement.supplierInvoices.list, {
     status: 'in_review',
     limit: 200,
   })
-  const returns = await api.call(m, contract.billing.creditNotes.list, { state: 'draft', limit: 200 })
+  const returns = await api.call(m, contract.billing.creditNotes.list, {
+    state: 'draft',
+    limit: 200,
+  })
   const count = <T extends { id: string }>(items: readonly T[]) =>
     items.filter((x) => isDemoId(x.id)).length
   return [
@@ -203,7 +216,12 @@ export async function managerRow(api: Api, s: CoverageSessions): Promise<Seen[]>
       ours.length > 0,
       mine(pending.items.length, ours.length, 'approval(s) pending'),
     ),
-    seen('manager', 'held-for-credit', credit.length > 0, `${String(credit.length)} held for credit`),
+    seen(
+      'manager',
+      'held-for-credit',
+      credit.length > 0,
+      `${String(credit.length)} held for credit`,
+    ),
     seen(
       'manager',
       'load-sheet-to-sign',
@@ -231,8 +249,14 @@ export async function godownRow(api: Api, s: CoverageSessions): Promise<Seen[]> 
   const g = s.godown ?? s.owner
   const gate = await api.call(g, contract.procurement.grns.list, { status: 'counting', limit: 100 })
   const open = await api.call(g, contract.warehouse.picklists.list, { status: 'open', limit: 100 })
-  const picked = await api.call(g, contract.warehouse.picklists.list, { status: 'picked', limit: 100 })
-  const sheets = await api.call(g, contract.warehouse.loadSheets.list, { status: 'draft', limit: 100 })
+  const picked = await api.call(g, contract.warehouse.picklists.list, {
+    status: 'picked',
+    limit: 100,
+  })
+  const sheets = await api.call(g, contract.warehouse.loadSheets.list, {
+    status: 'draft',
+    limit: 100,
+  })
   const count = <T extends { id: string }>(items: readonly T[]) =>
     items.filter((x) => isDemoId(x.id)).length
   return [
@@ -377,8 +401,8 @@ export async function ownerRow(
   const today = todayIst()
   const live = {
     sales: async () =>
-      (await api.call(o, contract.billing.invoices.list, { from: today, to: today, limit: 1 })).items
-        .length,
+      (await api.call(o, contract.billing.invoices.list, { from: today, to: today, limit: 1 }))
+        .items.length,
     collections: async () =>
       (await api.call(o, contract.receivables.receipts.list, { from: today, to: today, limit: 1 }))
         .totals.countedPaise,

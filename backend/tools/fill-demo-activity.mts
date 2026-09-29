@@ -25,7 +25,8 @@ import { readPasswordFile } from './demo-fill/people.js'
 import { runFill } from './demo-fill/run.js'
 
 const HELP = `usage: fill-demo-activity.mts --api <url> --tenant <slug> --owner-password-file <path> --logins-file <path>
-                               [--owner-username <name>] [--date YYYY-MM-DD] [--commit] [--report <file.json>]`
+                               [--owner-username <name>] [--date YYYY-MM-DD] [--commit] [--report <file.json>]
+                               [--login-suffix <x>]   testers become tester.<role>.<x> (a second distributor on one database)`
 
 function out(line = ''): void {
   process.stdout.write(`${line}\n`)
@@ -68,6 +69,7 @@ else {
       loginsFile: args.loginsFile,
       date: args.date,
       commit: values.commit,
+      loginSuffix: args.loginSuffix,
       log: (line) => {
         out(line)
       },

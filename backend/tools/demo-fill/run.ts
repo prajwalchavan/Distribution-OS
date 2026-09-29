@@ -5,17 +5,18 @@ import { allRows } from './coverage.js'
 import { makeDay } from './day.js'
 import { finishEarlier } from './finish.js'
 import { pages } from './helpers.js'
-import { addDays, isDemoId } from './ids.js'
+import { addDays, demoId, isDemoId } from './ids.js'
 import { planCounts } from './plan.js'
+import { readTrip } from './road.js'
 import { ensureStanding } from './setup.js'
 import { KNOWN_GAPS, Summary, type Section } from './summary.js'
 import { readWorld } from './world.js'
 
 /**
  * ONE RUN. Sign in as the owner, read the distributor, make sure the standing pieces are there, then the two
- * halves: finish every earlier day the tool left open, and make `date`. On the very first run — no van of the
- * tool has ever gone out — the day before is made and finished first, so "yesterday's trip settled" is there
- * from the start. At the end, what the run left behind is read back through the API.
+ * halves: finish every earlier day the tool left open, and make `date`. When the day before has no van of the
+ * tool — the very first run, or a night the server was down — the day before is made and finished first, so
+ * "yesterday's trip settled" is there. At the end, what the run left behind is read back through the API.
  */
 export interface RunResult {
   summary: Summary
@@ -23,7 +24,12 @@ export interface RunResult {
   leadIn: string | null
 }
 
-async function guard(ctx: Ctx, section: Section, what: string, fn: () => Promise<unknown>): Promise<void> {
+async function guard(
+  ctx: Ctx,
+  section: Section,
+  what: string,
+  fn: () => Promise<unknown>,
+): Promise<void> {
   try {
     await fn()
   } catch (e) {
@@ -44,22 +50,43 @@ export async function runFill(opts: RunOptions): Promise<RunResult> {
   await ctx.signInOwner()
   const date = opts.date
   try {
-    ctx.log(`distributor ${opts.tenant} (${ctx.tenantId}), business date ${date}, ${opts.commit ? 'COMMIT' : 'dry run: nothing is written'}`)
+    ctx.log(
+      `distributor ${opts.tenant} (${ctx.tenantId}), business date ${date}, ${opts.commit ? 'COMMIT' : 'dry run: nothing is written'}`,
+    )
     const world = await readWorld(ctx)
     ctx.log(
       `  read: ${String(world.shops.length)} shops, ${String(world.beatIds.length)} beats, ${String(world.items.length)} listed items (${String(world.items.filter((i) => i.ratePaise > 0 && i.available > 0).length)} priced and in stock), ${String(world.suppliers.length)} suppliers`,
     )
-    const toolTrips = await pages(
-      (cursor) => ctx.read(contract.delivery.trips.list, { limit: 200, ...(cursor ? { cursor } : {}) }),
+    // A day after one the tool has already made cannot be made before it: the vans are on later trips.
+    const later = await pages(
+      (cursor) =>
+        ctx.read(contract.delivery.trips.list, {
+          from: addDays(date, 1),
+          limit: 200,
+          ...(cursor ? { cursor } : {}),
+        }),
       5,
     )
-    const leadIn = toolTrips.some((t) => isDemoId(t.id)) ? null : addDays(date, -1)
+    const madeLater = later.find((t) => isDemoId(t.id))
+    if (madeLater)
+      throw new Error(
+        `the tool has already made ${madeLater.tripDate}: run it for that date or a later one`,
+      )
+    // The day before has no van of the tool (the first run, or a night the server was down): make it and
+    // finish it first, so today opens with "yesterday's trip settled".
+    const yesterday = addDays(date, -1)
+    const hadYesterday =
+      (await readTrip(ctx, demoId(yesterday, 'trip', 'driver1'))) ??
+      (await readTrip(ctx, demoId(yesterday, 'trip', 'driver2')))
+    const leadIn = hadYesterday ? null : yesterday
     const standing = await ensureStanding(ctx, world, date, leadIn ?? date)
     ctx.log(
       `  standing: ${String(Object.keys(standing.repBeats).length)} rep beat(s), ${String(Object.keys(standing.creditShops).length)} shop(s) over a limit, ${String(standing.slotShops.length)} stand-in shop(s), ${String(Object.keys(standing.vans).length)} van(s)`,
     )
     if (leadIn) {
-      ctx.log(`first run: making ${leadIn} first, so today opens with a day behind it`)
+      ctx.log(
+        `the tool has no van on ${leadIn}: making that day first, so ${date} opens with a day behind it`,
+      )
       await guard(ctx, 'yesterday', 'finish', () => finishEarlier(ctx, leadIn))
       await guard(ctx, 'yesterday', `make ${leadIn}`, () => makeDay(ctx, leadIn, standing))
     }
@@ -73,12 +100,18 @@ export async function runFill(opts: RunOptions): Promise<RunResult> {
     if (!opts.commit) summary.note(`the day's plan: ${JSON.stringify(counts)}`)
 
     const read = await allRows(ctx.api, { owner: ctx.owner }, date).catch((e: unknown) => {
-      summary.note(`could not read the result back: ${e instanceof ApiRefusal ? e.label : String(e)}`)
+      summary.note(
+        `could not read the result back: ${e instanceof ApiRefusal ? e.label : String(e)}`,
+      )
       return { seen: [], notes: [] }
     })
     for (const s of read.seen) {
       const gap = KNOWN_GAPS[`${s.row}:${s.feature}`]
-      summary.feature(s.row, s.feature, s.ok ? 'there' : gap ? 'gap' : opts.commit ? 'missing' : 'would')
+      summary.feature(
+        s.row,
+        s.feature,
+        s.ok ? 'there' : gap ? 'gap' : opts.commit ? 'missing' : 'would',
+      )
     }
     for (const n of read.notes) summary.note(n)
     return { summary, exitCode: summary.exitCode(), leadIn }

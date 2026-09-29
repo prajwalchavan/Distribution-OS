@@ -65,7 +65,10 @@ try {
   console.warn(
     `  written: ${String(created)} rows created, ${String(failed)} failed; steps ${JSON.stringify(
       Object.fromEntries(
-        Object.entries(result.write.steps).map(([k, s]) => [k, `${String(s.created)}/${String(s.unchanged)}/${String(s.skipped)}/${String(s.failed)}`]),
+        Object.entries(result.write.steps).map(([k, s]) => [
+          k,
+          `${String(s.created)}/${String(s.unchanged)}/${String(s.skipped)}/${String(s.failed)}`,
+        ]),
       ),
     )} (created/unchanged/skipped/failed)`,
   )

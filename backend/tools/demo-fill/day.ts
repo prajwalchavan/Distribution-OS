@@ -28,7 +28,11 @@ const SECTION_OF: Record<string, Section> = {
 const sectionOf = (slot: string): Section => SECTION_OF[slot] ?? 'driver'
 
 /** Packed bills an earlier day left: on no open trip yet, or already riding one of today's vans. */
-export async function findCarried(ctx: Ctx, date: string, standing: Standing): Promise<CarriedBill[]> {
+export async function findCarried(
+  ctx: Ctx,
+  date: string,
+  standing: Standing,
+): Promise<CarriedBill[]> {
   const out = new Map<string, CarriedBill>()
   const planning = await pages((cursor) =>
     ctx
@@ -146,26 +150,42 @@ async function placeOrder(ctx: Ctx, order: PlannedOrder, date: string): Promise<
 
 /** The manager approves every pending gate of an order that is meant to go through today. */
 async function clearGates(ctx: Ctx, orderId: string, date: string): Promise<void> {
-  const list = await ctx.read(contract.orders.approvals.list, { orderId, status: 'pending', limit: 20 })
+  const list = await ctx.read(contract.orders.approvals.list, {
+    orderId,
+    status: 'pending',
+    limit: 20,
+  })
   for (const a of list.items)
-    await ctx.write('manager', 'approval decided', () => ctx.as('manager'), contract.orders.approvals.decide, {
-      idempotencyKey: demoKey(date, 'approval', a.id),
-      id: a.id,
-      decision: 'approve',
-      note: 'Regular shop, cleared by phone',
-    })
+    await ctx.write(
+      'manager',
+      'approval decided',
+      () => ctx.as('manager'),
+      contract.orders.approvals.decide,
+      {
+        idempotencyKey: demoKey(date, 'approval', a.id),
+        id: a.id,
+        decision: 'approve',
+        note: 'Regular shop, cleared by phone',
+      },
+    )
 }
 
 async function recordVisit(ctx: Ctx, order: PlannedOrder, date: string): Promise<void> {
   const minute = Math.floor(unit(`${order.id}:visit`) * 50)
-  await ctx.write('sales', 'shop visited', () => ctx.as(order.by), contract.retailers.visits.record, {
-    idempotencyKey: demoKey(date, 'visit', order.slot),
-    id: demoId(date, 'visit', order.slot),
-    retailerId: order.shopId,
-    startedAt: istTime(date, order.slot.endsWith('1') ? 10 : 11, minute),
-    endedAt: istTime(date, order.slot.endsWith('1') ? 10 : 11, minute + 9),
-    outcome: 'ordered',
-  })
+  await ctx.write(
+    'sales',
+    'shop visited',
+    () => ctx.as(order.by),
+    contract.retailers.visits.record,
+    {
+      idempotencyKey: demoKey(date, 'visit', order.slot),
+      id: demoId(date, 'visit', order.slot),
+      retailerId: order.shopId,
+      startedAt: istTime(date, order.slot.endsWith('1') ? 10 : 11, minute),
+      endedAt: istTime(date, order.slot.endsWith('1') ? 10 : 11, minute + 9),
+      outcome: 'ordered',
+    },
+  )
 }
 
 // -------------------------------------------------------------------------------------------- waves
@@ -190,44 +210,58 @@ export async function wave(
       if (o?.state === 'confirmed') ready.push(orderId)
     }
     if (ready.length === 0) return
-    const made = await ctx.write('godown', 'wave', () => ctx.as('godown'), contract.warehouse.picklists.create, {
-      idempotencyKey: demoKey(date, 'wave', name),
-      id,
-      orderIds: ready,
-      pickDate: date,
-    })
+    const made = await ctx.write(
+      'godown',
+      'wave',
+      () => ctx.as('godown'),
+      contract.warehouse.picklists.create,
+      {
+        idempotencyKey: demoKey(date, 'wave', name),
+        id,
+        orderIds: ready,
+        pickDate: date,
+      },
+    )
     if (!made) return
     pl = made
   }
   if (upTo === 'open') return
   if (pl.item.status === 'open') {
-    const started = await ctx.write('godown', 'wave started', () => ctx.as('godown'), contract.warehouse.picklists.start, {
-      idempotencyKey: demoKey(date, 'wave', name, 'start'),
-      id,
-      assignedTo: ctx.userIds.get('godown'),
-    })
+    const started = await ctx.write(
+      'godown',
+      'wave started',
+      () => ctx.as('godown'),
+      contract.warehouse.picklists.start,
+      {
+        idempotencyKey: demoKey(date, 'wave', name, 'start'),
+        id,
+        assignedTo: ctx.userIds.get('godown'),
+      },
+    )
     if (!started) return
     pl = started
   }
   if (pl.item.status === 'picking') {
-    const todo = pl.item.lines.filter((l) => l.pickedAt === null)
+    const todo = pl.item.lines.filter((l) => l.pickedAt === null && (l.lotId ?? l.suggestedLotId))
     if (todo.length > 0) {
-      const picked = await ctx.write('godown', 'wave picked', () => ctx.as('godown'), contract.warehouse.picklists.pick, {
-        idempotencyKey: demoKey(date, 'wave', name, 'pick'),
-        id,
-        lines: todo.map((l) => {
-          const lotId = l.lotId ?? l.suggestedLotId
-          return lotId
-            ? { id: l.id, orderLineId: l.orderLineId, lotId, pickedQtyPcs: l.requestedQtyPcs }
-            : {
-                id: l.id,
-                orderLineId: l.orderLineId,
-                lotId: l.suggestedLotId ?? l.id,
-                pickedQtyPcs: 0,
-                shortReason: 'Not on the rack',
-              }
-        }),
-      })
+      const picked = await ctx.write(
+        'godown',
+        'wave picked',
+        () => ctx.as('godown'),
+        contract.warehouse.picklists.pick,
+        {
+          idempotencyKey: demoKey(date, 'wave', name, 'pick'),
+          id,
+          // A line the godown has no lot for cannot be recorded (a pick names its lot); the plan never orders
+          // an item without stock, so that line is a race with a real order and is left for the desk.
+          lines: todo.flatMap((l) => {
+            const lotId = l.lotId ?? l.suggestedLotId
+            return lotId
+              ? [{ id: l.id, orderLineId: l.orderLineId, lotId, pickedQtyPcs: l.requestedQtyPcs }]
+              : []
+          }),
+        },
+      )
       if (!picked) return
       pl = { item: picked.item }
     }
@@ -241,12 +275,18 @@ export async function pack(ctx: Ctx, date: string, orderId: string): Promise<voi
   const order = await getOrder(ctx, orderId)
   if (!order || (order.state !== 'picking' && order.state !== 'confirmed')) return
   const lines = order.lines.length
-  await ctx.write('godown', 'packed and billed', () => ctx.as('godown'), contract.warehouse.packs.confirm, {
-    idempotencyKey: demoKey(date, 'pack', orderId),
-    id: demoId(date, 'pack', orderId),
-    orderId,
-    packages: Math.max(1, Math.ceil(lines / 2)),
-  })
+  await ctx.write(
+    'godown',
+    'packed and billed',
+    () => ctx.as('godown'),
+    contract.warehouse.packs.confirm,
+    {
+      idempotencyKey: demoKey(date, 'pack', orderId),
+      id: demoId(date, 'pack', orderId),
+      orderId,
+      packages: Math.max(1, Math.ceil(lines / 2)),
+    },
+  )
 }
 
 // -------------------------------------------------------------------------------------------- vans
@@ -262,6 +302,11 @@ async function planTrip(
   const van = standing.vans[driver]
   const driverId = ctx.userIds.get(driver)
   const existing = await readTrip(ctx, id)
+  if (!existing && !ctx.commit) {
+    // A dry run has no packed bill to put on a van: the van's day is counted as the one it would be.
+    ctx.summary.wouldOne('driver', 'trip planned')
+    return
+  }
   if (!existing) {
     if (!van || !driverId) {
       ctx.summary.refusedOne('driver', 'trip planned', 'no van or no driver')
@@ -269,30 +314,40 @@ async function planTrip(
     }
     const stops: { id: string; sequence: number; retailerId: string; invoiceIds: string[] }[] = []
     for (const door of plan.trips[driver]) {
-      const invoiceId =
-        door.carried?.invoiceId ??
-        (door.orderSlot ? (await billOf(ctx, demoId(date, 'order', door.orderSlot)))?.id : undefined)
-      if (!invoiceId) continue
+      // The door goes to the shop the BILL is for: after a crash the plan may name another shop for a slot
+      // whose order already exists, and the order is what it is.
+      const bill = door.carried
+        ? { id: door.carried.invoiceId, retailerId: door.carried.shopId }
+        : door.orderSlot
+          ? await billOf(ctx, demoId(date, 'order', door.orderSlot))
+          : null
+      if (!bill) continue
       stops.push({
         id: demoId(date, 'stop', driver, String(door.sequence)),
         sequence: door.sequence,
-        retailerId: door.shopId,
-        invoiceIds: [invoiceId],
+        retailerId: bill.retailerId,
+        invoiceIds: [bill.id],
       })
     }
     if (stops.length === 0) {
       ctx.summary.refusedOne('driver', 'trip planned', 'no packed bill')
       return
     }
-    const made = await ctx.write('driver', 'trip planned', () => ctx.as('manager'), contract.delivery.trips.create, {
-      idempotencyKey: demoKey(date, 'trip', driver),
-      id,
-      tripDate: date,
-      vehicleId: van.id,
-      driverId,
-      openingCashPaise: 50_000,
-      stops,
-    })
+    const made = await ctx.write(
+      'driver',
+      'trip planned',
+      () => ctx.as('manager'),
+      contract.delivery.trips.create,
+      {
+        idempotencyKey: demoKey(date, 'trip', driver),
+        id,
+        tripDate: date,
+        vehicleId: van.id,
+        driverId,
+        openingCashPaise: 50_000,
+        stops,
+      },
+    )
     if (!made) return
   } else ctx.summary.foundOne('driver', 'trip planned')
   await loadAndDepart(ctx, id, driver, date)
@@ -312,13 +367,19 @@ async function vanToLoad(ctx: Ctx, date: string, plan: DayPlan, standing: Standi
   for (const o of plan.orders.filter((x) => x.slot === 'l1' || x.slot === 'l2'))
     if ((await getOrder(ctx, o.id))?.state === 'packed') orderIds.push(o.id)
   if (orderIds.length === 0) return
-  await ctx.write('godown', 'van to load', () => ctx.as('godown'), contract.warehouse.loadSheets.create, {
-    idempotencyKey: demoKey(date, 'sheet', 'van-to-load'),
-    id,
-    toLocationId: van1.locationId,
-    sheetDate: date,
-    orderIds,
-  })
+  await ctx.write(
+    'godown',
+    'van to load',
+    () => ctx.as('godown'),
+    contract.warehouse.loadSheets.create,
+    {
+      idempotencyKey: demoKey(date, 'sheet', 'van-to-load'),
+      id,
+      toLocationId: van1.locationId,
+      sheetDate: date,
+      orderIds,
+    },
+  )
 }
 
 // ------------------------------------------------------------------------------------------- the day
@@ -337,16 +398,36 @@ export async function makeDay(ctx: Ctx, date: string, standing: Standing): Promi
     carried,
   })
   ctx.log(`  plan for ${date}: ${JSON.stringify(planCounts(plan))}`)
-  for (const slot of plan.emptySlots) ctx.summary.refusedOne(sectionOf(slot), `order ${slot}`, 'no shop or no priced item in stock')
+  for (const slot of plan.emptySlots)
+    ctx.summary.refusedOne(sectionOf(slot), `order ${slot}`, 'no shop or no priced item in stock')
 
   for (const order of plan.orders) await placeOrder(ctx, order, date)
 
   const tripOrders = plan.orders.filter((o) => o.slot.startsWith('t') || o.slot.startsWith('l'))
-  await wave(ctx, date, 'trips', tripOrders.map((o) => o.id), 'packed')
-  await wave(ctx, date, 'to-pack', plan.orders.filter((o) => o.slot.startsWith('k')).map((o) => o.id), 'picked')
-  await wave(ctx, date, 'to-pick', plan.orders.filter((o) => o.slot.startsWith('w')).map((o) => o.id), 'open')
+  await wave(
+    ctx,
+    date,
+    'trips',
+    tripOrders.map((o) => o.id),
+    'packed',
+  )
+  await wave(
+    ctx,
+    date,
+    'to-pack',
+    plan.orders.filter((o) => o.slot.startsWith('k')).map((o) => o.id),
+    'picked',
+  )
+  await wave(
+    ctx,
+    date,
+    'to-pick',
+    plan.orders.filter((o) => o.slot.startsWith('w')).map((o) => o.id),
+    'open',
+  )
 
-  for (const driver of ['driver1', 'driver2'] as const) await planTrip(ctx, date, driver, plan, standing)
+  for (const driver of ['driver1', 'driver2'] as const)
+    await planTrip(ctx, date, driver, plan, standing)
   await vanToLoad(ctx, date, plan, standing)
   await returnToApprove(ctx, date)
   await officeMoney(ctx, date)
