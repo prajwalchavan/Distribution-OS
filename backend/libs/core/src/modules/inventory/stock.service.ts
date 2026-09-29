@@ -358,8 +358,9 @@ export class StockService {
    * dock could not be loaded, cancelled or moved again, and the fixed-place rule then kept the intruder. Migration
    * 0075 refuses the row for every writer (`locations_fixed_place_first`: a new place, one switched on, one given
    * that kind, while an active place of the kind sorts after it); this is its refusal in words. A place added
-   * today (UUIDv7) never sorts first, so only a crafted id or one minted on a device whose date is years behind
-   * reaches it — which is what the sentence says to check.
+   * today (UUIDv7) never sorts first, so only a crafted id, an id kept from an older example (the published example
+   * once carried one dated 24 Sep 2026) or one minted on a device whose date is behind reaches it; the sentence asks
+   * for a new id and blames nobody's clock (QA verify 4 of the bin lane, minor).
    */
   private async takesFixedSeat(
     tx: Db,
@@ -385,7 +386,7 @@ export class StockService {
     const kindWord = KIND_WORDS[kind] ?? kind
     if (was === undefined)
       return new ORPCError('CONFLICT', {
-        message: `Nothing was saved: a new ${kindWord} with this id would take the place of ${seat.name}, the distributor's ${fixedName} — ${job} — because its id comes before ${seat.name}'s. Such an id comes from a device whose date is set in the past: check the date and time on the device, then add the place again.`,
+        message: `Nothing was saved: a new ${kindWord} with this id would take the place of ${seat.name}, the distributor's ${fixedName} — ${job} — because its id comes before ${seat.name}'s. Add the place again with a new id: one made today always comes after it.`,
         data,
       })
     if (was.kind !== kind)

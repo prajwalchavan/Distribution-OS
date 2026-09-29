@@ -504,17 +504,17 @@ describeDb('inventory: the fixed places and the owner’s correction (DATABASE_U
       {
         kind: 'in_transit',
         words:
-          "Nothing was saved: a new dock with this id would take the place of In transit, the distributor's dock — packed goods wait there for their van — because its id comes before In transit's. Such an id comes from a device whose date is set in the past: check the date and time on the device, then add the place again.",
+          "Nothing was saved: a new dock with this id would take the place of In transit, the distributor's dock — packed goods wait there for their van — because its id comes before In transit's. Add the place again with a new id: one made today always comes after it.",
       },
       {
         kind: 'warehouse',
         words:
-          "Nothing was saved: a new godown with this id would take the place of Godown, the distributor's godown — orders are held and packed there and goods are received into it — because its id comes before Godown's. Such an id comes from a device whose date is set in the past: check the date and time on the device, then add the place again.",
+          "Nothing was saved: a new godown with this id would take the place of Godown, the distributor's godown — orders are held and packed there and goods are received into it — because its id comes before Godown's. Add the place again with a new id: one made today always comes after it.",
       },
       {
         kind: 'damaged',
         words:
-          "Nothing was saved: a new damaged / expiry bin with this id would take the place of Damaged / expiry bin, the distributor's damaged / expiry bin — damaged and expired pieces go there and nowhere else — because its id comes before Damaged / expiry bin's. Such an id comes from a device whose date is set in the past: check the date and time on the device, then add the place again.",
+          "Nothing was saved: a new damaged / expiry bin with this id would take the place of Damaged / expiry bin, the distributor's damaged / expiry bin — damaged and expired pieces go there and nowhere else — because its id comes before Damaged / expiry bin's. Add the place again with a new id: one made today always comes after it.",
       },
     ]
     for (const [a, actor] of [store, manager, owner].entries())

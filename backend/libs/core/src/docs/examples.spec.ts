@@ -242,6 +242,25 @@ describe('doc examples', () => {
     expect(examples.size).toBe(PROCEDURES.length)
   })
 
+  // The bin lane's fourth blind check, minor: the example of a new godown carried an id dated 24 Sep 2026, and for a
+  // distributor made later it sorted before the godown and was refused 409 location_before_fixed.
+  it('gives a new place an id that sorts after the distributor’s fixed places, so the server takes it', () => {
+    const fixedPlaceLastId = '01a0eb2b-8648-753d-882a-2c020c84effd' // a godown made on 29 Sep 2026
+    const later = buildExamples(PROCEDURES, { ...FIXTURE, fixedPlaceLastId }, { roles: ['owner'] })
+    const id = String(later.get('inventory.locations.upsert')?.body?.id)
+    expect(id > fixedPlaceLastId, id).toBe(true)
+    expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+    const upsert = PROCEDURES.find((p) => p.path === 'inventory.locations.upsert')
+    const parsed = upsert && parse(upsert, later.get('inventory.locations.upsert')?.input ?? {})
+    expect(parsed?.success).toBe(true)
+    // the same database builds the same id, and an older distributor keeps the id it always had
+    const again = buildExamples(PROCEDURES, { ...FIXTURE, fixedPlaceLastId }, { roles: ['owner'] })
+    expect(again.get('inventory.locations.upsert')?.body?.id).toBe(id)
+    expect(examples.get('inventory.locations.upsert')?.body?.id).toBe(
+      createdId('inventory.locations.upsert', 'id'),
+    )
+  })
+
   it('validates against the contract schema of every procedure', () => {
     const broken: string[] = []
     for (const procedure of PROCEDURES) {

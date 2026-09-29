@@ -451,6 +451,11 @@ export interface ExampleContext {
   cost?: DemoCost | undefined
 
   locationId?: string | undefined
+  /**
+   * The id of the newest of the distributor's fixed places (its godown, dock and damaged / expiry bin): a new place's
+   * example id sorts after it, or the server refuses it for taking a fixed place's seat.
+   */
+  fixedPlaceLastId?: string | undefined
   vehicleLocationId?: string | undefined
   vehicleId?: string | undefined
   lotId?: string | undefined
@@ -2117,6 +2122,17 @@ async function collectStock(tx: Db, tenantId: string, ctx: ExampleContext): Prom
     .where(and(eq(locations.tenantId, tenantId), eq(locations.active, true)))
     .limit(50)
   ctx.locationId = (places.find((row) => row.kind === 'warehouse') ?? first(places))?.id
+  const [fixed] = await tx
+    .select({ lastId: sql<string | null>`max(${locations.id})` })
+    .from(locations)
+    .where(
+      and(
+        eq(locations.tenantId, tenantId),
+        eq(locations.active, true),
+        inArray(locations.kind, ['warehouse', 'in_transit', 'damaged']),
+      ),
+    )
+  ctx.fixedPlaceLastId = fixed?.lastId ?? undefined
   const vehicle = places.find((row) => row.kind === 'vehicle')
   ctx.vehicleLocationId = vehicle?.id
   ctx.vehicleId = vehicle?.vehicleId ?? undefined
@@ -2946,6 +2962,17 @@ export function docUuid(seed: string): string {
 }
 
 /**
+ * `id` itself when it sorts after `after`; otherwise the same id re-dated one millisecond after `after`'s UUIDv7
+ * time, keeping its own random part — deterministic for one database, and never before `after`.
+ */
+export function idAfter(id: string, after: string | undefined): string {
+  if (after === undefined || id > after) return id
+  const ms = parseInt(`${after.slice(0, 8)}${after.slice(9, 13)}`, 16) + 1
+  const hex = ms.toString(16).padStart(12, '0')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}${id.slice(13)}`
+}
+
+/**
  * The client-generated id an example writes at `trail`, on slot `slot` of the procedure's sequence.
  * Slot 0 is what an untouched database shows, so a first-run document is unchanged by this.
  */
@@ -3717,7 +3744,13 @@ const OVERRIDES: Record<
       Math.max(1, Math.round((ctx.priceListItem?.ratePaise ?? 1000) * 0.95)),
   }),
   'pricing.bounds.set': (ctx) => ({ userId: ctx.users?.salesperson?.id, brandId: DROP }),
-  'inventory.locations.upsert': () => ({
+  // A new godown: its id must sort after the distributor's fixed places, or it would take the godown's seat and be
+  // refused 409 `location_before_fixed` (the fixed id's date, 24 Sep 2026, is older than any distributor made since).
+  'inventory.locations.upsert': (ctx) => ({
+    id: idAfter(
+      createdId('inventory.locations.upsert', 'id', slotOf(ctx, 'inventory.locations.upsert')),
+      ctx.fixedPlaceLastId,
+    ),
     kind: 'warehouse',
     name: 'Demo Godown (docs)',
     vehicleId: DROP, // a warehouse has no vehicle
