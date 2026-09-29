@@ -171,8 +171,12 @@ export class SchemesService {
           validTo: input.validTo,
           stackable: input.stackable,
           final: input.final,
-          gstOnFreeGoods: input.gstOnFreeGoods,
+          // QA DOS-338 (ruling 9): free goods carry no value and no tax, so the flag is stored off, whatever
+          // was sent — the engine never read it, and a stored "on" told the owner a treatment nobody applied.
+          gstOnFreeGoods: false,
           pricingDateMode: input.pricingDateMode,
+          // QA DOS-334 (ruling 4): the owner's order among stacked schemes; left out, it stays as it was.
+          priority: input.priority ?? existing?.priority ?? 0,
         }
         const meta = {
           name: input.name,
@@ -268,8 +272,9 @@ function economicsOf(row: typeof schemes.$inferSelect) {
     validTo: row.validTo,
     stackable: row.stackable,
     final: row.final,
-    gstOnFreeGoods: row.gstOnFreeGoods,
+    gstOnFreeGoods: false,
     pricingDateMode: row.pricingDateMode,
+    priority: row.priority,
   }
 }
 
@@ -293,6 +298,7 @@ export function toScheme(row: typeof schemes.$inferSelect): Scheme {
     final: row.final,
     gstOnFreeGoods: row.gstOnFreeGoods,
     pricingDateMode: row.pricingDateMode,
+    priority: row.priority,
     version: row.version,
     fundingSource: row.fundingSource,
     claimable: row.claimable,

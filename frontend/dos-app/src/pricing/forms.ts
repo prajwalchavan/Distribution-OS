@@ -366,6 +366,11 @@ export interface SchemeDraft {
   validTo: string
   /** Applies alone rather than stacking (`stackable = false`); the engine's "exclusive". */
   exclusive: boolean
+  /**
+   * QA DOS-334 (docs/22 §8, 2026-09-28, ruling 4): the owner's order among schemes that stack on one item —
+   * lower applies first, equal ones by age. "0" for a scheme nobody ordered, which keeps today's behaviour.
+   */
+  priorityText: string
   fundingSource: 'company' | 'distributor'
   active: boolean
   /**
@@ -406,6 +411,7 @@ export function newSchemeDraft(today: string): SchemeDraft {
     validFrom: today,
     validTo: addDays(today, 30),
     exclusive: false,
+    priorityText: '0',
     fundingSource: 'company',
     active: true,
     kept: {
@@ -452,6 +458,7 @@ export function schemeDraftOf(row: Scheme): SchemeDraft {
     validFrom: row.validFrom,
     validTo: row.validTo,
     exclusive: !row.stackable,
+    priorityText: String(row.priority ?? 0),
     fundingSource: row.fundingSource,
     active: row.active,
     kept: {
@@ -495,6 +502,7 @@ export interface SchemePayload {
   pricingDateMode: Scheme['pricingDateMode']
   sourceRef: string | null
   active: boolean
+  priority: number
 }
 
 /**
@@ -546,6 +554,9 @@ export function schemePayload(id: string, draft: SchemeDraft): Built<SchemePaylo
     scope = { variantIds: [...draft.variantIds] }
   } else scope = draft.kept.scope
 
+  const priority = wholeNumber(draft.priorityText)
+  if (priority === null || priority > 999) return { ok: false, problem: 'px.needOrder' }
+
   if (!isIsoDate(draft.validFrom)) return { ok: false, problem: 'px.badFrom' }
   if (!isIsoDate(draft.validTo)) return { ok: false, problem: 'px.badTo' }
   if (draft.validTo < draft.validFrom) return { ok: false, problem: 'px.toBeforeFrom' }
@@ -581,6 +592,7 @@ export function schemePayload(id: string, draft: SchemeDraft): Built<SchemePaylo
       pricingDateMode: draft.kept.pricingDateMode,
       sourceRef: draft.kept.sourceRef,
       active: draft.active,
+      priority,
     },
   }
 }

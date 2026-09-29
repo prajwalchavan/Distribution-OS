@@ -194,8 +194,18 @@ const schemeEconomics = {
   validTo: IsoDateSchema,
   stackable: z.boolean(),
   final: z.boolean(),
+  /**
+   * QA DOS-338 (docs/22 §8, 2026-09-28, ruling 9): free goods are billed at no value and no tax, so this flag
+   * changes nothing; a save stores false and the screens do not offer it until the CA asks for the other
+   * treatment. It stays in the contract (expand-only).
+   */
   gstOnFreeGoods: z.boolean(),
   pricingDateMode: PricingDateModeSchema,
+  /**
+   * QA DOS-334 (ruling 4): which scheme applies first when several stack on one line — lower first, then
+   * the older scheme. 0 for a scheme the owner never ordered.
+   */
+  priority: z.number().int().optional(),
 }
 
 export const SchemeSchema = z.object({
@@ -264,10 +274,16 @@ export const UpsertSchemeInput = MutationBase.extend({
   fundingSource: SchemeFundingSourceSchema.default('company'),
   claimable: z.boolean().default(false),
   claimWindowDays: z.number().int().min(0).max(365).nullable().optional(),
+  /** QA DOS-338 (ruling 9): accepted and ignored — free goods carry no value and no tax. */
   gstOnFreeGoods: z.boolean().default(false),
   pricingDateMode: PricingDateModeSchema.default('order'),
   sourceRef: z.string().trim().max(120).nullable().optional(),
   active: z.boolean().default(true),
+  /**
+   * QA DOS-334 (docs/22 §8, 2026-09-28, ruling 4): the owner's order among stacked schemes — lower applies
+   * first; equal ones by age. Left out, a new scheme takes 0 and an existing one keeps its own.
+   */
+  priority: z.number().int().min(0).max(999).optional(),
 })
   .refine((s) => s.validFrom <= s.validTo, 'validFrom must not be after validTo')
   .refine(

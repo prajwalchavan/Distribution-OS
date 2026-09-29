@@ -5,7 +5,13 @@ import { paise, roundToRupee, uuidv7 } from '@dos/domain'
 import type { salesOrderLines } from '@dos/db'
 import { productVariants, tenantProducts, type AppliedRule, type Db } from '@dos/db'
 import { currentTenant } from '../../platform/index.js'
-import { approvedBargainsFor, todayIst, type QuoteService } from '../pricing/index.js'
+import {
+  approvedBargainsFor,
+  loadHsnRates,
+  todayIst,
+  type HsnRate,
+  type QuoteService,
+} from '../pricing/index.js'
 import type { OrderRow } from './orders.mappers.js'
 
 /**
@@ -229,9 +235,50 @@ export async function priceOrderLines(
       ...pricedLineFields(q),
     } satisfies typeof salesOrderLines.$inferInsert
   })
-  const all = [...lines, ...rewardLines(tenantId, args.orderId, quote, lines.length)]
+  const all = [
+    ...lines,
+    ...rewardLines(
+      tenantId,
+      args.orderId,
+      quote,
+      lines.length,
+      await rewardRates(tx, quotes, quote),
+    ),
+  ]
 
   return { lines: all, totals: orderTotals(all), quote }
+}
+
+/**
+ * QA DOS-338 (docs/22 §8, 2026-09-28, ruling 9): a reward line carries the gift item's OWN dated GST and cess
+ * rate, as its bill line does, with no value and no tax. A reward item with no rate on the order's date is the
+ * same 400 naming its HSN every priced item gets — never a silent 0 %.
+ */
+async function rewardRates(
+  tx: Db,
+  quotes: QuoteService,
+  quote: Quote,
+): Promise<Map<string, HsnRate>> {
+  const ids = [
+    ...new Set(
+      quote.lines.flatMap((l) =>
+        l.freeItems.filter((f) => f.variantId !== l.variantId).map((f) => f.variantId),
+      ),
+    ),
+  ]
+  if (ids.length === 0) return new Map()
+  const variants = await quotes.loadVariants(tx, currentTenant(), ids)
+  const rates = await loadHsnRates(
+    tx,
+    [...variants.values()].map((v) => v.hsnCode),
+    quote.pricingDate,
+  )
+  const out = new Map<string, HsnRate>()
+  for (const [id, v] of variants) {
+    const rate = rates.get(v.hsnCode)
+    if (rate) out.set(id, rate)
+  }
+  return out
 }
 
 /** True for a line this module wrote as a scheme reward, not one the rep or the shop typed. */
@@ -254,6 +301,7 @@ function rewardLines(
   orderId: string,
   quote: Quote,
   enteredCount: number,
+  rates: ReadonlyMap<string, HsnRate>,
 ): (typeof salesOrderLines.$inferInsert &
   Pick<OrderLineRow, 'discountPaise' | 'taxPaise' | 'cessPaise' | 'lineTotalPaise'>)[] {
   const rewards = new Map<
@@ -282,17 +330,17 @@ function rewardLines(
     qtyPcs: 0,
     freeQtyPcs: reward.qtyPcs,
     /*
-     * Nothing is charged and nothing is taxed. A free line's taxable is ₹0, which IS the treatment billing
-     * already gives free goods (`InvoiceLineSchema.freeQtyPcs`: "quantity with no value, excluded from
-     * taxablePaise"), and the bill puts the item's own dated HSN rate on the line at issue. Putting a rate
-     * here would invent tax on a gift, which is not ours to decide.
+     * Nothing is charged and nothing is taxed (docs/22 §8, 2026-09-28, ruling 9): a free line's taxable is ₹0,
+     * the treatment billing gives free goods (`InvoiceLineSchema.freeQtyPcs`: "quantity with no value, excluded
+     * from taxablePaise"). It carries the gift item's OWN GST and cess rate, as its bill line does (QA DOS-338:
+     * the order said 0 % and the bill 28 % for the same line); a rate on ₹0 taxes nothing.
      */
     listRatePaise: 0,
     ratePaise: 0,
     discountBps: 0,
     discountPaise: 0,
-    gstBps: 0,
-    cessBps: 0,
+    gstBps: rates.get(reward.variantId)?.gstBps ?? 0,
+    cessBps: rates.get(reward.variantId)?.cessBps ?? 0,
     taxPaise: 0,
     cessPaise: 0,
     lineTotalPaise: 0,

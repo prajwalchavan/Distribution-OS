@@ -125,7 +125,12 @@ export const PRICING_STRINGS = {
   'px.stacks': 'Stacks',
   'px.exclusive': 'On its own',
   'px.exclusiveHelp':
-    'On its own: the shop gets this scheme or the others together, whichever is worth more.',
+    'On its own: the shop gets this scheme or the others together, whichever is worth more — and an item that gets it takes no bill-level scheme either.',
+  /* QA DOS-334 (ruling 4): the owner sets which scheme applies first. */
+  'px.order': 'Applies first — order',
+  'px.orderHelp':
+    'When several schemes stack on one item, the lower number applies first; equal numbers go in the order they were made.',
+  'px.needOrder': 'Order is a whole number from 0 to 999',
   'px.paidBy': 'Paid by',
   'px.paidCompany': 'The brand',
   'px.paidUs': 'Us',

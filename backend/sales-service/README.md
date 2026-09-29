@@ -5853,6 +5853,7 @@ curl "http://localhost:3003/pricing/schemes?activeOnly=true&on=2026-09-04&brandI
       "final": true,
       "gstOnFreeGoods": true,
       "pricingDateMode": "order",
+      "priority": 1,
       "version": 1,
       "fundingSource": "company",
       "claimable": true,
@@ -5949,6 +5950,7 @@ Create or update a scheme; a change to its economics bumps the version · contra
 | `pricingDateMode` | order | delivery | no |
 | `sourceRef` | string | no |
 | `active` | boolean | no |
+| `priority` | integer | no |
 
 **Example request**
 
@@ -6002,7 +6004,8 @@ request.json
   "gstOnFreeGoods": false,
   "pricingDateMode": "order",
   "sourceRef": "text",
-  "active": true
+  "active": true,
+  "priority": 1
 }
 ```
 
@@ -6056,6 +6059,7 @@ request.json
     "final": true,
     "gstOnFreeGoods": true,
     "pricingDateMode": "order",
+    "priority": 1,
     "version": 1,
     "fundingSource": "company",
     "claimable": true,

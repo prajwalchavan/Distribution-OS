@@ -1038,6 +1038,22 @@ export function SchemeSheet({
           <Hint>{t('px.exclusiveHelp')}</Hint>
         </Stack>
 
+        {/* QA DOS-334 (ruling 4): which scheme applies first when several stack on one item. */}
+        {draft.exclusive ? null : (
+          <Stack gap={1}>
+            <TextInput
+              label={t('px.order')}
+              value={draft.priorityText}
+              onChange={(priorityText) => {
+                update({ priorityText })
+              }}
+              keyboard="decimal"
+              testID="scheme-priority"
+            />
+            <Hint>{t('px.orderHelp')}</Hint>
+          </Stack>
+        )}
+
         <Stack gap={1}>
           <Txt field="label" desk="meta">
             {t('px.paidBy')}

@@ -283,6 +283,26 @@ describe('DOS-214 a scheme: a percentage line scheme and an order-value scheme',
     expect(parsed.success, JSON.stringify(parsed.error?.issues)).toBe(true)
   })
 
+  it('QA DOS-334: carries the owner’s order among stacked schemes, 0 when nobody set one', () => {
+    const base = { ...newSchemeDraft(TODAY), name: 'Flat ₹5', rewardText: '2' }
+    const unset = schemePayload(ID, base)
+    if (!unset.ok) throw new Error(unset.problem)
+    expect(unset.input.priority).toBe(0)
+    const first = schemePayload(ID, { ...base, priorityText: '1' })
+    if (!first.ok) throw new Error(first.problem)
+    expect(first.input.priority).toBe(1)
+    const parsed = UpsertSchemeInput.safeParse({ ...first.input, idempotencyKey: KEY })
+    expect(parsed.success, JSON.stringify(parsed.error?.issues)).toBe(true)
+    expect(schemePayload(ID, { ...base, priorityText: '' })).toEqual({
+      ok: false,
+      problem: 'px.needOrder',
+    })
+    expect(schemePayload(ID, { ...base, priorityText: '1000' })).toEqual({
+      ok: false,
+      problem: 'px.needOrder',
+    })
+  })
+
   it('says what is wrong in the desk’s words before the server has to', () => {
     const base = { ...newSchemeDraft(TODAY), name: 'X', rewardText: '2' }
     expect(schemePayload(ID, { ...base, name: '  ' })).toEqual({

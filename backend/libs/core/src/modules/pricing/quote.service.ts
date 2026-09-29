@@ -493,6 +493,9 @@ export function toSchemeRule(row: typeof schemes.$inferSelect): SchemeRule {
     validFrom: row.validFrom,
     validTo: row.validTo,
     stackable: row.stackable,
+    // QA DOS-334: the owner's order among stacked schemes reaches the engine (priority, then id) — the phone's
+    // engine already read it from the synced row, so the server and the device now stack alike.
+    priority: row.priority,
     final: row.final,
     fundingSource: row.fundingSource,
     claimable: row.claimable,

@@ -146,6 +146,8 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
     t18at1050: Array.from({ length: 6 }, () => uuidv7()),
     /** QA N05 / N09: Sunbake Marie, ₹22.45 on the list, landed at ₹20.37. */
     marie: uuidv7(),
+    /** QA's priority probe: Garam Masala at ₹74.54. */
+    masala: uuidv7(),
   }
   const RATE = {
     ghee: 31_738,
@@ -157,6 +159,7 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
     t0at1011: 1011,
     t18at1050: 1050,
     marie: 2245,
+    masala: 7454,
   }
   const MARIE_LANDED = 2037
   /** A fresh shop per case, so no credit decision or earlier order of another case reaches it. */
@@ -356,6 +359,7 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
         variant(v.t0at1011, 'Milk 500 ml', hsn.g0),
         ...v.t18at1050.map((id, i) => variant(id, `Biscuit ${String(i + 1)}`, hsn.g18)),
         variant(v.marie, 'Marie 250 g', hsn.g18),
+        variant(v.masala, 'Garam Masala 100 g', hsn.g18),
       ])
     const listId = uuidv7()
     await db
@@ -380,6 +384,7 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
         item(v.t0at1011, RATE.t0at1011),
         ...v.t18at1050.map((id) => item(id, RATE.t18at1050)),
         item(v.marie, RATE.marie),
+        item(v.masala, RATE.masala),
       ])
     await db.insert(tenantProductCosts).values({
       id: uuidv7(),
@@ -994,6 +999,158 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
     expect(knowingly.body.order?.lines[0]?.lineTotalPaise).toBe(
       5 * 1900 + lineTax(5 * 1900, { gstBps: 1800, cessBps: 0 }, false).taxPaise,
     )
+  })
+
+  // ---------------------------------------------------------------------------------------------------------------
+  // DOS-334 (ruling 4): the owner sets which scheme applies first; DOS-338 (ruling 9): the free-goods flag is ignored
+
+  it('DOS-334: priority is accepted, returned and applied (priority, then id); a scheme saved without it keeps its own', async () => {
+    const scheme = (id: string, name: string, extra: Record<string, unknown>) => ({
+      idempotencyKey: `scheme-${name}-${run}`,
+      id,
+      name: `${name} ${run}`,
+      scope: { variantIds: [v.masala] },
+      triggerKind: 'qty',
+      triggerMin: 1,
+      triggerUnit: 'pcs',
+      validFrom: '2020-01-01',
+      validTo: '2099-12-31',
+      stackable: true,
+      fundingSource: 'distributor',
+      ...extra,
+    })
+    const flat = uuidv7()
+    const pct = uuidv7()
+    // made in this order and never ordered: the flat ₹5 a piece applies first, as today
+    const madeFlat = await call<{ item: { priority?: number; gstOnFreeGoods: boolean } }>(
+      app,
+      owner,
+      'POST',
+      '/pricing/schemes',
+      scheme(flat, 'flat5', {
+        rewardKind: 'per_unit_amount',
+        rewardValue: 500,
+        gstOnFreeGoods: true,
+      }),
+    )
+    expect(madeFlat.status, JSON.stringify(madeFlat.body)).toBe(200)
+    expect(madeFlat.body.item.priority).toBe(0)
+    // DOS-338: the flag is accepted without an error and changes nothing, so it is not kept
+    expect(madeFlat.body.item.gstOnFreeGoods).toBe(false)
+    await call(
+      app,
+      owner,
+      'POST',
+      '/pricing/schemes',
+      scheme(pct, 'pct10', {
+        rewardKind: 'line_pct',
+        rewardValue: 1000,
+      }),
+    )
+    const shop = await newShop('P334')
+    const before = await quote(shop, [{ variantId: v.masala, qtyPcs: 48 }])
+    // ₹3,577.92: ₹240 flat first, then 10 % of ₹3,337.92 = ₹333.79 → ₹573.79 (QA's probe)
+    expect(before.lines[0]?.lineNetPaise).toBe(357_792 - 57_379)
+
+    // the owner puts the 10 % first
+    const ordered = await call<{ item: { priority?: number } }>(
+      app,
+      owner,
+      'POST',
+      '/pricing/schemes',
+      scheme(flat, 'flat5-ordered', {
+        rewardKind: 'per_unit_amount',
+        rewardValue: 500,
+        priority: 50,
+      }),
+    )
+    expect(ordered.body.item.priority).toBe(50)
+    await call(
+      app,
+      owner,
+      'POST',
+      '/pricing/schemes',
+      scheme(pct, 'pct10-ordered', {
+        rewardKind: 'line_pct',
+        rewardValue: 1000,
+        priority: 1,
+      }),
+    )
+    const after = await quote(shop, [{ variantId: v.masala, qtyPcs: 48 }])
+    // 10 % first = ₹357.79, then ₹240 → ₹597.79, the owner's order
+    expect(after.lines[0]?.lineNetPaise).toBe(357_792 - 59_779)
+
+    // saved again without a priority: it keeps its own (50), and the list reads it back
+    await call(
+      app,
+      owner,
+      'POST',
+      '/pricing/schemes',
+      scheme(flat, 'flat5-again', {
+        rewardKind: 'per_unit_amount',
+        rewardValue: 500,
+        name: `flat5 renamed ${run}`,
+      }),
+    )
+    const listed = await call<{ items: { id: string; priority?: number }[] }>(
+      app,
+      owner,
+      'GET',
+      '/pricing/schemes',
+      { limit: 200 },
+    )
+    const byId = new Map(listed.body.items.map((i) => [i.id, i.priority]))
+    expect(byId.get(flat)).toBe(50)
+    expect(byId.get(pct)).toBe(1)
+    // switch both off so no later case prices masala with them
+    for (const id of [flat, pct])
+      await db.update(schemes).set({ active: false }).where(eq(schemes.id, id))
+  })
+
+  it('DOS-338: a free item carries its own GST rate on the order line and the bill line, at no value and no tax', async () => {
+    const gift = uuidv7()
+    const made = await call<{ item: { gstOnFreeGoods: boolean } }>(
+      app,
+      owner,
+      'POST',
+      '/pricing/schemes',
+      {
+        idempotencyKey: `scheme-gift-${run}`,
+        id: gift,
+        name: `2 soaps free per case ${run}`,
+        scope: { variantIds: [v.t12at1025] },
+        triggerKind: 'qty',
+        triggerMin: 12,
+        triggerUnit: 'pcs',
+        rewardKind: 'free_qty',
+        rewardValue: 2,
+        freeVariantId: v.t18at1025,
+        validFrom: '2020-01-01',
+        validTo: '2099-12-31',
+        fundingSource: 'distributor',
+        gstOnFreeGoods: true,
+      },
+    )
+    expect(made.status, JSON.stringify(made.body)).toBe(200)
+    expect(made.body.item.gstOnFreeGoods).toBe(false)
+    const shop = await newShop('F05')
+    const order = await placeOrder(shop, [{ variantId: v.t12at1025, qtyPcs: 12 }], 'f05')
+    const orderReward = order.lines.find((l) => l.variantId === v.t18at1025) as
+      (OrderLine & { gstBps: number; freeQtyPcs: number }) | undefined
+    expect(orderReward).toMatchObject({ qtyPcs: 0, freeQtyPcs: 2, gstBps: 1800, taxPaise: 0 })
+    const bill = await pack(order.id, 'f05')
+    const billReward = bill.lines.find((l) => l.variantId === v.t18at1025) as
+      (BillLine & { gstBps: number }) | undefined
+    expect(billReward).toMatchObject({
+      qtyPcs: 0,
+      freeQtyPcs: 2,
+      gstBps: 1800,
+      taxablePaise: 0,
+      cgstPaise: 0,
+      sgstPaise: 0,
+    })
+    expect(bill.totalPaise).toBe(order.totalPaise)
+    await db.update(schemes).set({ active: false }).where(eq(schemes.id, gift))
   })
 
   it('the release check is clean for this distributor’s bills written now', async () => {
