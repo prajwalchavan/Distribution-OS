@@ -10,17 +10,26 @@
 #
 #   1. refuses to start unless the backend is built, the real API answers /health, the owner's password
 #      file is there, and no message channel (WhatsApp, SMS) is switched on — dummy deliveries would
-#      message real shopkeepers (QA DOS-401);
-#   2. REHEARSES: a fresh dump of dos_live, restored into a scratch database dos_fill_rehearsal (closed to
-#      every login but dos), a second API on a spare port over it (the real environment file with the
-#      database, the two ports and the file folder swapped), the tool with --commit and the three checks
-#      there, with a throw-away logins file; then that API is stopped and the scratch database dropped. Any
-#      failure stops everything before the real database is touched;
+#      message real shopkeepers (QA DOS-401); a rehearsal an earlier run left behind (killed hard: SIGKILL, a
+#      dropped ssh) is recognised by its own state file — the database it made and the process it started —
+#      stopped and dropped; anything else on the rehearsal port stops the command;
+#   2. REHEARSES: a fresh dump of dos_live (mode 600, in /var/backups/dos/fill-demo, closed to other logins:
+#      it holds the real shops' names, phones and dues), restored into a scratch database dos_fill_rehearsal
+#      (closed to every login but dos), a second API on a spare port over it (the real environment file with
+#      the database, the two ports and the file folder swapped — that folder is never the real one, nor inside
+#      it, nor above it), the tool with --commit, its two checks and the four release checks there, with a
+#      throw-away logins file; then that API is stopped and the scratch database dropped. Any failure stops
+#      everything before the real database is touched;
 #   3. runs the tool with --commit against the real API (127.0.0.1:3100) as owner.tarsun, with the tester
-#      logins in /opt/dos/env/tester-logins.txt (mode 600), then the three checks;
+#      logins in /opt/dos/env/tester-logins.txt (mode 600), then the same six checks;
 #   4. writes /opt/dos/fill-demo-nightly.sh and the cron line for 06:00 IST (`30 0 * * *` on a VM clock in UTC,
 #      `0 6 * * *` on one in IST; any other clock needs FILL_CRON_WHEN), log in /var/backups/dos/fill-demo.log;
 #   5. prints PASS / FAIL lines.
+#
+# The six checks after a run: check:demo-coverage (every role opens on work), check:demo-rows (the tool's rows
+# are the run's, its money only on its own bills and no real money on them, the books right), and the four
+# release checks — check:stock-negative, check:stranded, check:stock-cancels, check:receipt-references: the work
+# the tool leaves open on purpose must read as work the product can carry on, never as stranded (rule 7b).
 #
 # The Mac half then copies the logins file to ~/.config/dos/tester-logins.txt (mode 600) and prints only
 # its path. No password, no shop's name, phone or address is printed anywhere: the tool and the checks
@@ -43,6 +52,16 @@ OWNER_PW="${FILL_OWNER_PW:-$E/live-owner.pw}"
 LOGINS="${FILL_LOGINS:-$E/tester-logins.txt}"
 NIGHTLY="${FILL_NIGHTLY_SCRIPT:-/opt/dos/fill-demo-nightly.sh}"
 LOG="${FILL_LOG:-$BACKUPS/fill-demo.log}"
+# The command's own folder, closed to other logins (mode 700): the before-fill dumps (a full copy of the real
+# shops' names, phones and dues, mode 600), what pg_restore and the rehearsal API said, the checks' outputs,
+# and the rehearsal's state file. Not the nightly backups' folder: deploy.sh restores the newest dump there as
+# the postgres login, which a mode-600 file of this login would stop.
+FILL_DIR="${FILL_DIR:-$BACKUPS/fill-demo}"
+# What this command started for its rehearsal (the database it made, the API process, the port), so a run killed
+# hard is cleaned up by the next one — by these, never by the port alone.
+STATE="$FILL_DIR/rehearsal.state"
+# Before-fill dumps kept (newest first); older ones are removed by this command.
+KEEP_DUMPS="${FILL_KEEP_DUMPS:-7}"
 # Empty = worked out from the VM clock (cron_when).
 CRON_WHEN="${FILL_CRON_WHEN:-}"
 
@@ -83,10 +102,15 @@ cron_when() {
 # The last line a script printed itself (pnpm's own "Command failed" line left out).
 last() { grep -v -E 'ELIFECYCLE|^\s*$' "$1" | tail -1 || true; }
 
-# The tool and the checks against one API and one database. Output goes to "$2" (counts and ids only);
-# the summary lines are shown. The four exit codes land in "$2.codes" as "fill coverage rows cancels".
+# The release checks, in the order release-checks.sh runs them. What one names can carry a real shop's name, so
+# its output stays in the command's closed folder and only its exit code and line count are shown.
+RELEASE_CHECKS="stock-negative stranded stock-cancels receipt-references"
+
+# The tool and the six checks against one API and one database. Output goes to "$2" (counts and ids only);
+# the summary lines are shown. The seven exit codes land in "$2.codes" as
+# "fill coverage rows stock-negative stranded stock-cancels receipt-references".
 fill_and_check() { # fill_and_check <port> <log file> <database url> <logins file> <label>
-  local port="$1" out="$2" url="$3" logins="$4" label="$5" fill=0 cov=0 rows=0 cancels=0
+  local port="$1" out="$2" url="$3" logins="$4" label="$5" fill=0 cov=0 rows=0 rc codes c
   # What the database held before, so the marker check proves THIS run's rows against its report.
   (cd "$B" && DATABASE_URL="$url" pnpm -s check:demo-rows --tenant "$TENANT" --json "$out.before.json") >/dev/null 2>&1 || true
   (
@@ -106,21 +130,112 @@ fill_and_check() { # fill_and_check <port> <log file> <database url> <logins fil
   (cd "$B" && DATABASE_URL="$url" pnpm -s check:demo-rows --tenant "$TENANT" --expect "$out.run.json" \
     --baseline "$out.before.json") >"$out.rows" 2>&1 || rows=$?
   last "$out.rows" | sed "s/^/   [$label] marker check: /"
-  (cd "$B" && DATABASE_URL="$url" pnpm -s check:stock-cancels) >"$out.cancels" 2>&1 || cancels=$?
-  last "$out.cancels" | sed "s/^/   [$label] stock cancels: /"
-  echo "$fill $cov $rows $cancels" >"$out.codes"
+  codes="$fill $cov $rows"
+  for c in $RELEASE_CHECKS; do
+    rc=0
+    (cd "$B" && DATABASE_URL="$url" pnpm -s "check:$c") >"$out.$c" 2>&1 || rc=$?
+    echo "   [$label] check:$c exit $rc ($(wc -l <"$out.$c" | tr -d ' ') lines, in $out.$c)"
+    codes="$codes $rc"
+  done
+  echo "$codes" >"$out.codes"
 }
+ALL_PASS="0 0 0 0 0 0 0"
+
+# ---------------------------------------------------------------------------------- the rehearsal's own things
+# The state file names what THIS command made for its rehearsal: `db=` before the database is created, `pid=`
+# and `port=` once its API runs. A run killed hard (SIGKILL, a dropped ssh: the EXIT trap never runs) leaves them
+# behind; the next run reads the file, stops that API only when it is still that process (its command line is
+# the API's and its environment names that database) and drops that database only when its name is a
+# rehearsal's. Never by the port alone: whatever else answers on the rehearsal port stops the command.
+state_get() { [ -f "$STATE" ] && sed -n "s/^$1=//p" "$STATE" | head -1 || true; }
+state_put() { (umask 077 && echo "$1=$2" >>"$STATE"); }
+
+# Is process $1 the rehearsal API over database $2? Its command line runs dist/main.js and its environment names
+# that database (Linux /proc; elsewhere `ps eww`, which shows the environment of one's own processes).
+is_rehearsal_api() { # is_rehearsal_api <pid> <db>
+  local pid="$1" db="$2"
+  [ -n "$pid" ] && [ -n "$db" ] && kill -0 "$pid" 2>/dev/null || return 1
+  ps -o args= -p "$pid" 2>/dev/null | grep -q 'dist/main.js' || return 1
+  if [ -r "/proc/$pid/environ" ]; then
+    tr '\0' '\n' <"/proc/$pid/environ" | grep -q "^DATABASE_URL=.*/$db\$"
+  else
+    ps eww -o command= -p "$pid" 2>/dev/null | tr ' ' '\n' | grep -q "^DATABASE_URL=.*/$db\$"
+  fi
+}
+
+stop_pid() {
+  kill "$1" 2>/dev/null || true
+  for _ in $(seq 1 40); do kill -0 "$1" 2>/dev/null || break; sleep 0.5; done
+  kill -9 "$1" 2>/dev/null || true
+}
+
+# A database the rehearsal may drop: its name says rehearsal and it is not the real one.
+droppable() { case "$1" in *rehearsal*) [ "$1" != "$LIVE_DB" ] && [ "$1" != "${2:-}" ] ;; *) return 1 ;; esac; }
 
 REHEARSAL_PID=""
 stop_rehearsal() {
-  if [ -n "$REHEARSAL_PID" ] && kill -0 "$REHEARSAL_PID" 2>/dev/null; then
-    kill "$REHEARSAL_PID" 2>/dev/null || true
-    for _ in $(seq 1 40); do kill -0 "$REHEARSAL_PID" 2>/dev/null || break; sleep 0.5; done
-    kill -9 "$REHEARSAL_PID" 2>/dev/null || true
-  fi
+  if [ -n "$REHEARSAL_PID" ] && kill -0 "$REHEARSAL_PID" 2>/dev/null; then stop_pid "$REHEARSAL_PID"; fi
   REHEARSAL_PID=""
   sudo -u postgres psql -qc "DROP DATABASE IF EXISTS \"$REHEARSAL_DB\" WITH (FORCE)" >/dev/null 2>&1 || true
   rm -rf "$REHEARSAL_STORAGE" "$E/.fill-rehearsal-logins.txt"
+  rm -f "$STATE"
+}
+
+# What an earlier run killed hard left: its API stopped (when it is still that process) and its database dropped.
+# Prints what it did; changes nothing when there is no state file.
+clean_leftover() { # clean_leftover <live database of live.env>
+  local db pid port
+  [ -f "$STATE" ] || return 0
+  db="$(state_get db)"
+  pid="$(state_get pid)"
+  port="$(state_get port)"
+  if [ -n "$pid" ] && is_rehearsal_api "$pid" "$db"; then
+    stop_pid "$pid"
+    echo "   an earlier run was stopped hard: its rehearsal API (pid $pid, :$port) is stopped"
+  elif [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+    echo "   the state file names pid $pid, which is not this command's rehearsal API now: left alone"
+  fi
+  if [ -n "$db" ]; then
+    if droppable "$db" "$1"; then
+      if [ "$(sudo -u postgres psql -qtAc "select count(*) from pg_database where datname = '$db'" 2>/dev/null)" = 1 ]; then
+        sudo -u postgres psql -qc "DROP DATABASE IF EXISTS \"$db\" WITH (FORCE)" >/dev/null 2>&1 || true
+        echo "   an earlier run was stopped hard: its rehearsal database $db is dropped"
+      fi
+    else
+      die "the state file $STATE names a database that is not a rehearsal ($db): nothing dropped; look at it"
+    fi
+  fi
+  rm -f "$STATE" "$E/.fill-rehearsal-logins.txt"
+}
+
+# A folder's own path, links resolved, for a folder that may not exist yet (its nearest existing parent's).
+canon() {
+  local p="$1" tail=""
+  case "$p" in /*) ;; *) p="$PWD/$p" ;; esac
+  while [ ! -d "$p" ]; do
+    tail="/$(basename "$p")$tail"
+    p="$(dirname "$p")"
+  done
+  echo "$(cd "$p" && pwd -P)$tail" | sed -e 's#//*#/#g' -e 's#/$##'
+}
+
+# The rehearsal's file folder is removed at the end of every rehearsal: it can never be the real API's folder,
+# nor inside it, nor above it (nor the root, the backend or the backups).
+check_rehearsal_storage() { # check_rehearsal_storage <real storage folder, from live.env>
+  local r l
+  [ -n "$REHEARSAL_STORAGE" ] || die "FILL_REHEARSAL_STORAGE is empty"
+  r="$(canon "$REHEARSAL_STORAGE")"
+  [ -n "$r" ] && [ "$r" != / ] || die "the rehearsal file folder is the root"
+  for other in "$1" "$B" "$BACKUPS" "$E" "$FILL_DIR" "$HOME"; do
+    [ -n "$other" ] || continue
+    l="$(canon "$other")"
+    [ "$r" != "$l" ] || die "the rehearsal file folder is $other: it is removed after the rehearsal"
+    case "$l/" in "$r"/*) die "the rehearsal file folder $REHEARSAL_STORAGE holds $other: it is removed after the rehearsal" ;; esac
+  done
+  if [ -n "$1" ]; then
+    l="$(canon "$1")"
+    case "$r/" in "$l"/*) die "the rehearsal file folder $REHEARSAL_STORAGE is inside the real one ($1)" ;; esac
+  fi
 }
 
 write_nightly() {
@@ -132,7 +247,7 @@ write_nightly() {
   cat >"$NIGHTLY.new" <<SH
 #!/usr/bin/env bash
 # Written by backend/infra/oracle-vm/fill-demo.sh. Every morning at 06:00 IST: the tool finishes what it
-# left open yesterday and makes today on the REAL API, then the three checks. Log: $LOG
+# left open yesterday and makes today on the REAL API, then its two checks and the four release checks. Log: $LOG
 set -uo pipefail
 export CI=1 PATH="$pnpm_dir:$node_dir:\$PATH"
 echo "-- fill-demo \$(date '+%F %T %Z')"
@@ -145,19 +260,25 @@ code=\$(curl -s -m 10 -o /dev/null -w '%{http_code}' http://127.0.0.1:$LIVE_PORT
 [ "\$code" = 200 ] || { echo "FAIL  the API does not answer /health (\$code); nothing made"; exit 1; }
 URL="\$(sed -n 's/^DATABASE_URL=//p' "$LIVE_ENV" | head -1)"
 cd "$B"
-DATABASE_URL="\$URL" pnpm -s check:demo-rows --tenant "$TENANT" --json "$BACKUPS/fill-demo-before.json" >/dev/null 2>&1 || true
+umask 077
+mkdir -p "$FILL_DIR"; chmod 700 "$FILL_DIR"
+DATABASE_URL="\$URL" pnpm -s check:demo-rows --tenant "$TENANT" --json "$FILL_DIR/nightly-before.json" >/dev/null 2>&1 || true
 rc=0
 pnpm -s fill:demo --api http://127.0.0.1:$LIVE_PORT --tenant "$TENANT" --owner-username "$OWNER" \\
-  --owner-password-file "$OWNER_PW" --logins-file "$LOGINS" --commit --report "$BACKUPS/fill-demo-last.json" || rc=\$?
+  --owner-password-file "$OWNER_PW" --logins-file "$LOGINS" --commit --report "$FILL_DIR/nightly-last.json" || rc=\$?
 [ "\$rc" = 0 ] && echo "PASS  fill:demo" || echo "FAIL  fill:demo exit \$rc"
 c=0; pnpm -s check:demo-coverage --api http://127.0.0.1:$LIVE_PORT --tenant "$TENANT" --owner-username "$OWNER" \\
   --owner-password-file "$OWNER_PW" --logins-file "$LOGINS" || c=\$?
 [ "\$c" = 0 ] && echo "PASS  check:demo-coverage" || echo "FAIL  check:demo-coverage exit \$c"
-r=0; DATABASE_URL="\$URL" pnpm -s check:demo-rows --tenant "$TENANT" --baseline "$BACKUPS/fill-demo-before.json" \\
-  --expect "$BACKUPS/fill-demo-last.json" || r=\$?
+r=0; DATABASE_URL="\$URL" pnpm -s check:demo-rows --tenant "$TENANT" --baseline "$FILL_DIR/nightly-before.json" \\
+  --expect "$FILL_DIR/nightly-last.json" || r=\$?
 [ "\$r" = 0 ] && echo "PASS  check:demo-rows" || echo "FAIL  check:demo-rows exit \$r"
-s=0; DATABASE_URL="\$URL" pnpm -s check:stock-cancels || s=\$?
-[ "\$s" = 0 ] && echo "PASS  check:stock-cancels" || echo "FAIL  check:stock-cancels exit \$s"
+# The four release checks (rule 7b). What one names can carry a real shop's name: it stays in $FILL_DIR.
+s=0
+for k in $RELEASE_CHECKS; do
+  x=0; DATABASE_URL="\$URL" pnpm -s "check:\$k" >"$FILL_DIR/nightly-\$k.log" 2>&1 || x=\$?
+  [ "\$x" = 0 ] && echo "PASS  check:\$k" || { echo "FAIL  check:\$k exit \$x (\$(wc -l <"$FILL_DIR/nightly-\$k.log" | tr -d ' ') lines in $FILL_DIR/nightly-\$k.log)"; s=1; }
+done
 chmod 600 "$LOGINS" 2>/dev/null || true
 exit \$(( rc + c + r + s > 0 ? 1 : 0 ))
 SH
@@ -194,27 +315,41 @@ vm_main() {
   [ "$REHEARSAL_DB" != "$LIVE_DB" ] && [ "$REHEARSAL_DB" != "${url##*/}" ] ||
     die "the rehearsal database is the real one ($REHEARSAL_DB)"
   [ "$REHEARSAL_PORT" != "$LIVE_PORT" ] || die "the rehearsal port is the real API's ($REHEARSAL_PORT)"
+  # The rehearsal's file folder is removed after it: never the real API's folder, inside it or above it.
+  check_rehearsal_storage "$(val "$LIVE_ENV" OBJECT_STORAGE_DIR)"
   [ "$(health "$LIVE_PORT")" = 200 ] || die "the real API does not answer /health on :$LIVE_PORT"
-  [ "$(health "$REHEARSAL_PORT")" = 000 ] || die "port $REHEARSAL_PORT is taken: the rehearsal needs it free"
+  # The command's own folder, closed to other logins; everything it writes there is its own login's only.
+  umask 077
+  mkdir -p "$FILL_DIR"
+  chmod 700 "$FILL_DIR"
+  # A rehearsal an earlier run left when it was killed hard: recognised by its state file, then cleaned up.
+  clean_leftover "${url##*/}"
+  [ "$(health "$REHEARSAL_PORT")" = 000 ] ||
+    die "port $REHEARSAL_PORT is taken by something this command did not start: the rehearsal needs it free"
   echo "   built, the API answers on :$LIVE_PORT, no message channel, port $REHEARSAL_PORT free"
-  stamp="$(date +%F-%H%M)"
-  mkdir -p "$BACKUPS/daily"
+  stamp="$(date +%F-%H%M%S)"
 
   say "1/4 rehearse on a copy of $LIVE_DB"
   # A dump of the real data as it is before this run: the copy the rehearsal restores, and the way back. It
-  # sits with the nightly backups and goes with them after seven days (backup-local.sh).
-  dump="$BACKUPS/daily/$LIVE_DB-$stamp-before-fill.dump"
-  sudo -u postgres pg_dump -Fc "$LIVE_DB" >"$dump"
-  dump="$(ls -t "$BACKUPS/daily/$LIVE_DB"-*.dump 2>/dev/null | head -1)"
-  [ -s "$dump" ] || die "no dump of $LIVE_DB in $BACKUPS/daily"
-  echo "   restoring $(basename "$dump")"
+  # holds the real shops' names, phones and dues: mode 600 in the command's own folder (mode 700), the newest
+  # $KEEP_DUMPS kept. pg_restore reads it from this login's hand (stdin), so the postgres login never opens it.
+  local dump_name="$LIVE_DB-$stamp-before-fill.dump"
+  dump="$FILL_DIR/$dump_name"
+  (umask 077 && sudo -u postgres pg_dump -Fc "$LIVE_DB" >"$dump")
+  chmod 600 "$dump"
+  [ -s "$dump" ] || die "the dump of $LIVE_DB is empty"
+  # shellcheck disable=SC2012
+  ls -1t "$FILL_DIR/$LIVE_DB"-*-before-fill.dump 2>/dev/null | tail -n +"$((KEEP_DUMPS + 1))" | while read -r old; do rm -f "$old"; done
+  echo "   restoring $dump_name"
   trap stop_rehearsal EXIT
   stop_rehearsal
+  # What this command makes is written down before it is made: a run killed hard is recognised by the next.
+  state_put db "$REHEARSAL_DB"
   sudo -u postgres createdb -O dos "$REHEARSAL_DB"
   sudo -u postgres psql -qc "REVOKE CONNECT ON DATABASE \"$REHEARSAL_DB\" FROM PUBLIC"
   # What pg_restore says stays on the VM (mode 600): an error line may quote a row of the real data.
-  local restore_log="$BACKUPS/fill-rehearsal-restore.log" restored=0 errors there
-  (umask 077 && sudo -u postgres pg_restore -d "$REHEARSAL_DB" --no-owner --role=dos "$dump" >"$restore_log" 2>&1) ||
+  local restore_log="$FILL_DIR/rehearsal-restore.log" restored=0 errors there
+  (umask 077 && sudo -u postgres pg_restore -d "$REHEARSAL_DB" --no-owner --role=dos <"$dump" >"$restore_log" 2>&1) ||
     restored=$?
   errors="$(grep -c -i 'error' "$restore_log" || true)"
   there="$(sudo -u postgres psql -d "$REHEARSAL_DB" -qtAc "select count(*) from tenants where slug = '$TENANT'" 2>/dev/null || true)"
@@ -238,16 +373,18 @@ vm_main() {
     # PDF rendered here would be written over the real one's file.
     export OBJECT_STORAGE_DIR="$REHEARSAL_STORAGE"
     cd "$B/all-in-one"
-    exec node dist/main.js >"$BACKUPS/fill-rehearsal-api.log" 2>&1
+    exec node dist/main.js >"$FILL_DIR/rehearsal-api.log" 2>&1
   ) &
   REHEARSAL_PID=$!
+  state_put pid "$REHEARSAL_PID"
+  state_put port "$REHEARSAL_PORT"
   for _ in $(seq 1 60); do [ "$(health "$REHEARSAL_PORT")" = 200 ] && break; sleep 2; done
-  [ "$(health "$REHEARSAL_PORT")" = 200 ] || die "the rehearsal API did not start (log $BACKUPS/fill-rehearsal-api.log)"
+  [ "$(health "$REHEARSAL_PORT")" = 200 ] || die "the rehearsal API did not start (log $FILL_DIR/rehearsal-api.log)"
   echo "   rehearsal API on :$REHEARSAL_PORT over $REHEARSAL_DB"
   # A throw-away copy of the tester logins: the copy of the database has the same people, so the
   # rehearsal signs them in as the real run will (and heals them on the copy when the file is new).
   (umask 077 && if [ -f "$LOGINS" ]; then cat "$LOGINS"; fi >"$E/.fill-rehearsal-logins.txt")
-  out="$BACKUPS/fill-demo-rehearsal-$stamp.log"
+  out="$FILL_DIR/rehearsal-$stamp.log"
   fill_and_check "$REHEARSAL_PORT" "$out" "$rurl" "$E/.fill-rehearsal-logins.txt" rehearsal
   codes="$(cat "$out.codes")"
   stop_rehearsal
@@ -255,26 +392,31 @@ vm_main() {
   [ "$(sudo -u postgres psql -qtAc "select count(*) from pg_database where datname = '$REHEARSAL_DB'")" = 0 ] &&
     proof ok "the rehearsal database is dropped and its API stopped" ||
     proof bad "the rehearsal database $REHEARSAL_DB is still there"
-  if [ "$codes" != "0 0 0 0" ]; then
-    proof bad "the rehearsal failed (fill, coverage, marker, cancels exit: $codes); the real database was NOT touched"
+  if [ "$codes" != "$ALL_PASS" ]; then
+    proof bad "the rehearsal failed (fill, coverage, marker, then the release checks $RELEASE_CHECKS exit: $codes); the real database was NOT touched"
     echo
     echo "$PASSES passed, $FAILS failed — details in $out*"
     return 1
   fi
-  proof ok "the rehearsal on a copy of $LIVE_DB made the day, every role opens on work, every rule holds"
+  proof ok "the rehearsal on a copy of $LIVE_DB made the day, every role opens on work, every rule holds, the four release checks pass"
 
   say "2/4 the real API (:$LIVE_PORT)"
   [ "$(health "$LIVE_PORT")" = 200 ] || die "the real API stopped answering"
-  out="$BACKUPS/fill-demo-live-$stamp.log"
+  out="$FILL_DIR/live-$stamp.log"
   before="$([ -f "$LOGINS" ] && echo yes || echo no)"
   fill_and_check "$LIVE_PORT" "$out" "$url" "$LOGINS" live
   codes="$(cat "$out.codes")"
-  read -r fillc covc rowsc cancelc <<<"$codes"
+  read -r fillc covc rowsc negc strc cancelc refc <<<"$codes"
   [ "$fillc" = 0 ] && proof ok "fill:demo made the day on the real database" || proof bad "fill:demo exit $fillc (see $out)"
   [ "$covc" = 0 ] && proof ok "every tester login opens on work" || proof bad "check:demo-coverage exit $covc (see $out.coverage)"
-  [ "$rowsc" = 0 ] && proof ok "the marker check: the tool's rows are the runs' rows, its money only on its own bills, the books right" ||
+  [ "$rowsc" = 0 ] && proof ok "the marker check: the tool's rows are the runs' rows, its money only on its own bills and no real money on them, the books right" ||
     proof bad "check:demo-rows exit $rowsc (see $out.rows)"
-  [ "$cancelc" = 0 ] && proof ok "no cancelled bill leaves stock behind" || proof bad "check:stock-cancels exit $cancelc"
+  [ "$negc" = 0 ] && proof ok "no place shows stock below zero" || proof bad "check:stock-negative exit $negc (see $out.stock-negative)"
+  [ "$strc" = 0 ] && proof ok "nothing is stranded: the work left open today is work the product carries on" ||
+    proof bad "check:stranded exit $strc (see $out.stranded)"
+  [ "$cancelc" = 0 ] && proof ok "no cancelled bill leaves stock behind" || proof bad "check:stock-cancels exit $cancelc (see $out.stock-cancels)"
+  [ "$refc" = 0 ] && proof ok "no payment reference is on two live receipts" ||
+    proof bad "check:receipt-references exit $refc (see $out.receipt-references)"
   after="$(stat -c '%a' "$LOGINS" 2>/dev/null || stat -f '%Lp' "$LOGINS" 2>/dev/null || echo none)"
   [ "$after" = 600 ] && proof ok "the tester logins are in $LOGINS, mode 600 (was there before: $before)" ||
     proof bad "the tester logins file is missing or not mode 600 ($after)"

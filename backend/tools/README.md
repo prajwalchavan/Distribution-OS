@@ -123,9 +123,9 @@ each step and calls the procedures the apps call — and never opens a database 
 | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `pnpm fill:demo --api <url> --tenant <slug> --owner-password-file <f> --logins-file <f> [--commit]` | Finishes what the tool left open on earlier days, then makes `--date` (default today, IST). Dry run without `--commit`. `--report <json>` writes its counts.                                              |
 | `pnpm check:demo-coverage` (same arguments)                                                         | Signs in as every tester login and reads what each role's screens read; exits 1 with the gap list when a role has no work.                                                                                |
-| `pnpm check:demo-rows --tenant <slug> [--expect <run.json> …] [--baseline <before.json>]`           | Reads the database (`DATABASE_URL`) read-only: the tool's rows by kind, its money only on its own bills, stock ledger = balances, journals balance, dues = bills − receipts − credit notes.               |
+| `pnpm check:demo-rows --tenant <slug> [--expect <run.json> …] [--baseline <before.json>]`           | Reads the database (`DATABASE_URL`) read-only: the tool's rows by kind, its money only on its own bills and no real money on them, stock ledger = balances, journals balance, dues = bills − receipts − credit notes. |
 | `pnpm --filter @dos/tools build:lookalike --owner-password-file <f>`                                | TEST ONLY (refuses any database not named `dos_test_…`): a distributor built the way the real one was — `bootstrapTenant` + the legacy importer's writer — from an invented plan of the real one's shape. |
-| `bash backend/infra/oracle-vm/fill-demo.sh`                                                         | The founder's one command: rehearsal on a restored copy, the real run, the checks, the 06:00 IST cron line.                                                                                               |
+| `bash backend/infra/oracle-vm/fill-demo.sh`                                                         | The founder's one command: rehearsal on a restored copy, the real run, the tool's two checks and the four release checks on each, the 06:00 IST cron line.                                                 |
 
 How rows are marked: every idempotency key starts `demo-fill:<business date>:`, and every id the tool names
 is derived from that key and the distributor — a UUIDv7 whose time falls inside the business date and which
@@ -142,3 +142,24 @@ A dry run writes nothing of the business, but it does sign the owner in and out,
 records that as it records every sign-in: one session, its sign-in and sign-out events and the device. A run
 the API stops answering in the middle still prints its summary and writes its `--report` (exit 1 when a whole
 row of the brief's table is missing); the next run carries on from what is there.
+
+What the fixed product does by itself, and how the tool keeps to it:
+
+- **Money on account is applied by the product** to a shop's oldest open bills — at a new bill, at a receipt's
+  remainder, at a credit note's (QA DOS-312) — and money from a shop with a written-off bill recovers that first
+  (DOS-311). So real money never settles a tool bill and the tool's money never reaches a real one (rule 3b): the
+  tool never bills a shop holding money on account it did not put there; every receipt it records is explicit, to
+  the paisa of its own bills; its one payment left on account ("collections to match") goes only to a shop that owes
+  nothing on a real bill and has nothing written off; a return whose remainder could reach a real bill is not
+  issued (the manager cancels it). `check:demo-rows` proves both directions and names any tool money on account at
+  a shop owing on a real bill.
+- **A payment reference is used once** (DOS-310): the tool's UTRs, cheque numbers and transfer references carry the
+  business date and are never repeated; when the product still names one as taken, the next is asked.
+- **Credit** (DOS-313/314, DOS-225): no order for a shop whose credit is stopped; the shop held for credit is on a
+  strict limit and not pay-on-delivery.
+- **UPI is confirmed at Day-end** (DOS-256): each run confirms the earlier days' UPI with the cash and cheques it banks.
+- **A bill rides only the trip that carries it** (DOS-354): tomorrow's van load is planned tonight on van 1's trip of
+  tomorrow, its sheet waits for the manager (who can sign it off once today's van-1 trip is settled), and the next
+  morning's doors join that trip. A shop has one door on a van, with all its bills.
+- **After a run the four release checks pass** (`check:stock-negative`, `check:stranded`, `check:stock-cancels`,
+  `check:receipt-references`): the work the tool leaves open on purpose is work the product carries on.
