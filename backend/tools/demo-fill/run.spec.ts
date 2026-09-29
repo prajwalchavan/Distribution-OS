@@ -544,7 +544,7 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     await client.signOut(owner)
     for (const [k, v] of await passwordHashes()) hashesBefore.set(k, v)
     expect(hashesBefore.size).toBe(3)
-  }, 240_000)
+  }, 600_000)
 
   afterAll(async () => {
     await all.close()
@@ -563,7 +563,7 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
       `the plain username godown.${suffix} belongs to someone the tool did not make: its godown is godown2.${suffix}`,
     )
     expect(existsSync(loginsFile)).toBe(false)
-  }, 120_000)
+  }, 600_000)
 
   it('makes the first day with the day before it, its testers signing in with the demo password (D1, D2)', async () => {
     // The crew the next case turns into the tool's crew before 2026-09-29 (D6).
@@ -580,7 +580,7 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
       expect(s.mustChangePassword, username).toBe(false)
       await client.signOut(s)
     }
-  }, 240_000)
+  }, 600_000)
 
   it('heals a database of the tool before 2026-09-29 a day later, in one run (D6)', async () => {
     // What the tool before the founder's decision left: `tester.<key>` usernames with generated passwords, which
@@ -638,7 +638,7 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
       false,
     )
     expect(await coverageGaps(daysAgo(6), midUsername)).toEqual([])
-  }, 240_000)
+  }, 600_000)
 
   it('takes its own shift of a date a former crew made, and never takes or touches a plain username that is someone else’s (D5, D6)', async () => {
     const formerIds = await crewIds(midUsername)
@@ -718,7 +718,7 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     expect(again.summary.totals().made).toBe(0)
     expect(again.summary.totals().refused).toBe(0)
     expect(await counts()).toEqual(counted)
-  }, 240_000)
+  }, 600_000)
 
   it('a stand-in shop that is sent real money on account is billed no more (rule 3b)', async () => {
     // The product applies a shop's money on account to every new bill of it (DOS-312). A real payment the shop
@@ -744,7 +744,7 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     })
     plantedAt = new Date()
     await client.signOut(owner)
-  }, 120_000)
+  }, 600_000)
 
   it('a step the API refuses is counted, the rest of the day is made, and the next run makes it', async () => {
     // Only the desk's "record a supplier bill": matching an earlier bill's line goes through.
@@ -794,7 +794,7 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     expect(healed.summary.features.get('manager:supplier-bill-review')).toBe('there')
     expect(healed.summary.totals().refused).toBe(0)
     expect(healed.exitCode).toBe(0)
-  }, 240_000)
+  }, 600_000)
 
   it('the API stops answering while the standing pieces are read: a summary still, and the next run finishes the day', async () => {
     const door = await doorway(api, (method, path) =>
@@ -813,7 +813,7 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     expect(vans(healed)).toBe(2)
     const again = await fill(date, true)
     expect(again.summary.totals().made).toBe(0)
-  }, 240_000)
+  }, 600_000)
 
   it('a password changed by hand, then a lost logins file, are put right by the next run', async () => {
     const before = readFileSync(loginsFile)
@@ -842,7 +842,7 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     expect(lost.summary.totals().refused).toBe(0)
     expect(statSync(loginsFile).mode & 0o777).toBe(0o600)
     expect(readFileSync(loginsFile).equals(before)).toBe(true)
-  }, 240_000)
+  }, 600_000)
 
   it('a stand-in shop that stops being one: the offer moves to the shop that takes its place', async () => {
     const owner = await client.signIn(ownerUsername, ownerPassword, slug)
@@ -893,7 +893,7 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     expect(now.shops.filter((x) => was.shops.includes(x))).toHaveLength(2)
     expect(during.shops).toEqual(expect.arrayContaining(now.shops))
     await client.signOut(owner)
-  }, 240_000)
+  }, 600_000)
 
   it('makes yesterday, then today with yesterday finished', async () => {
     // Two real UPI payments already carry the references the tool would give van 1's UPI door of yesterday — the
@@ -970,7 +970,7 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     expect(earlierUpi.filter((r) => r.status !== 'deposited')).toEqual([])
     expect(statSync(loginsFile).mode & 0o777).toBe(0o600)
     expect(readLogins(loginsFile).size).toBe(7)
-  }, 240_000)
+  }, 600_000)
 
   it('writes nothing when the same date is run again', async () => {
     const before = await counts()
@@ -978,7 +978,7 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     expect(again.summary.totals().made).toBe(0)
     expect(again.summary.totals().refused).toBe(0)
     expect(await counts()).toEqual(before)
-  }, 120_000)
+  }, 600_000)
 
   it('refuses to make a day before one it has already made', async () => {
     await expect(fill(addDays(yesterday, -3), true)).rejects.toThrow(/already made/)
@@ -999,7 +999,7 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     expect(Object.fromEntries([...crew].map(([k, m]) => [k, m.username]))).toEqual(USERNAME)
     expect(await coverageGaps(today)).toEqual([])
     expect(await duplicates()).toEqual([])
-  }, 120_000)
+  }, 600_000)
 
   it('finds exactly the rows the runs made, and every rule of the books holds', async () => {
     const expected = expectedFromReports(
@@ -1061,7 +1061,7 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     )
     expect(stranded.status, stranded.stderr).toBe(0)
     expect(JSON.parse(stranded.stdout) as unknown[]).toEqual([])
-  }, 120_000)
+  }, 600_000)
 
   it("leaves the owner's and the distributor's own logins and their passwords alone (D3, D5)", async () => {
     expect(await passwordHashes()).toEqual(hashesBefore)

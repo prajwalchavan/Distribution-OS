@@ -13,8 +13,10 @@ export default defineConfig({
   test: {
     ...preset.test,
     include: ['demo-fill/**/*.{test,spec}.ts', 'testing/**/*.{test,spec}.ts'],
-    testTimeout: 30_000,
-    hookTimeout: 240_000,
+    // Generous: the whole run drives hundreds of API calls per day it makes, and on a Mac shared with other lanes'
+    // suites the same work has taken four times as long (the cases' own limits are 600 s for the same reason).
+    testTimeout: 120_000,
+    hookTimeout: 600_000,
     // The API booted in-process logs every refusal it answers with its stack (a 404 for "not made yet" is
     // how the tool asks); hundreds of them would bury the suite's own output. The spec asserts on answers.
     onConsoleLog: (log) => !log.includes('ORPCError'),
