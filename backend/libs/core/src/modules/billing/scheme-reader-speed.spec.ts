@@ -39,6 +39,12 @@ const describeDb = url ? describe : describe.skip
 
 /** The brand claim's source over 4 000 bill lines must come back inside this, on a database never analysed too. */
 const ONE_SECOND = 1_000
+/**
+ * The plain read of the same 4 000 lines (one join, no rules, the read before this lane) on this Mac at rest:
+ * 55–65 ms measured 2026-09-29 at load 5 (the reader: 190–240 ms). When the plain read is slower than this, the machine
+ * is slowed (other lanes, swap) and the second is stretched by the same factor — never shrunk below one second.
+ */
+const PLAIN_AT_REST_MS = 60
 
 interface PlanNode {
   'Node Type': string
@@ -294,23 +300,52 @@ describeDb('the once-per-order-line reader over 4 000 bill lines (DATABASE_URL)'
     await pool.end()
   })
 
+  /** The plain read of the same lines, the fastest of three: how fast this machine is right now. */
+  async function plainReadMs(filter: { from: string; to: string }): Promise<number> {
+    let best = Number.POSITIVE_INFINITY
+    for (let i = 0; i < 3; i += 1) {
+      const t0 = performance.now()
+      await inTenant((tx) =>
+        tx.execute(sql`
+          SELECT l.id, l.qty_pcs, l.applied_rules
+            FROM invoice_lines l
+            JOIN invoices i ON i.id = l.invoice_id
+            JOIN product_variants v ON v.id = l.variant_id
+            JOIN products p ON p.id = v.product_id
+           WHERE l.tenant_id = ${tenantId} AND i.state NOT IN ('draft', 'cancelled')
+             AND i.invoice_date BETWEEN ${filter.from} AND ${filter.to} AND p.brand_id = ${brandId}
+           ORDER BY i.invoice_date, i.id, l.line_no`),
+      )
+      best = Math.min(best, performance.now() - t0)
+    }
+    return best
+  }
+
   /**
    * The read, timed the way a person waits for it: back inside one second. On this 8 GB machine with other lanes
-   * running (swapping, load above 10) any single call can stall for seconds, so the read is timed up to five times,
-   * half a second apart, and the first that comes back inside the second passes. The reader before this repair never
-   * came close: 4 000 lines took 75 s, a thousand 7 s.
+   * running (swap, load above 10) everything can run five or ten times slower, so the second is stretched by how much
+   * slower the plain read of the same lines runs right now than at rest (never below one second), and the read is
+   * timed up to three times, the fastest counting. The reader before this repair never came close: 4 000 lines took
+   * 75 s (1 250 plain reads), a thousand 7 s.
    */
-  async function insideOneSecond<T>(what: string, read: () => Promise<T>): Promise<T> {
+  async function insideOneSecond<T>(
+    what: string,
+    filter: { from: string; to: string },
+    read: () => Promise<T>,
+  ): Promise<T> {
+    const plain = await plainReadMs(filter)
+    const budget = ONE_SECOND * Math.max(1, plain / PLAIN_AT_REST_MS)
     const tries: number[] = []
-    for (let i = 0; i < 5; i += 1) {
+    for (let i = 0; i < 3; i += 1) {
       const t0 = performance.now()
       const value = await read()
       const ms = performance.now() - t0
       tries.push(Math.round(ms))
-      if (ms < ONE_SECOND) return value
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      if (ms < budget) return value
     }
-    throw new Error(`${what}: no read came back inside one second (${tries.join(', ')} ms)`)
+    throw new Error(
+      `${what}: no read came back inside ${String(Math.round(budget))} ms (${tries.join(', ')} ms; the plain read ${String(Math.round(plain))} ms)`,
+    )
   }
 
   /**
@@ -363,7 +398,7 @@ describeDb('the once-per-order-line reader over 4 000 bill lines (DATABASE_URL)'
 
   it('the brand claim’s source reads all 4 000 lines inside one second, each with its share of the rule, the rule once per order line', async () => {
     const filter = { from: from(), to: to(), brandId }
-    const read = await insideOneSecond('invoiceLinesForPeriod over 4 000 lines', () =>
+    const read = await insideOneSecond('invoiceLinesForPeriod over 4 000 lines', filter, () =>
       inTenant((tx) => registers.invoiceLinesForPeriod(tx, filter)),
     )
     expect(read).toHaveLength(4_000)
@@ -387,7 +422,7 @@ describeDb('the once-per-order-line reader over 4 000 bill lines (DATABASE_URL)'
   it('a bound on the lines is cut at the edge of the bill its last line belongs to, inside one second', async () => {
     const bound = 1_001
     const filter = { from: from(), to: to(), brandId, limit: bound }
-    const read = await insideOneSecond('invoiceLinesForPeriod bounded at 1 001 lines', () =>
+    const read = await insideOneSecond('invoiceLinesForPeriod bounded at 1 001 lines', filter, () =>
       inTenant((tx) => registers.invoiceLinesForPeriod(tx, filter)),
     )
     // the bills the first 1 001 lines touch, every one of them to its end
