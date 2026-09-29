@@ -230,8 +230,10 @@ abstract class BaseSessionStore<S extends { readonly user: AuthUser }> {
    * `auth.changePassword` answers with (docs/22 §8, 2026-09-29). The token signed in with a password a
    * desk gave carries that fact and every service refuses it; the one the change hands back does not,
    * so the next call goes through at once. The refresh token and the session snapshot stay as they are.
+   * A server from before that answer sends no token: the one in memory stays, and the next refresh mends it.
    */
-  replaceAccessToken(accessToken: string, accessExpiresIn?: number): void {
+  replaceAccessToken(accessToken: string | undefined, accessExpiresIn?: number): void {
+    if (typeof accessToken !== 'string' || accessToken === '') return
     this.#accessToken = accessToken
     this.#accessExpiresAt =
       typeof accessExpiresIn === 'number' && accessExpiresIn > 0
