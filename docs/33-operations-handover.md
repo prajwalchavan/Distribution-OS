@@ -31,6 +31,8 @@ sudo -u postgres psql -d dos_live -c '\dt' | tail -5            # the data
 
 ## 3. Deploying a change
 
+**Everything in one command** (backend release, release checks, dummy activity, website; safe to run again): `bash backend/infra/oracle-vm/go-live.sh`. The steps it runs, one by one:
+
 1. Backend (API): `bash backend/infra/oracle-vm/deploy.sh` — rsync, install, build, migrate live + demo, restart, public health. A demo migration that fails is reported and does not stop the live release.
 2. Website: `cd frontend && CLOUDFLARE_API_TOKEN="$(cat ~/.config/dos/cloudflare.token)" CLOUDFLARE_ACCOUNT_ID=6730952ae1e2212f14c52d66a5339d35 DOMAIN=distributionos.in PAGES_PROJECT=dos PAGES_BRANCH=main EXPO_PUBLIC_API_URL=https://api.distributionos.in EXPO_PUBLIC_AUTH_URL=https://api.distributionos.in/auth ./scripts/pages-deploy.sh dos` (the script exports with `--clear`; a cached export ships a stale API URL — S-192).
 3. Android: §5.
