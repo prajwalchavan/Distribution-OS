@@ -261,8 +261,7 @@ export const strings = {
   'o4.speed': 'Speed',
   'o4.stops': 'Stops',
   'o4.noPositions': 'No vehicle has reported a position today',
-  'o4.mapNote':
-    'Positions are live. Tiles are OpenStreetMap in a browser and Apple Maps on iPhone; on Android the vans are a labelled list until the maps key arrives.',
+  'o4.mapNote': 'Where each van is now, as its driver’s phone last reported it.',
   'o4.noFix': 'No vehicle has reported a position to put on the map',
   'o4.openInMaps': 'Open in maps',
   'o4.trace': 'Trip trace',
