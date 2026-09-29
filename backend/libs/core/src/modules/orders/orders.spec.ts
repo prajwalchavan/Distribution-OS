@@ -3823,17 +3823,18 @@ describeDb('orders (DATABASE_URL)', () => {
         // ruling 7: placed at today's list — 13 440 + 2 912 = 16 352 → ₹164.00 — and the reply says so
         expect(submitted.totalPaise).toBe(16_400)
         expect(submitted.lines.find((l) => l.id === other)).toMatchObject(placedAtToday)
-        expect(placedChanges).toEqual([
-          {
-            lineId: other,
-            variantId: variantB,
-            itemName: expect.any(String) as unknown as string,
-            fromRatePaise: 2_500,
-            toRatePaise: 2_600,
-            fromLineNetPaise: 2_500,
-            toLineNetPaise: 2_600,
-          },
-        ])
+        expect(placedChanges).toHaveLength(1)
+        expect(placedChanges[0]).toMatchObject({
+          lineId: other,
+          variantId: variantB,
+          fromRatePaise: 2_500,
+          toRatePaise: 2_600,
+          fromLineNetPaise: 2_500,
+          toLineNetPaise: 2_600,
+        })
+        // the item by its name, never an id
+        expect(placedChanges[0]?.itemName).not.toBe(variantB)
+        expect(placedChanges[0]?.itemName.length).toBeGreaterThan(0)
         const before = await touchedAt()
         expect(before).toBeDefined()
 

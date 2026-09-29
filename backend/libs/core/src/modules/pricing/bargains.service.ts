@@ -31,7 +31,7 @@ import {
   requireRole,
 } from '../../platform/index.js'
 import { memberLabels } from '../tenancy/index.js'
-import { TenantCatalogService, variantNames } from '../tenant-catalog/index.js'
+import { TenantCatalogService, variantNames, type VariantCostRow } from '../tenant-catalog/index.js'
 import { QuoteService, todayIst } from './quote.service.js'
 
 /**
@@ -228,7 +228,7 @@ export class BargainsService {
           tx,
           items.map((b) => b.variantId),
         )
-      : new Map()
+      : new Map<string, VariantCostRow>()
     return items.map((b) => {
       const member = members.get(b.requestedBy)
       const facts: Bargain = {
