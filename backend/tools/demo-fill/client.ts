@@ -71,6 +71,8 @@ export interface Session {
 export interface CallStats {
   reads: number
   writes: number
+  /** A read answered 404: the thing is not there yet (every "is it made?" look-up starts with one). */
+  notFound: number
   refusals: number
   signIns: number
 }
@@ -83,14 +85,14 @@ function queryString(input: Record<string, unknown>, skip: ReadonlySet<string>):
     if (skip.has(k) || v === undefined || v === null) continue
     if (Array.isArray(v)) v.forEach((x, i) => q.append(`${k}[${String(i)}]`, String(x)))
     else if (typeof v === 'object') continue
-    else q.append(k, String(v as string | number | boolean))
+    else q.append(k, String(v))
   }
   const s = q.toString()
   return s ? `?${s}` : ''
 }
 
 export class Api {
-  readonly stats: CallStats = { reads: 0, writes: 0, refusals: 0, signIns: 0 }
+  readonly stats: CallStats = { reads: 0, writes: 0, notFound: 0, refusals: 0, signIns: 0 }
 
   constructor(
     readonly base: string,
@@ -109,7 +111,7 @@ export class Api {
       throw new ApiRefusal(0, 'NO_RESPONSE', err instanceof Error ? err.message : String(err), null)
     }
     const text = await res.text()
-    let body: unknown = null
+    let body: unknown
     try {
       body = text ? JSON.parse(text) : null
     } catch {
@@ -224,7 +226,7 @@ export class Api {
     const pathParams = new Set<string>()
     const path = (route.path ?? '').replace(/\{(\w+)\}/g, (_m, name: string) => {
       pathParams.add(name)
-      return encodeURIComponent(String(input[name] as string))
+      return encodeURIComponent(String(input[name]))
     })
     const url =
       method === 'GET' ? `${prefix}${path}${queryString(input, pathParams)}` : `${prefix}${path}`
@@ -237,12 +239,14 @@ export class Api {
       ...(method === 'GET' ? {} : { body: JSON.stringify(input) }),
     })
     // `pricing.quote` is a POST that writes nothing: counted as the read it is.
-    if (method === 'GET' || route.path === '/pricing/quote') this.stats.reads++
+    const isRead = method === 'GET' || route.path === '/pricing/quote'
+    if (isRead) this.stats.reads++
     else this.stats.writes++
     let r = await this.http(url, init())
     if (r.status === 401 && (await this.refresh(s))) r = await this.http(url, init())
     if (!r.ok) {
-      this.stats.refusals++
+      if (isRead && r.status === 404) this.stats.notFound++
+      else this.stats.refusals++
       throw this.refusal(r.status, r.body)
     }
     return r.body as O

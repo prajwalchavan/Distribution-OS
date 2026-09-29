@@ -266,12 +266,14 @@ export function planDay(input: PlanInput): DayPlan {
   const orders: PlannedOrder[] = []
   const emptySlots: OrderSlot[] = []
 
-  // Fresh shops for the desk's phone orders: never a credit shop or a shopkeeper stand-in, one order each.
-  const fresh = shuffled(
-    input.shops.filter((s) => s.active && !credit.has(s.id) && !slots.has(s.id)),
-    `fresh-shops:${date}`,
-    (s) => s.id,
-  )
+  // Fresh shops for the desk's phone orders: never a credit shop or a shopkeeper stand-in, one order each,
+  // shops that owe nothing first — their real dues stay out of the way of the day's money (brief rule 3),
+  // and no credit gate holds an order that is meant to go out today.
+  const eligible = input.shops.filter((s) => s.active && !credit.has(s.id) && !slots.has(s.id))
+  const fresh = [
+    ...shuffled(eligible.filter((s) => s.outstandingPaise <= 0), `fresh-shops:${date}`, (s) => s.id),
+    ...shuffled(eligible.filter((s) => s.outstandingPaise > 0), `fresh-shops:${date}`, (s) => s.id),
+  ]
   let freshAt = 0
   const nextFresh = (): string | null => fresh[freshAt++]?.id ?? null
 

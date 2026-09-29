@@ -32,6 +32,13 @@ export function vanRegNo(tenantId: string, n: 1 | 2): string {
   return `MH05${n === 1 ? 'FJ' : 'FK'}${String(num)}`
 }
 
+/**
+ * The standing changes a manager makes in the app — a van, a rep on a beat, a shop's credit limit, an offer —
+ * are made by `tester.manager`, so the audit log names a tester login as the one who made them: a change the
+ * tool made to a REAL shop (its credit limit) is found again by who made it (`check:demo-rows`).
+ */
+const manager = (ctx: Ctx) => (): ReturnType<Ctx['as']> => ctx.as('manager')
+
 // ---------------------------------------------------------------------------------------------- people
 
 export async function ensurePeople(ctx: Ctx, world: World, date: string): Promise<void> {
@@ -87,7 +94,7 @@ async function ensureVans(ctx: Ctx, world: World, date: string): Promise<Standin
       vans[driver] = { id: have.id, locationId: have.locationId }
       continue
     }
-    const made = await ctx.write('masters', 'van', ctx.owner, contract.delivery.vehicles.upsert, {
+    const made = await ctx.write('masters', 'van', manager(ctx), contract.delivery.vehicles.upsert, {
       idempotencyKey: demoKey(date, 'van', regNo),
       id: demoId(date, 'van', regNo),
       regNo,
@@ -132,7 +139,7 @@ async function ensureRepBeats(
     await ctx.write(
       'masters',
       'beat assignment',
-      ctx.owner,
+      manager(ctx),
       contract.retailers.beats.assign,
       {
         idempotencyKey: demoKey(from, 'beat', rep, beatId),
@@ -174,7 +181,7 @@ async function ensureCreditShops(
     const r = current.item
     if (!('code' in r)) continue
     const limit = creditLimitFor(shop.outstandingPaise)
-    await ctx.write('masters', 'shop over its limit', ctx.owner, contract.retailers.setCredit, {
+    await ctx.write('masters', 'shop over its limit', manager(ctx), contract.retailers.setCredit, {
       idempotencyKey: demoKey(date, 'credit', shop.id, String(limit)),
       id: shop.id,
       tier: r.tier,
@@ -203,7 +210,7 @@ async function ensureOffer(ctx: Ctx, world: World, date: string): Promise<void> 
     ctx.summary.note('no priced item with stock for an offer')
     return
   }
-  await ctx.write('masters', 'offer', ctx.owner, contract.pricing.schemes.upsert, {
+  await ctx.write('masters', 'offer', manager(ctx), contract.pricing.schemes.upsert, {
     idempotencyKey: demoKey(date, 'offer', item.variantId),
     id: demoId(date, 'offer', item.variantId),
     name: 'Buy 12, get 1 free',

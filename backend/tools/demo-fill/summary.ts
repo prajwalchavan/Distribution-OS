@@ -34,8 +34,12 @@ export const KNOWN_GAPS: Record<string, string> = {
 }
 
 export type FeatureState = 'there' | 'missing' | 'would' | 'gap'
+const FEATURE_RANK: Record<FeatureState, number> = { there: 0, would: 1, gap: 2, missing: 3 }
+export type RowState = 'made' | 'partly' | 'not made' | 'would be made' | 'would be partly'
 
 export class Summary {
+  /** A dry run: the table says what WOULD be made, never "made". */
+  dryRun = false
   readonly made = new Map<string, number>()
   readonly found = new Map<string, number>()
   readonly would = new Map<string, number>()
@@ -63,25 +67,26 @@ export class Summary {
     this.notes.push(line)
   }
 
-  /** Record a feature of a row. `there` wins over anything recorded before it. */
+  /**
+   * Record a feature of a row. A feature read more than once (one per rep, one per driver) keeps the worst
+   * answer: one van without a refused door is a van without one.
+   */
   feature(row: Row, name: string, state: FeatureState): void {
     const key = `${row}:${name}`
     const was = this.features.get(key)
-    if (was === 'there') return
-    this.features.set(key, state)
+    if (was === undefined || FEATURE_RANK[state] > FEATURE_RANK[was]) this.features.set(key, state)
   }
 
-  rowState(row: Row): { state: 'made' | 'partly' | 'not made'; missing: string[] } {
+  rowState(row: Row): { state: RowState; missing: string[] } {
     const names = ROW_FEATURES[row]
     const missing = names.filter((n) => {
       const s = this.features.get(`${row}:${n}`)
       return s !== 'there' && s !== 'would'
     })
     const produced = names.length - missing.length
-    const onlyGaps = missing.every((n) => KNOWN_GAPS[`${row}:${n}`] !== undefined)
-    if (missing.length === 0) return { state: 'made', missing }
     if (produced === 0) return { state: 'not made', missing }
-    return { state: onlyGaps || produced > 0 ? 'partly' : 'not made', missing }
+    if (this.dryRun) return { state: missing.length === 0 ? 'would be made' : 'would be partly', missing }
+    return { state: missing.length === 0 ? 'made' : 'partly', missing }
   }
 
   /** Exit 1 only when a whole row could not be produced. */
@@ -118,7 +123,7 @@ export class Summary {
     for (const r of ROWS) {
       const { state, missing } = this.rowState(r)
       const gaps = missing.map((n) => KNOWN_GAPS[`${r}:${n}`] ? `${n} (${KNOWN_GAPS[`${r}:${n}`] ?? ''})` : n)
-      out.push(`  ${r.padEnd(11)} ${state.padEnd(9)}${gaps.length ? ` missing: ${gaps.join(', ')}` : ''}`)
+      out.push(`  ${r.padEnd(11)} ${state.padEnd(16)}${gaps.length ? ` missing: ${gaps.join(', ')}` : ''}`)
     }
     for (const n of this.notes) out.push(`note: ${n}`)
     return out

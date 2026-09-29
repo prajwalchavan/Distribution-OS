@@ -38,6 +38,7 @@ async function guard(ctx: Ctx, section: Section, what: string, fn: () => Promise
 
 export async function runFill(opts: RunOptions): Promise<RunResult> {
   const summary = new Summary()
+  summary.dryRun = !opts.commit
   const ctx = new Ctx(opts, summary)
   if (!(await ctx.api.health())) throw new Error(`the API at ${opts.api} does not answer /health`)
   await ctx.signInOwner()
@@ -86,7 +87,7 @@ export async function runFill(opts: RunOptions): Promise<RunResult> {
     await ctx.signOutAll()
     const s = ctx.api.stats
     summary.note(
-      `API calls: ${String(s.reads)} reads, ${String(s.writes)} writes, ${String(s.refusals)} refused, ${String(s.signIns)} sign-ins`,
+      `API calls: ${String(s.reads)} reads (${String(s.notFound)} of them "not made yet"), ${String(s.writes)} writes, ${String(s.refusals)} refused, ${String(s.signIns)} sign-ins`,
     )
   }
 }

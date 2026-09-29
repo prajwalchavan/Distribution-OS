@@ -113,8 +113,8 @@ export async function readWorld(ctx: Ctx): Promise<World> {
     gstBps: gstOf.get(c.hsnCode) ?? null,
     hsnCode: c.hsnCode,
   }))
-  const suppliers = await ctx.read(contract.tenantCatalog.suppliers, {} as never)
-  const staff = await ctx.read(contract.tenancy.staff.list, {} as never)
+  const suppliers = await ctx.read(contract.tenantCatalog.suppliers, {})
+  const staff = await ctx.read(contract.tenancy.staff.list, {})
   const vehicles = await ctx.read(contract.delivery.vehicles.list, { activeOnly: false })
   return {
     shops,
