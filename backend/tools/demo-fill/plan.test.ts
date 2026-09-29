@@ -8,10 +8,12 @@ import {
   chooseRepBeats,
   chooseSlotShops,
   creditLimitFor,
+  offerShops,
   offerStep,
   planCounts,
   planDay,
   quantityFor,
+  slotShopsOnVans,
   stockBudget,
   type ItemInfo,
   type PlanInput,
@@ -170,6 +172,36 @@ describe('the standing choices', () => {
     // Once moved (in any order), it is kept.
     expect(offerStep([{ ...offer, retailerIds: [...now].reverse() }], now, isDemoId)).toEqual({
       kind: 'keep',
+      id: toolId,
+    })
+  })
+
+  it("keeps the offer on a replaced shop the day's vans still carry, until that day is over", () => {
+    const three = chooseSlotShops(TENANT, SHOPS, new Set())
+    const closed = SHOPS.map((s) => (s.id === three[0] ? { ...s, active: false } : s))
+    const now = chooseSlotShops(TENANT, closed, new Set())
+    // Today's vans were loaded with yesterday's three at the stand-in doors (and other shops elsewhere).
+    const doors = (driver: 'driver1' | 'driver2') =>
+      Array.from({ length: 8 }, (_, i) => {
+        const slot = SLOT_DOORS.find(
+          (d) =>
+            (d.delivered[0] === driver && d.delivered[1] === i) ||
+            (d.onTheWay[0] === driver && d.onTheWay[1] === i),
+        )
+        return { sequence: i + 1, retailerId: slot ? (three[slot.slot] ?? '') : id('7', i) }
+      })
+    const onVans = slotShopsOnVans({ driver1: doors('driver1'), driver2: doors('driver2') })
+    expect(onVans).toEqual([...three].sort())
+    const today = offerShops(now, onVans)
+    expect(today).toEqual([...new Set([...three, ...now])].sort())
+    expect(today).toHaveLength(4)
+    const offer = { id: toolId, retailerIds: three }
+    expect(offerStep([offer], today, isDemoId)).toEqual({ kind: 'move', id: toolId })
+    // The next day has no van yet: the offer is for the new three only.
+    expect(slotShopsOnVans({ driver1: null })).toEqual([])
+    expect(offerShops(now, [])).toEqual([...now].sort())
+    expect(offerStep([{ ...offer, retailerIds: today }], offerShops(now, []), isDemoId)).toEqual({
+      kind: 'move',
       id: toolId,
     })
   })

@@ -8,9 +8,12 @@ import {
   chooseRepBeats,
   chooseSlotShops,
   creditLimitFor,
+  offerShops,
   offerStep,
+  slotShopsOnVans,
   type ShopInfo,
 } from './plan.js'
+import { readTrip } from './road.js'
 import type { World } from './world.js'
 
 /**
@@ -203,9 +206,9 @@ async function ensureCreditShops(
 // ---------------------------------------------------------------------------------------------- offer
 
 /**
- * One offer, "buy 12, get 1 free" on the item the godown holds most of, for the three shops that stand for
- * the shopkeepers only: a real shop's order is priced as it was, and the offer is the tool's to see. When a
- * stand-in shop is replaced, the live offer is moved to today's three (the same offer, its shops changed).
+ * One offer, "buy 12, get 1 free" on the item the godown holds most of, for the shops that stand for the
+ * shopkeepers only (`offerShops`): a real shop's order is priced as it was, and the offer is the tool's to
+ * see. When a stand-in shop is replaced, the live offer is moved (the same offer, its shops changed).
  */
 async function ensureOffer(
   ctx: Ctx,
@@ -330,7 +333,12 @@ export async function ensureStanding(
   const repBeats = await ensureRepBeats(ctx, world, earliest)
   const creditShops = await ensureCreditShops(ctx, world, date, repBeats)
   const slotShops = chooseSlotShops(ctx.tenantId, world.shops, new Set(Object.values(creditShops)))
-  await ensureOffer(ctx, world, date, slotShops)
+  // A shop the vans of `date` already carry as a stand-in keeps the offer until that day is over.
+  const onVans = slotShopsOnVans({
+    driver1: (await readTrip(ctx, ctx.id(date, 'trip', 'driver1')))?.stops ?? null,
+    driver2: (await readTrip(ctx, ctx.id(date, 'trip', 'driver2')))?.stops ?? null,
+  })
+  await ensureOffer(ctx, world, date, offerShops(slotShops, onVans))
   await ensureConsents(ctx, date)
   return { repBeats, creditShops, slotShops, vans }
 }

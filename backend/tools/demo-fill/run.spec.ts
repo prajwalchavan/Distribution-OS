@@ -357,8 +357,9 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
 
   it('a stand-in shop that stops being one: the offer moves to the shop that takes its place', async () => {
     const owner = await client.signIn(ownerUsername, ownerPassword, slug)
+    const made = daysAgo(3)
     const date = daysAgo(2)
-    const was = await toolOffer(owner, date)
+    const was = await toolOffer(owner, made)
     expect(was.shops).toHaveLength(3)
     const gone = was.shops[0] ?? ''
     const shop = (await client.call(owner, contract.retailers.get, { id: gone })).item
@@ -378,6 +379,19 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
       active: false,
     })
 
+    // The same day again: that day's vans still carry the closed shop as a stand-in, so it keeps the offer
+    // beside the shop that replaces it, and every stand-in door of the day still has it.
+    const sameDay = await fill(made, true)
+    expect(sameDay.summary.made.get('masters:offer moved')).toBe(1)
+    expect(sameDay.summary.made.get('masters:offer')).toBeUndefined()
+    expect(sameDay.summary.features.get('shopkeeper:offer')).toBe('there')
+    expect(sameDay.exitCode).toBe(0)
+    const during = await toolOffer(owner, made)
+    expect(during.id).toBe(was.id)
+    expect(during.shops).toHaveLength(4)
+    expect(during.shops).toEqual(expect.arrayContaining(was.shops))
+
+    // The next day: its vans carry the new three, and the offer is theirs alone.
     const moved = await fill(date, true)
     expect(moved.summary.made.get('masters:offer moved')).toBe(1)
     expect(moved.summary.made.get('masters:offer')).toBeUndefined()
@@ -388,6 +402,7 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     expect(now.shops).toHaveLength(3)
     expect(now.shops).not.toContain(gone)
     expect(now.shops.filter((x) => was.shops.includes(x))).toHaveLength(2)
+    expect(during.shops).toEqual(expect.arrayContaining(now.shops))
     await client.signOut(owner)
   }, 240_000)
 

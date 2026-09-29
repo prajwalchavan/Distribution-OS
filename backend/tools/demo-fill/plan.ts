@@ -199,6 +199,37 @@ export function chooseSlotShops(
     .map((s) => s.id)
 }
 
+/** A door of a van as the tool reads it back: its place on the route and its shop. */
+export interface DoorInfo {
+  sequence: number
+  retailerId: string
+}
+
+/**
+ * The shops a day's vans already carry as stand-ins for the shopkeepers: the shops at the stand-in doors
+ * (`SLOT_DOORS`) of that day's two trips. None when the day has no van yet.
+ */
+export function slotShopsOnVans(
+  doors: Partial<Record<'driver1' | 'driver2', readonly DoorInfo[] | null>>,
+): string[] {
+  const out = new Set<string>()
+  for (const slot of SLOT_DOORS)
+    for (const [driver, index] of [slot.delivered, slot.onTheWay]) {
+      const stop = doors[driver]?.find((s) => s.sequence === index + 1)
+      if (stop) out.add(stop.retailerId)
+    }
+  return [...out].sort()
+}
+
+/**
+ * The shops the tool's offer is for on a date: the three chosen today, and any shop the day's vans already
+ * carry as a stand-in (a shop replaced in the middle of a day keeps the offer until its day is over; the
+ * next day's vans carry the new three only). Sorted, each once.
+ */
+export function offerShops(chosen: readonly string[], onVans: readonly string[]): string[] {
+  return [...new Set([...chosen, ...onVans])].sort()
+}
+
 /** An offer as the tool needs to see it: its id and the shops it is for (none named = every shop). */
 export interface OfferInfo {
   id: string
@@ -209,11 +240,11 @@ export type OfferStep =
   { kind: 'keep'; id: string } | { kind: 'move'; id: string } | { kind: 'make' } | { kind: 'none' }
 
 /**
- * What to do about the tool's offer today, given the offers live on the date and the stand-in shops chosen
- * today. The tool's live offer is KEPT while it is for exactly those shops; when a stand-in shop was
- * replaced (it was closed, got a login or became a credit shop) the offer is MOVED to today's three, so the
- * shopkeeper row never loses its offer for the thirty days the offer runs; when none of the tool's offers is
- * live, one is MADE. With no stand-in shop at all nothing is made or moved: an offer that names no shop is
+ * What to do about the tool's offer today, given the offers live on the date and the shops it must be for
+ * (`offerShops`). The tool's live offer is KEPT while it is for exactly those shops; when a stand-in shop was
+ * replaced (it was closed, got a login or became a credit shop) the offer is MOVED to the shops of today, so
+ * the shopkeeper row never loses its offer for the thirty days the offer runs; when none of the tool's offers
+ * is live, one is MADE. With no stand-in shop at all nothing is made or moved: an offer that names no shop is
  * an offer for every shop, and the real shops' prices are not the tool's to change.
  */
 export function offerStep(
@@ -225,8 +256,8 @@ export function offerStep(
   // The newest of the tool's live offers (its id carries the date it was made for).
   const mine = live.filter((o) => isTool(o.id)).sort((a, b) => b.id.localeCompare(a.id))[0]
   if (!mine) return { kind: 'make' }
-  const now = [...(mine.retailerIds ?? [])].sort()
-  const want = [...shops].sort()
+  const now = [...new Set(mine.retailerIds ?? [])].sort()
+  const want = [...new Set(shops)].sort()
   const same = now.length === want.length && now.every((s, i) => s === want[i])
   return same ? { kind: 'keep', id: mine.id } : { kind: 'move', id: mine.id }
 }
