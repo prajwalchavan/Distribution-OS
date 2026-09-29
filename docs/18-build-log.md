@@ -1,5 +1,15 @@
 # Build log — where we are, what is next
 
+## RESUME HERE (updated 2026-09-29 21:12 IST) — THE LIVE SITE HAS DATA; READ `QA/STATE.md` FIRST
+
+`QA/STATE.md` is the current state and its first sections say what is live, what is running and what is parked.
+In one paragraph: on 29 Sep the stock and money fixes, the shop sign-in, the hire door fix and the dummy activity
+(round 1, plain tester logins) went live through the founder's own commands (`backend/infra/oracle-vm/go-live.sh`,
+`fill-demo.sh`); prices and tax is repaired on its branch and waits for its narrow check; the free bill reader is
+parked on its branch; round 2 of the dummy data, the home screens rounds 2 and 3, the APK and QA phase 13 are not
+started. The weekly budget resets on 3 Oct. Live: https://www.distributionos.in (owner `owner.tarsun`; testers
+`manager`, `accounts`, `sales1`, `sales2`, `godown`, `driver1`, `driver2`).
+
 ## RESUME HERE (updated 2026-09-21, one-app merge) — THE SEVEN APPS ARE TWO
 
 **The six per-role apps are retired.** `frontend/{owner,manager,sales,warehouse,delivery,retailer}-app`
