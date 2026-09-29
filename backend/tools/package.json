@@ -6,10 +6,13 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
+    "prelint": "eslint fill-demo-activity.mts check-demo-coverage.mts check-demo-rows.mts demo-fill testing",
     "lint": "eslint legacy import-legacy-extracts.mts check-stock-cancels.mts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "import:legacy": "tsx import-legacy-extracts.mts"
+    "import:legacy": "tsx import-legacy-extracts.mts",
+    "fill:demo": "tsx fill-demo-activity.mts",
+    "build:lookalike": "tsx testing/build-lookalike-tenant.mts"
   },
   "devDependencies": {
     "@dos/config": "workspace:*",

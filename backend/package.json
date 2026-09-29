@@ -26,6 +26,9 @@
     "auth:keygen": "tsx tools/auth-keygen.mts",
     "smoke": "tsx tools/smoke-endpoints.mts",
     "check:stock-cancels": "tsx tools/check-stock-cancels.mts",
+    "fill:demo": "tsx tools/fill-demo-activity.mts",
+    "check:demo-coverage": "tsx tools/check-demo-coverage.mts",
+    "check:demo-rows": "tsx tools/check-demo-rows.mts",
     "import:legacy": "pnpm --filter @dos/tools import:legacy",
     "clean": "turbo run clean && rm -rf node_modules"
   },

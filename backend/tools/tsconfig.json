@@ -6,6 +6,11 @@
     "auth-keygen.mts",
     "import-legacy-extracts.mts",
     "check-stock-cancels.mts",
+    "fill-demo-activity.mts",
+    "check-demo-coverage.mts",
+    "check-demo-rows.mts",
+    "demo-fill",
+    "testing",
     "legacy",
     "vitest.config.ts"
   ]
