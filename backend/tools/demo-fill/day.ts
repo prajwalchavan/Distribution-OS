@@ -1,7 +1,7 @@
 import { contract } from '@dos/contracts'
 import type { Ctx } from './context.js'
 import { officeMoney, returnToApprove, supplierBills } from './desk.js'
-import { billOf, earlier, getOrder, istTime, maybe, pages } from './helpers.js'
+import { belowCost, billOf, earlier, getOrder, istTime, maybe, pages } from './helpers.js'
 import { addDays, demoKey, unit } from './ids.js'
 import {
   VAN_LOAD_DOORS,
@@ -164,7 +164,9 @@ async function clearGates(ctx: Ctx, orderId: string, date: string): Promise<void
     status: 'pending',
     limit: 20,
   })
-  for (const a of list.items)
+  for (const a of list.items) {
+    // a rate below cost waits for the owner (DOS-335), as in `decideHeldOrders`
+    if (belowCost(a)) continue
     await ctx.write(
       'manager',
       'approval decided',
@@ -177,6 +179,7 @@ async function clearGates(ctx: Ctx, orderId: string, date: string): Promise<void
         note: 'Regular shop, cleared by phone',
       },
     )
+  }
 }
 
 async function recordVisit(ctx: Ctx, order: PlannedOrder, date: string): Promise<void> {

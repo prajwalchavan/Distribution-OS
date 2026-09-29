@@ -2,7 +2,7 @@ import { contract } from '@dos/contracts'
 import type { Ctx } from './context.js'
 import { pack, wave } from './day.js'
 import { openGate, ownMoneyStaysOwn, supplierCodeOf } from './desk.js'
-import { earlier, pages, paymentReference } from './helpers.js'
+import { belowCost, earlier, pages, paymentReference } from './helpers.js'
 import { addDays, demoIdDate, demoKey, isDemoId } from './ids.js'
 import { loadAndDepart, returnTrip, settleTrip, workDoors, type DriverKey } from './road.js'
 import { signOffAndLoad } from './road.js'
@@ -36,6 +36,12 @@ async function decideHeldOrders(ctx: Ctx, date: string): Promise<void> {
   )
   for (const a of pending) {
     if (!earlier(a.orderId, date)) continue
+    // A rate below what the item cost is the owner's alone to approve, knowingly (prices and tax, DOS-335): the
+    // desk leaves it for the owner, as the product tells a manager to, and the owner finds it waiting.
+    if (belowCost(a)) {
+      ctx.log(`  left for the owner: a rate below cost on ${a.orderNo ?? a.orderId}`)
+      continue
+    }
     // The shop over its limit is refused until it pays; a rate asked for a regular shop is granted.
     const reject = a.kind === 'credit_limit'
     await ctx.write(

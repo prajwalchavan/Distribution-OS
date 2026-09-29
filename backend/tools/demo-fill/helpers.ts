@@ -123,3 +123,12 @@ export const REFERENCE_TAKEN: ReadonlySet<string> = new Set([
   'cheque_already_recorded',
   'cheque_number_seen_elsewhere',
 ])
+
+/**
+ * A rate gate whose asked rate is below the item's purchase cost (the back office queue says so): the owner's alone
+ * to approve, knowingly (prices and tax, DOS-335), so the tool's desk leaves it waiting for the owner.
+ */
+export const belowCost = (a: {
+  kind: string
+  bargain?: { belowCost: boolean } | null | undefined
+}): boolean => a.kind === 'bargain' && a.bargain?.belowCost === true
