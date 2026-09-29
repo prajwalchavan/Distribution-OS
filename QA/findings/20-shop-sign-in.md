@@ -163,3 +163,7 @@ What it should do: a rejected request is logged without the values of password, 
 Status: OPEN. Not fixed. The dummy activity tool and its checks wrote no password anywhere but the logins file.
 ```
 
+Also seen, same class (blind check of the plain tester logins, 2026-09-29): when a cheque number is refused because it
+is already on another shop's receipt, the API's log holds the refusal with `retailerName`, the name of that shop. On the
+live server that is a real shop's name in a log file. The dummy activity tool prints only the code.
+
