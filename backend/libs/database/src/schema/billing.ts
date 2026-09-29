@@ -298,6 +298,16 @@ export const creditNoteLines = pgTable(
     taxablePaise: paise('taxable_paise').notNull(),
     gstBps: bps('gst_bps').notNull(),
     taxPaise: paise('tax_paise').notNull(),
+    /**
+     * The line's own share of the note's CGST / SGST / IGST / cess (ruling 10, docs/22 §8 2026-09-28): since a
+     * note's tax is the one rule on the ORDER line, cumulative over the notes, a line's split can no longer be
+     * recomputed from its taxable alone, so it is written here and the GST summary reads it. NULL on a line written
+     * before 2026-09-29, whose split was each line's own halves: readers recompute those the way they were written.
+     */
+    cgstPaise: paise('cgst_paise'),
+    sgstPaise: paise('sgst_paise'),
+    igstPaise: paise('igst_paise'),
+    cessPaise: paise('cess_paise'),
     lineTotalPaise: paise('line_total_paise').notNull(),
     ...timestamps,
   },

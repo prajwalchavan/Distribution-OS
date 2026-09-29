@@ -1401,6 +1401,98 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
     expect(Number(thirdCgst)).toBe(billedCgst)
   })
 
+  /*
+   * Blind check 1, B1: since ruling 10 a note's tax is the rule on the order line, cumulative over the notes, so the
+   * second of two one-piece notes of ₹10.25 at 12 % gives back 61 p of CGST (123 p for two pieces − 62 p for one).
+   * The GST summary (billing's `gstSummary`, served again as reporting's GST sales register and the accountant's copy)
+   * recomputed each note line on its own as round(taxable × rate / 2) = 62 p, so the register disagreed with the
+   * notes, their journal and the GSTR-1 file (CN/9017: ₹2.82 on the note, ₹2.83 in the register).
+   */
+  it('B1: the GST summary reports each credit note at the CGST, SGST, IGST and cess the note itself carries', async () => {
+    const shop = await newShop('CNR')
+    const order = await placeOrder(shop, [{ variantId: v.t12at1025, qtyPcs: 4 }], 'cnr')
+    const packed = await pack(order.id, 'cnr')
+    // A bill that has left the godown takes part returns (one still on the dock is credited whole): the same bill,
+    // detached from its order the way the DOS-337 case does it, stands in for the delivered one.
+    const billId = uuidv7()
+    const [issued] = await db.select().from(invoices).where(eq(invoices.id, packed.id))
+    if (!issued) throw new Error('bill not found')
+    await db.insert(invoices).values({
+      ...issued,
+      id: billId,
+      invoiceNo: `CNR/${run}`,
+      seriesCode: 'CNR',
+      orderId: null,
+      upiQrPayload: null,
+    })
+    const rows = await db.select().from(invoiceLines).where(eq(invoiceLines.invoiceId, packed.id))
+    const lineIds = new Map(rows.map((r) => [r.id, uuidv7()]))
+    await db
+      .insert(invoiceLines)
+      .values(rows.map((r) => ({ ...r, id: lineIds.get(r.id) ?? uuidv7(), invoiceId: billId })))
+    const bill = { id: billId }
+    const source = packed.lines.find((l) => l.variantId === v.t12at1025)
+    const line = { id: lineIds.get(source?.id ?? '') ?? '' }
+    if (!source) throw new Error('the bill has no Bhujia line')
+    const notes: { id: string; cgstPaise: number; sgstPaise: number; taxablePaise: number }[] = []
+    for (const k of [1, 2]) {
+      const res = await call<{
+        item: { id: string; cgstPaise: number; sgstPaise: number; taxablePaise: number }
+      }>(app, manager, 'POST', '/credit-notes', {
+        idempotencyKey: `cnr-${String(k)}-${run}`,
+        id: uuidv7(),
+        invoiceId: bill.id,
+        reason: 'return_saleable',
+        autoIssue: true,
+        lines: [{ id: uuidv7(), invoiceLineId: line.id, qtyPcs: 1 }],
+      })
+      expect(res.status, JSON.stringify(res.body)).toBe(200)
+      notes.push(res.body.item)
+    }
+    expect(notes.map((n) => [n.taxablePaise, n.cgstPaise, n.sgstPaise])).toEqual([
+      [1025, 62, 62],
+      [1025, 61, 61],
+    ])
+    const summary = await call<{
+      creditNoteRows: { hsnCode: string | null; cgstPaise: number; sgstPaise: number }[]
+      creditNoteTotals: {
+        taxablePaise: number
+        cgstPaise: number
+        sgstPaise: number
+        igstPaise: number
+        cessPaise: number
+      }
+    }>(app, accountant, 'GET', '/billing/gst-summary', { from: today, to: today, groupBy: 'hsn' })
+    expect(summary.status, JSON.stringify(summary.body)).toBe(200)
+    const headers = (
+      await db.execute(sql`
+        select coalesce(sum(taxable_paise), 0)::bigint as taxable, coalesce(sum(cgst_paise), 0)::bigint as cgst,
+               coalesce(sum(sgst_paise), 0)::bigint as sgst, coalesce(sum(igst_paise), 0)::bigint as igst,
+               coalesce(sum(cess_paise), 0)::bigint as cess
+          from credit_notes
+         where tenant_id = ${tenantId} and state in ('issued', 'applied') and note_date = ${today}`)
+    ).rows[0] as Record<string, string>
+    // the register's credit-note section is exactly the notes' own headers: what the GSTR-1 file and Tally read
+    expect(summary.body.creditNoteTotals).toMatchObject({
+      taxablePaise: Number(headers.taxable),
+      cgstPaise: Number(headers.cgst),
+      sgstPaise: Number(headers.sgst),
+      igstPaise: Number(headers.igst),
+      cessPaise: Number(headers.cess),
+    })
+    // the note's own lines carry the split the header adds up
+    const stored = (
+      await db.execute(sql`
+        select l.credit_note_id, l.cgst_paise, l.sgst_paise, l.igst_paise, l.cess_paise
+          from credit_note_lines l where l.credit_note_id in (${notes[0]?.id ?? ''}, ${notes[1]?.id ?? ''})
+         order by l.credit_note_id`)
+    ).rows as { cgst_paise: string; sgst_paise: string }[]
+    expect(stored.map((r) => [Number(r.cgst_paise), Number(r.sgst_paise)])).toEqual([
+      [62, 62],
+      [61, 61],
+    ])
+  })
+
   it('ruling 8: a shop’s final rate blocks schemes, not a rate request approved for it (QA O07)', async () => {
     const shop = await newShop('O07')
     await db.insert(retailerPriceOverrides).values({

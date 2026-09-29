@@ -505,6 +505,12 @@ export class CreditNotesService {
         taxablePaise: lineTaxable,
         gstBps: c.source.gstBps,
         taxPaise: gstPaise + cessPaise,
+        // B1 (blind check 1): the line's own split, which the GST summary reads — it cannot be recomputed from
+        // the line's taxable once the note's tax is the rule on the order line, cumulative over the notes.
+        cgstPaise: m?.cgstPaise ?? 0,
+        sgstPaise: m?.sgstPaise ?? 0,
+        igstPaise: m?.igstPaise ?? 0,
+        cessPaise,
         lineTotalPaise: lineTaxable + gstPaise + cessPaise,
       }
     })

@@ -82,7 +82,12 @@ export class BillingModule implements OnModuleInit {
     this.registry.registerPull('credit_notes', tablePull(creditNotes, { extra: headerScope }))
     this.registry.registerPull(
       'credit_note_lines',
-      tablePull(creditNoteLines, { extra: (r) => linesOf('credit_notes', 'credit_note_id', r) }),
+      tablePull(creditNoteLines, {
+        extra: (r) => linesOf('credit_notes', 'credit_note_id', r),
+        // The per-line tax split (ruling 10) is the GST register's, not a device's: the note's header carries it,
+        // and leaving it out keeps the device's schema (and so its local copy) as it was.
+        omit: ['cgst_paise', 'sgst_paise', 'igst_paise', 'cess_paise'],
+      }),
     )
   }
 }

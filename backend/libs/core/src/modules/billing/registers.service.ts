@@ -655,9 +655,13 @@ export class RegistersService {
 
   /**
    * Credit notes are reported SEPARATELY, as their own positive rows: GSTR-1 has its own table for them
-   * and the filer subtracts, not us. The intra/inter split is recomputed from the note's own invoice
-   * because `credit_note_lines` stores one combined tax figure; `round(x/2)` mirrors `percentOf(taxable,
-   * bps/2)` exactly for every rate in use (every GST rate is an even number of basis points).
+   * and the filer subtracts, not us. Each note line is reported at the split the NOTE carries
+   * (`credit_note_lines.cgst_paise` … `cess_paise`, B1 of the prices lane's blind check 1): since ruling 10 a
+   * note's tax is the rule on the order line, cumulative over the notes, so a line's split cannot be recomputed
+   * from its taxable alone, and a recompute put the register a paisa away from the notes, their journal and
+   * the GSTR-1 file, which read the headers. A line written before those columns (NULL) had its own halves,
+   * which the recompute below reproduces exactly — `round(x/2)` mirrors `percentOf(taxable, bps/2)` for every
+   * rate in use (every GST rate is an even number of basis points).
    */
   private async creditNoteSummary(tx: Db, input: GstIn): Promise<GstSummaryRow[]> {
     const { tenantId } = currentTenant()
@@ -668,14 +672,18 @@ export class RegistersService {
              COALESCE(SUM(cl.qty_pcs), 0)::bigint       AS qty_pcs,
              0::bigint                                  AS free_qty_pcs,
              COALESCE(SUM(cl.taxable_paise), 0)::bigint AS taxable_paise,
-             COALESCE(SUM(CASE WHEN i.is_inter_state THEN 0
-                               ELSE round(cl.taxable_paise::numeric * cl.gst_bps / 20000) END), 0)::bigint AS cgst_paise,
-             COALESCE(SUM(CASE WHEN i.is_inter_state THEN 0
-                               ELSE round(cl.taxable_paise::numeric * cl.gst_bps / 20000) END), 0)::bigint AS sgst_paise,
-             COALESCE(SUM(CASE WHEN i.is_inter_state
-                               THEN round(cl.taxable_paise::numeric * cl.gst_bps / 10000)
-                               ELSE 0 END), 0)::bigint AS igst_paise,
-             COALESCE(SUM(round(cl.taxable_paise::numeric * il.cess_bps / 10000)), 0)::bigint AS cess_paise,
+             COALESCE(SUM(COALESCE(cl.cgst_paise,
+                               CASE WHEN i.is_inter_state THEN 0
+                                    ELSE round(cl.taxable_paise::numeric * cl.gst_bps / 20000) END)), 0)::bigint AS cgst_paise,
+             COALESCE(SUM(COALESCE(cl.sgst_paise,
+                               CASE WHEN i.is_inter_state THEN 0
+                                    ELSE round(cl.taxable_paise::numeric * cl.gst_bps / 20000) END)), 0)::bigint AS sgst_paise,
+             COALESCE(SUM(COALESCE(cl.igst_paise,
+                               CASE WHEN i.is_inter_state
+                                    THEN round(cl.taxable_paise::numeric * cl.gst_bps / 10000)
+                                    ELSE 0 END)), 0)::bigint AS igst_paise,
+             COALESCE(SUM(COALESCE(cl.cess_paise,
+                               round(cl.taxable_paise::numeric * il.cess_bps / 10000))), 0)::bigint AS cess_paise,
              COALESCE(SUM(cl.line_total_paise), 0)::bigint AS total_paise,
              COUNT(DISTINCT cl.credit_note_id)::int     AS document_count
         FROM credit_note_lines cl
