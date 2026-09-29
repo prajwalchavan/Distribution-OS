@@ -8665,3 +8665,266 @@ describeDb('row level security and ledger guarantees', () => {
     })
   })
 })
+
+/**
+ * DOS-400 — A SHOPKEEPER GIVEN ITS SIGN-IN BY THE DESK (architect's ruling, 2026-09-29). The rows are
+ * written here exactly as `retailers.signIn.give` writes them, each under the role that writes it in
+ * the service: the person and the shop's platform identity as the SYSTEM role (they are global, and
+ * RLS hides a person this distributor has never met), the membership, the link and the shop's
+ * identity as the distributor's OWNER inside its own tenant. The guarantee is the database's, not the
+ * handler's: that shopkeeper reads its own shop's orders, bills and dues and nothing of another shop
+ * or another distributor — including the distributor that also sells to the very same shop — and the
+ * moment the desk stops the sign-in (the link's `user_id` cleared), it reads nothing here at all.
+ */
+describeDb('a shopkeeper the desk gave a sign-in (DOS-400)', () => {
+  const pool = createPool(url ?? '')
+  const db: Db = createDb(pool)
+  const run = uuidv7()
+    .slice(-7)
+    .replace(/[^0-9]/g, '7')
+    .padStart(7, '7')
+  const mobile = (n: number) => `+918${run}${String(n)}`
+  const here = uuidv7()
+  const there = uuidv7()
+  const ownerHere = uuidv7()
+  const ownerThere = uuidv7()
+  const shop = uuidv7()
+  const neighbour = uuidv7()
+  const sameShopThere = uuidv7()
+  const shopkeeper = uuidv7()
+  const identity = uuidv7()
+  const neighbourIdentity = uuidv7()
+  const orders = { shop: uuidv7(), neighbour: uuidv7(), there: uuidv7() }
+  const bills = { shop: uuidv7(), neighbour: uuidv7(), there: uuidv7() }
+
+  beforeAll(async () => {
+    await db.insert(tenants).values([
+      { id: here, slug: `dos400-h-${run}`, legalName: 'This distributor', stateCode: '27' },
+      { id: there, slug: `dos400-t-${run}`, legalName: 'Another distributor', stateCode: '27' },
+    ])
+    await db.insert(users).values([
+      { id: ownerHere, phone: mobile(11), name: 'Owner here' },
+      { id: ownerThere, phone: mobile(12), name: 'Owner there' },
+    ])
+    await db.insert(memberships).values([
+      { id: uuidv7(), tenantId: here, userId: ownerHere, role: 'owner' },
+      { id: uuidv7(), tenantId: there, userId: ownerThere, role: 'owner' },
+    ])
+    // The same physical shop is on both distributors' books; a neighbour is on this one's.
+    await db.insert(retailerIdentities).values({
+      id: neighbourIdentity,
+      phone: mobile(22),
+      shopName: 'Neighbour',
+    })
+    await db.insert(retailers).values([
+      {
+        id: shop,
+        tenantId: here,
+        code: `A${run}`,
+        name: 'The shop',
+        phone: mobile(21),
+        stateCode: '27',
+      },
+      {
+        id: neighbour,
+        tenantId: here,
+        identityId: neighbourIdentity,
+        code: `B${run}`,
+        name: 'Neighbour',
+        phone: mobile(22),
+        stateCode: '27',
+      },
+      {
+        id: sameShopThere,
+        tenantId: there,
+        code: `C${run}`,
+        name: 'The shop, on the other books',
+        phone: mobile(21),
+        stateCode: '27',
+      },
+    ])
+    await db.insert(retailerLinks).values({
+      id: uuidv7(),
+      tenantId: here,
+      identityId: neighbourIdentity,
+      retailerId: neighbour,
+      linkedBy: 'rep_onboarding',
+    })
+    const order = (id: string, tenantId: string, retailerId: string, createdBy: string) => ({
+      id,
+      tenantId,
+      retailerId,
+      state: 'confirmed' as const,
+      source: 'salesperson' as const,
+      createdBy,
+      paymentTerms: 'POST_FULFILLMENT' as const,
+    })
+    await db
+      .insert(salesOrders)
+      .values([
+        order(orders.shop, here, shop, ownerHere),
+        order(orders.neighbour, here, neighbour, ownerHere),
+        order(orders.there, there, sameShopThere, ownerThere),
+      ])
+    const bill = (id: string, tenantId: string, retailerId: string, n: number) => ({
+      id,
+      tenantId,
+      invoiceNo: `D${run}/${String(n)}`,
+      fy: '2026-27',
+      invoiceDate: '2026-09-28',
+      retailerId,
+      state: 'issued' as const,
+      buyerName: 'Buyer',
+      placeOfSupplyState: '27',
+      totalPaise: 10_000 * n,
+    })
+    await db
+      .insert(invoices)
+      .values([
+        bill(bills.shop, here, shop, 1),
+        bill(bills.neighbour, here, neighbour, 2),
+        bill(bills.there, there, sameShopThere, 3),
+      ])
+    await db.insert(retailerOutstandingSummary).values([
+      {
+        tenantId: here,
+        retailerId: shop,
+        outstandingPaise: 10_000,
+        openBills: 1,
+        asOf: '2026-09-28',
+      },
+      {
+        tenantId: here,
+        retailerId: neighbour,
+        outstandingPaise: 20_000,
+        openBills: 1,
+        asOf: '2026-09-28',
+      },
+      {
+        tenantId: there,
+        retailerId: sameShopThere,
+        outstandingPaise: 30_000,
+        openBills: 1,
+        asOf: '2026-09-28',
+      },
+    ])
+
+    // ---- the sign-in, as `retailers.signIn.give` writes it ------------------------------------------
+    await withSystem(db, async (sys) => {
+      await sys.insert(users).values({
+        id: shopkeeper,
+        phone: mobile(21),
+        name: 'The shopkeeper',
+        username: `dos400.${run}`,
+        passwordHash: '$argon2id$v=19$m=19456,t=2,p=1$not-a-real-hash',
+        passwordChangedAt: new Date(),
+        mustChangePassword: true,
+        status: 'active',
+      })
+      await sys
+        .insert(retailerIdentities)
+        .values({ id: identity, phone: mobile(21), userId: shopkeeper, shopName: 'The shop' })
+    })
+    await withTenant(db, { tenantId: here, actorId: ownerHere, actorRole: 'owner' }, async (tx) => {
+      await tx
+        .insert(memberships)
+        .values({ id: uuidv7(), tenantId: here, userId: shopkeeper, role: 'retailer' })
+      await tx.insert(retailerLinks).values({
+        id: uuidv7(),
+        tenantId: here,
+        identityId: identity,
+        retailerId: shop,
+        userId: shopkeeper,
+        role: 'owner',
+        linkedBy: 'rep_onboarding',
+        status: 'active',
+      })
+      await tx.update(retailers).set({ identityId: identity }).where(eq(retailers.id, shop))
+    })
+    // The other distributor links the same shop to the same identity but has given it no sign-in.
+    await withTenant(db, { tenantId: there, actorId: ownerThere, actorRole: 'owner' }, (tx) =>
+      tx.insert(retailerLinks).values({
+        id: uuidv7(),
+        tenantId: there,
+        identityId: identity,
+        retailerId: sameShopThere,
+        linkedBy: 'rep_onboarding',
+      }),
+    )
+  })
+
+  afterAll(async () => {
+    await pool.end()
+  })
+
+  const asShopkeeper = <T>(tenantId: string, fn: (tx: Db) => Promise<T>) =>
+    withTenant(db, { tenantId, actorId: shopkeeper, actorRole: 'retailer' }, fn)
+
+  const reads = (tenantId: string) =>
+    asShopkeeper(tenantId, async (tx) => ({
+      shops: (await tx.select({ id: retailers.id }).from(retailers)).map((r) => r.id),
+      orders: (await tx.select({ id: salesOrders.id }).from(salesOrders)).map((r) => r.id),
+      bills: (await tx.select({ id: invoices.id }).from(invoices)).map((r) => r.id),
+      dues: (
+        await tx
+          .select({ retailerId: retailerOutstandingSummary.retailerId })
+          .from(retailerOutstandingSummary)
+      ).map((r) => r.retailerId),
+    }))
+
+  it('reads only its own shop’s orders, bills and dues here, and nothing of the neighbour', async () => {
+    expect(await reads(here)).toEqual({
+      shops: [shop],
+      orders: [orders.shop],
+      bills: [bills.shop],
+      dues: [shop],
+    })
+  })
+
+  it('reads nothing of another distributor, not even the same shop on its books', async () => {
+    expect(await reads(there)).toEqual({ shops: [], orders: [], bills: [], dues: [] })
+  })
+
+  it('may not give itself the neighbour or a membership at another distributor', async () => {
+    // RLS lets the shopkeeper's UPDATE reach no link: nothing changes, nothing is reported.
+    await asShopkeeper(here, (tx) =>
+      tx
+        .update(retailerLinks)
+        .set({ userId: shopkeeper })
+        .where(eq(retailerLinks.retailerId, neighbour)),
+    )
+    const [neighbourLink] = await db
+      .select({ userId: retailerLinks.userId })
+      .from(retailerLinks)
+      .where(eq(retailerLinks.retailerId, neighbour))
+    expect(neighbourLink?.userId).toBeNull()
+    await expect(
+      asShopkeeper(there, (tx) =>
+        tx
+          .insert(memberships)
+          .values({ id: uuidv7(), tenantId: there, userId: shopkeeper, role: 'retailer' }),
+      ),
+    ).rejects.toThrow()
+    expect((await reads(here)).shops).toEqual([shop])
+    expect((await reads(there)).shops).toEqual([])
+  })
+
+  it('reads nothing here once the desk stops the sign-in, and the books stay', async () => {
+    await withTenant(db, { tenantId: here, actorId: ownerHere, actorRole: 'owner' }, (tx) =>
+      tx
+        .update(retailerLinks)
+        .set({ userId: null })
+        .where(and(eq(retailerLinks.retailerId, shop), eq(retailerLinks.userId, shopkeeper))),
+    )
+    expect(await reads(here)).toEqual({ shops: [], orders: [], bills: [], dues: [] })
+    const kept = await withTenant(
+      db,
+      { tenantId: here, actorId: ownerHere, actorRole: 'owner' },
+      async (tx) => ({
+        orders: (await tx.select({ id: salesOrders.id }).from(salesOrders)).length,
+        bills: (await tx.select({ id: invoices.id }).from(invoices)).length,
+      }),
+    )
+    expect(kept).toEqual({ orders: 2, bills: 2 })
+  })
+})
