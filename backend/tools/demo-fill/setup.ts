@@ -83,7 +83,9 @@ export async function ensurePeople(ctx: Ctx, world: World, date: string): Promis
     ctx.userIds.set(t.key, member.userId)
     if (member.username) ctx.usernames.set(t.key, member.username)
     if (member.role !== t.role)
-      ctx.summary.note(`${member.username ?? t.key} exists with another role (${member.role}); left alone`)
+      ctx.summary.note(
+        `${member.username ?? t.key} exists with another role (${member.role}); left alone`,
+      )
     if (member.status === 'disabled') {
       await ctx.write('people', 'login re-enabled', ctx.owner, contract.tenancy.staff.setStatus, {
         idempotencyKey: demoKey(date, 'person', member.userId, 'enable'),
@@ -194,7 +196,9 @@ async function makeTester(
       if (e.status === 409) {
         // The username and the phone belong to two other people, or to someone already in this distributor.
         taken.add(username)
-        ctx.log(`  people: ${username} is someone else's (${e.label}); the next plain name is asked`)
+        ctx.log(
+          `  people: ${username} is someone else's (${e.label}); the next plain name is asked`,
+        )
         continue
       }
       ctx.summary.refusedOne('people', `tester login ${t.key}`, e.label)
@@ -371,14 +375,20 @@ async function ensureRepBeats(
   for (const a of ending) {
     const validTo = a.validFrom > lastFormerDay ? a.validFrom : lastFormerDay
     if (a.validTo !== null && a.validTo <= validTo) continue
-    await ctx.write('masters', 'former rep taken off a beat', manager(ctx), contract.retailers.beats.assign, {
-      idempotencyKey: demoKey(from, 'beat', 'end', a.id),
-      id: a.beatId,
-      assignmentId: a.id,
-      userId: a.userId,
-      validFrom: a.validFrom,
-      validTo,
-    })
+    await ctx.write(
+      'masters',
+      'former rep taken off a beat',
+      manager(ctx),
+      contract.retailers.beats.assign,
+      {
+        idempotencyKey: demoKey(from, 'beat', 'end', a.id),
+        id: a.beatId,
+        assignmentId: a.id,
+        userId: a.userId,
+        validFrom: a.validFrom,
+        validTo,
+      },
+    )
   }
   return chosen
 }
@@ -530,9 +540,11 @@ async function ensureConsents(ctx: Ctx, date: string): Promise<void> {
       ctx.summary.foundOne('masters', 'gps consent')
       continue
     }
+    // The driver's own user id is part of the key: a crew that replaces another on the same date (D6) grants its
+    // own consent, never replays the former driver's.
     await ctx.write('masters', 'gps consent', () => ctx.as(key), contract.delivery.consents.grant, {
-      idempotencyKey: demoKey(date, 'consent', key),
-      id: ctx.id(date, 'consent', key),
+      idempotencyKey: demoKey(date, 'consent', key, userId),
+      id: ctx.id(date, 'consent', key, userId),
       granted: true,
       noticeVersion: GPS_NOTICE_VERSION,
       locale: 'en-IN',

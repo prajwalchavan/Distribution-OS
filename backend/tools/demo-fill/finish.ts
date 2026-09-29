@@ -12,7 +12,8 @@ import { signOffAndLoad } from './road.js'
  * and a desk would — the held orders decided, the vans' last doors delivered, the vans checked in and settled
  * with the cash handed over, the waves picked and packed (their bills ride today's vans), the supplier bills
  * matched and their goods counted and posted, the draft return issued, the money matched and banked, and a
- * week-old tool bill paid off by bank transfer. Nothing of `date` itself is touched.
+ * week-old tool bill paid off by bank transfer. Nothing of `date` itself is touched — except the open trips of
+ * tester logins the tool no longer uses (D6), which are finished or cancelled whatever their date.
  */
 export async function finishEarlier(ctx: Ctx, date: string): Promise<void> {
   await decideHeldOrders(ctx, date)
@@ -74,10 +75,12 @@ async function decideHeldOrders(ctx: Ctx, date: string): Promise<void> {
 // ------------------------------------------------------------------------------------------- trips
 
 async function finishTrips(ctx: Ctx, date: string): Promise<void> {
+  // Every open trip of the tool, whatever its date: a former driver's van load planned for the day AFTER `date`
+  // (the tool before 2026-09-29 plans tomorrow's van 1 tonight) is cancelled in this same run, so that the login
+  // can be switched off at its end (D6: healed in one run).
   const open = await pages((cursor) =>
     ctx.read(contract.delivery.trips.list, {
       states: ['planned', 'loading', 'active', 'closing'],
-      to: date,
       limit: 200,
       ...(cursor ? { cursor } : {}),
     }),
@@ -102,9 +105,10 @@ async function finishTrips(ctx: Ctx, date: string): Promise<void> {
 }
 
 /**
- * D6: a trip of a driver the tool no longer has (a former tester login). A trip that has not left is CANCELLED by
- * the desk (its draft sheet with it) and its bills go back on the planning board, where today's vans carry them:
- * the work goes to the new drivers. A trip that has left cannot be handed to anyone — no procedure changes a trip's
+ * D6: a trip of a driver the tool no longer has (a former tester login). A trip that has not left — the van load a
+ * former crew planned for the next morning, whatever its date — is CANCELLED by the desk (its draft sheet with it)
+ * and its bills go back on the planning board, where the vans of the next day the new crew makes carry them: the
+ * work goes to the new drivers. A trip that has left cannot be handed to anyone — no procedure changes a trip's
  * driver — so its own driver finishes it, signed in as that former login before it is switched off: the last doors
  * delivered, the van checked in; the accountant settles it. That includes a trip of `date` itself (a date the former
  * logins made): the van must be back before today's crew takes it out on its own shift. When the former login

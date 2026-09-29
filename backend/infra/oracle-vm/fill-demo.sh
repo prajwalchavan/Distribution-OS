@@ -20,8 +20,11 @@
 #      it, nor above it), the tool with --commit, its two checks and the four release checks there, with a
 #      throw-away logins file; then that API is stopped and the scratch database dropped. Any failure stops
 #      everything before the real database is touched;
-#   3. runs the tool with --commit against the real API (127.0.0.1:3100) as owner.tarsun, with the tester
-#      logins in /opt/dos/env/tester-logins.txt (mode 600), then the same six checks;
+#   3. runs the tool with --commit against the real API (127.0.0.1:3100) as owner.tarsun, then the same six
+#      checks. The tester logins are plain — manager, accounts, sales1, sales2, godown, driver1, driver2 (the next
+#      free plain name, e.g. godown2, when the distributor's own staff already holds one) — and each signs in with
+#      the demo password of the demo seed (founder, 2026-09-29); the tool lists them in
+#      /opt/dos/env/tester-logins.txt (mode 600). The owner's password is never changed;
 #   4. writes /opt/dos/fill-demo-nightly.sh and the cron line for 06:00 IST (`30 0 * * *` on a VM clock in UTC,
 #      `0 6 * * *` on one in IST; any other clock needs FILL_CRON_WHEN), log in /var/backups/dos/fill-demo.log;
 #   5. prints PASS / FAIL lines.
@@ -32,8 +35,9 @@
 # the tool leaves open on purpose must read as work the product can carry on, never as stranded (rule 7b).
 #
 # The Mac half then copies the logins file to ~/.config/dos/tester-logins.txt (mode 600) and prints only
-# its path. No password, no shop's name, phone or address is printed anywhere: the tool and the checks
-# print counts and ids. When the VM has no /opt/dos/env/live-owner.pw yet, the Mac half sends it from
+# its path: open it to see which tester logins exist. No password, no shop's name, phone or address is printed
+# anywhere: the tool and the checks print counts and ids. When the VM has no /opt/dos/env/live-owner.pw yet, the
+# Mac half sends it from
 # ~/.config/dos/live-owner-password.txt over ssh (stdin, mode 600), never through the screen.
 set -euo pipefail
 
