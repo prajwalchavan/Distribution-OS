@@ -2,7 +2,7 @@ import { contract } from '@dos/contracts'
 import { ApiRefusal } from './client.js'
 import { Ctx, type RunOptions } from './context.js'
 import { allRows } from './coverage.js'
-import { makeDay } from './day.js'
+import { makeDay, takeShift } from './day.js'
 import { finishEarlier } from './finish.js'
 import { pages } from './helpers.js'
 import { addDays, isDemoId } from './ids.js'
@@ -142,6 +142,8 @@ export async function runFill(opts: RunOptions): Promise<RunResult> {
         await guard(ctx, 'yesterday', 'finish', () => finishEarlier(ctx, leadIn))
         await guard(ctx, 'yesterday', `make ${leadIn}`, () => makeDay(ctx, leadIn, standing))
       }
+      // Whose shift of the date this run makes (D6), known before the finishing half keys anything of the date.
+      await guard(ctx, 'masters', 'shift of the date', () => takeShift(ctx, date))
       ctx.log(`finishing what earlier days left open`)
       await guard(ctx, 'yesterday', 'finish', () => finishEarlier(ctx, date))
       ctx.log(`making ${date}`)

@@ -1,7 +1,7 @@
 import { contract } from '@dos/contracts'
 import type { Api, Session } from './client.js'
 import { maybe } from './helpers.js'
-import { addDays, demoId, isDemoId, todayIst, tripIdOf } from './ids.js'
+import { addDays, demoIdDate, isDemoId, todayIst, tripIdOf } from './ids.js'
 import type { TesterKey } from './people.js'
 import { SLOT_DOORS } from './plan.js'
 import type { Row } from './summary.js'
@@ -156,13 +156,14 @@ export async function salesRow(api: Api, s: CoverageSessions, date: string): Pro
         `${rep}: ${String(assignments.items.length)} beat(s) on ${date}${as}`,
       ),
     )
-    const slots = rep === 'sales1' ? ['h1', 'w1'] : ['h2', 'w2']
-    const wanted = new Set(slots.map((slot) => demoId(s.owner.tenantId, date, 'order', slot)))
-    const orders = await api.call(session, contract.orders.list, {
-      ...(userId ? { salespersonId: userId } : {}),
-      limit: 200,
-    })
-    const taken = orders.items.filter((o) => wanted.has(o.id))
+    // The day's orders this rep took: the tool's (its mark), made for `date` (the date in the id), whichever shift
+    // of the day they belong to (D6), and taken by this rep.
+    const orders = userId
+      ? await api.call(session, contract.orders.list, { salespersonId: userId, limit: 200 })
+      : { items: [] }
+    const taken = orders.items.filter(
+      (o) => isDemoId(o.id) && demoIdDate(o.id) === date && o.salespersonId === userId,
+    )
     out.push(
       seen(
         'sales',

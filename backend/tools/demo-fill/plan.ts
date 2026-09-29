@@ -31,6 +31,12 @@ export interface ShopInfo {
   foreignOpenPaise: number
   /** A bill of the shop stands written off: money it pays recovers that first (DOS-311). */
   writtenOff: boolean
+  /**
+   * Money of the TOOL's own on account at the shop (today's "payment to match", not matched until the next run).
+   * A second shift of a date gives such a shop no new bill: the product would apply that money to it (DOS-312)
+   * and the desk would have no payment left to match.
+   */
+  toolOnAccountPaise?: number
 }
 
 /**
@@ -197,6 +203,12 @@ export interface DayPlan {
 export interface PlanInput {
   tenantId: string
   date: string
+  /**
+   * The shift of the date (D6, `day.ts dayShift`): absent for a date one crew makes — the ids and choices are the
+   * ones the tool always made — and `s2`, `s3`… when a crew the tool no longer uses already made the date and
+   * today's crew takes its own shift of it: its orders' ids and the day's choices carry the tag.
+   */
+  shift?: string | undefined
   shops: readonly ShopInfo[]
   items: readonly ItemInfo[]
   repBeats: Partial<Record<'sales1' | 'sales2', string>>
@@ -399,8 +411,21 @@ export function chooseLines(
 // --------------------------------------------------------------------------------------------- the day
 
 /** The whole day: orders for every slot, and the doors of both vans with the bills that ride them. */
+/** The id of a planned order: the date's slot, under the date's shift when it has one. */
+export function orderIdOf(
+  tenantId: string,
+  date: string,
+  slot: string,
+  shift?: string,
+  ...more: string[]
+): string {
+  return demoId(tenantId, date, ...(shift ? [shift] : []), 'order', slot, ...more)
+}
+
 export function planDay(input: PlanInput): DayPlan {
-  const { date } = input
+  const { date, shift } = input
+  /** What the day's choices are seeded with: the date, and its shift when it has one. */
+  const seed = shift ? `${date}:${shift}` : date
 
   const budget = stockBudget(input.items)
   const credit = new Set(Object.values(input.creditShops))
@@ -411,22 +436,28 @@ export function planDay(input: PlanInput): DayPlan {
   // Fresh shops for the desk's phone orders: never a credit shop or a shopkeeper stand-in, one order each, only
   // shops the tool may bill (`billable`), and shops that owe nothing on a real bill first — their real dues stay
   // out of the way of the day's money (brief rules 3 and 3b), and no credit gate holds an order that is meant to
-  // go out today.
-  const eligible = input.shops.filter((s) => billable(s) && !credit.has(s.id) && !slots.has(s.id))
+  // go out today. A second shift leaves out the shop holding the first shift's payment to match.
+  const eligible = input.shops.filter(
+    (s) =>
+      billable(s) &&
+      !credit.has(s.id) &&
+      !slots.has(s.id) &&
+      !(shift && (s.toolOnAccountPaise ?? 0) > 0),
+  )
   const fresh = [
     ...shuffled(
       eligible.filter((s) => clean(s) && s.outstandingPaise <= 0),
-      `fresh-shops:${date}`,
+      `fresh-shops:${seed}`,
       (s) => s.id,
     ),
     ...shuffled(
       eligible.filter((s) => clean(s) && s.outstandingPaise > 0),
-      `fresh-shops:${date}`,
+      `fresh-shops:${seed}`,
       (s) => s.id,
     ),
     ...shuffled(
       eligible.filter((s) => !clean(s)),
-      `fresh-shops:${date}`,
+      `fresh-shops:${seed}`,
       (s) => s.id,
     ),
   ]
@@ -448,10 +479,10 @@ export function planDay(input: PlanInput): DayPlan {
       emptySlots.push(slot)
       return null
     }
-    const id = demoId(input.tenantId, date, 'order', slot)
+    const id = orderIdOf(input.tenantId, date, slot, shift)
     const lines = chooseLines(
-      `${date}:${slot}`,
-      (n) => demoId(input.tenantId, date, 'order', slot, 'line', String(n)),
+      `${seed}:${slot}`,
+      (n) => orderIdOf(input.tenantId, date, slot, shift, 'line', String(n)),
       input.items,
       budget,
     )
@@ -578,9 +609,14 @@ export function planDay(input: PlanInput): DayPlan {
     const beat = input.repBeats[rep]
     const beatShops = shuffled(
       input.shops.filter(
-        (s) => billable(s) && s.beatId === beat && !credit.has(s.id) && !slots.has(s.id),
+        (s) =>
+          billable(s) &&
+          s.beatId === beat &&
+          !credit.has(s.id) &&
+          !slots.has(s.id) &&
+          !(shift && (s.toolOnAccountPaise ?? 0) > 0),
       ),
-      `beat-shops:${date}:${rep}`,
+      `beat-shops:${seed}:${rep}`,
       (s) => s.id,
     )
     if (rep === 'sales1') {

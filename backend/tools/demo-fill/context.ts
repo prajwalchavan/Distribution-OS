@@ -99,6 +99,29 @@ export class Ctx {
     return stopIdOf(this.tenantId, date, tripId, sequence)
   }
 
+  /**
+   * The SHIFT of a date (D6): empty when the date's work is this crew's alone (every date the tool makes with one
+   * crew: its ids are the ones it always had), `s2`, `s3`… when a crew the tool no longer uses already made that
+   * date and this crew takes its own shift of it (`day.ts dayShift`). Set by `makeDay`.
+   */
+  readonly shifts = new Map<string, string>()
+  private shiftParts(date: string): string[] {
+    const s = this.shifts.get(date)
+    return s ? [s] : []
+  }
+  /** The id of a row of the day's own work of `date` (its shift's, when it has one). */
+  dayId(date: string, ...parts: string[]): string {
+    return demoId(this.tenantId, date, ...this.shiftParts(date), ...parts)
+  }
+  /** Its idempotency key. */
+  dayKey(date: string, ...parts: string[]): string {
+    return demoKey(date, ...this.shiftParts(date), ...parts)
+  }
+  /** The seed of the day's choices (which shops, which items): the date, and its shift when it has one. */
+  daySeed(date: string): string {
+    return [date, ...this.shiftParts(date)].join(':')
+  }
+
   get commit(): boolean {
     return this.opts.commit
   }
@@ -325,9 +348,79 @@ export class Ctx {
     writeLogins(this.opts.loginsFile, this.opts.tenant, lines)
   }
 
+  /** Sessions of former tester logins (D6), by user id: null when that person could not be signed in. */
+  private readonly formerSessions = new Map<string, Session | null>()
+
+  /**
+   * The session of a FORMER tester login (D6), to finish work the product cannot hand to another person (a trip's
+   * driver is fixed when it is planned) as that person, before the login is switched off. Tried in turn: the
+   * password the logins file of the tool before 2026-09-29 holds for it (read, never printed, never written again),
+   * the demo password, and last the product's own door — the owner sets a temporary password and the person changes
+   * it to a fresh one the tool keeps in memory for this run only (the login is switched off at the end of it).
+   * Null when none works: the step is then done by the desk and the report says so.
+   */
+  async asFormer(userId: string): Promise<Session | null> {
+    if (this.formerSessions.has(userId)) return this.formerSessions.get(userId) ?? null
+    if (!this.commit) return null
+    const member = this.former.find((f) => f.member.userId === userId)?.member
+    const username = member?.username
+    let s: Session | null = null
+    if (username && member.status !== 'disabled') {
+      const file = readLogins(this.opts.loginsFile).get(username)?.password
+      for (const password of [file, DEMO_PASSWORD]) {
+        if (!password || s) continue
+        try {
+          const got = await this.api.signIn(username, password, this.opts.tenant)
+          if (got.mustChangePassword) await this.api.signOut(got)
+          else s = got
+        } catch (e) {
+          if (!(e instanceof ApiRefusal) || e.status !== 401) break
+        }
+      }
+      if (!s) s = await this.resetFormer(userId, username)
+    }
+    this.formerSessions.set(userId, s)
+    return s
+  }
+
+  private async resetFormer(userId: string, username: string): Promise<Session | null> {
+    const temporary = newPassword()
+    const date = this.opts.date
+    const reset = await this.write(
+      'people',
+      'former login password reset',
+      this.owner,
+      contract.tenancy.staff.setPassword,
+      {
+        idempotencyKey: demoKey(date, 'person', userId, 'reset', this.id(date, 'reset', temporary)),
+        userId,
+        temporaryPassword: temporary,
+      },
+    )
+    if (!reset) return null
+    try {
+      const first = await this.api.signIn(username, temporary, this.opts.tenant)
+      const fresh = newPassword()
+      await this.api.authCall(first, authContract.changePassword, {
+        currentPassword: temporary,
+        newPassword: fresh,
+      })
+      await this.api.signOut(first)
+      return await this.api.signIn(username, fresh, this.opts.tenant)
+    } catch (e) {
+      this.summary.refusedOne(
+        'people',
+        `sign-in ${username}`,
+        e instanceof ApiRefusal ? e.label : 'error',
+      )
+      return null
+    }
+  }
+
   /** Sign every session this run opened out again. */
   async signOutAll(): Promise<void> {
     for (const s of this.sessions.values()) await this.api.signOut(s)
+    for (const s of this.formerSessions.values()) if (s) await this.api.signOut(s)
     if (this.owner) await this.api.signOut(this.owner)
   }
 }

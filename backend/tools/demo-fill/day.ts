@@ -2,9 +2,10 @@ import { contract } from '@dos/contracts'
 import type { Ctx } from './context.js'
 import { officeMoney, returnToApprove, supplierBills } from './desk.js'
 import { billOf, earlier, getOrder, istTime, maybe, pages } from './helpers.js'
-import { addDays, demoKey, isDemoId, unit } from './ids.js'
+import { addDays, demoKey, unit } from './ids.js'
 import {
   VAN_LOAD_DOORS,
+  orderIdOf,
   planCounts,
   planDay,
   type CarriedBill,
@@ -118,8 +119,8 @@ async function placeOrder(ctx: Ctx, order: PlannedOrder, date: string): Promise<
         // Three per cent under the quoted rate, in whole rupees: what a rep asks for a regular shop.
         const asked = Math.min(q.ratePaise - 100, Math.floor((q.ratePaise * 0.97) / 100) * 100)
         await ctx.write(section, 'rate asked', placer, contract.pricing.bargains.request, {
-          idempotencyKey: demoKey(date, 'bargain', order.slot),
-          id: ctx.id(date, 'bargain', order.slot),
+          idempotencyKey: ctx.dayKey(date, 'bargain', order.slot),
+          id: ctx.dayId(date, 'bargain', order.slot),
           retailerId: order.shopId,
           variantId: line.variantId,
           askedRatePaise: asked,
@@ -130,7 +131,7 @@ async function placeOrder(ctx: Ctx, order: PlannedOrder, date: string): Promise<
       }
     }
     const made = await ctx.write(section, 'order taken', placer, contract.orders.create, {
-      idempotencyKey: demoKey(date, 'order', order.slot, 'create'),
+      idempotencyKey: ctx.dayKey(date, 'order', order.slot, 'create'),
       id: order.id,
       retailerId: order.shopId,
       source: order.by === 'manager' ? 'phone' : 'salesperson',
@@ -147,7 +148,7 @@ async function placeOrder(ctx: Ctx, order: PlannedOrder, date: string): Promise<
   } else ctx.summary.foundOne(section, 'order taken')
   if (current.state === 'draft') {
     const sent = await ctx.write(section, 'order placed', placer, contract.orders.submit, {
-      idempotencyKey: demoKey(date, 'order', order.slot, 'submit'),
+      idempotencyKey: ctx.dayKey(date, 'order', order.slot, 'submit'),
       id: order.id,
     })
     if (sent) current = sent.item
@@ -187,8 +188,8 @@ async function recordVisit(ctx: Ctx, order: PlannedOrder, date: string): Promise
     () => ctx.as(order.by),
     contract.retailers.visits.record,
     {
-      idempotencyKey: demoKey(date, 'visit', order.slot),
-      id: ctx.id(date, 'visit', order.slot),
+      idempotencyKey: ctx.dayKey(date, 'visit', order.slot),
+      id: ctx.dayId(date, 'visit', order.slot),
       retailerId: order.shopId,
       startedAt: istTime(date, order.slot.endsWith('1') ? 10 : 11, minute),
       endedAt: istTime(date, order.slot.endsWith('1') ? 10 : 11, minute + 9),
@@ -210,7 +211,7 @@ export async function wave(
   orderIds: readonly string[],
   upTo: 'open' | 'picked' | 'packed',
 ): Promise<void> {
-  const id = ctx.id(date, 'wave', name)
+  const id = ctx.dayId(date, 'wave', name)
   let pl = await maybe(ctx.read(contract.warehouse.picklists.get, { id }))
   if (!pl) {
     const ready: string[] = []
@@ -225,7 +226,7 @@ export async function wave(
       () => ctx.as('godown'),
       contract.warehouse.picklists.create,
       {
-        idempotencyKey: demoKey(date, 'wave', name),
+        idempotencyKey: ctx.dayKey(date, 'wave', name),
         id,
         orderIds: ready,
         pickDate: date,
@@ -242,7 +243,7 @@ export async function wave(
       () => ctx.as('godown'),
       contract.warehouse.picklists.start,
       {
-        idempotencyKey: demoKey(date, 'wave', name, 'start'),
+        idempotencyKey: ctx.dayKey(date, 'wave', name, 'start'),
         id,
         assignedTo: ctx.userIds.get('godown'),
       },
@@ -259,7 +260,7 @@ export async function wave(
         () => ctx.as('godown'),
         contract.warehouse.picklists.pick,
         {
-          idempotencyKey: demoKey(date, 'wave', name, 'pick'),
+          idempotencyKey: ctx.dayKey(date, 'wave', name, 'pick'),
           id,
           // A line the godown has no lot for cannot be recorded (a pick names its lot); the plan never orders
           // an item without stock, so that line is a race with a real order and is left for the desk.
@@ -320,10 +321,13 @@ async function plannedStops(
   for (const door of plan.trips[driver]) {
     // The door goes to the shop the BILL is for: after a crash the plan may name another shop for a slot
     // whose order already exists, and the order is what it is.
+    const orderId = door.orderSlot
+      ? plan.orders.find((o) => o.slot === door.orderSlot)?.id
+      : undefined
     const bill = door.carried
       ? { id: door.carried.invoiceId, retailerId: door.carried.shopId }
-      : door.orderSlot
-        ? await billOf(ctx, ctx.id(date, 'order', door.orderSlot))
+      : orderId
+        ? await billOf(ctx, orderId)
         : null
     if (!bill) continue
     stops.push({
@@ -425,7 +429,7 @@ async function planTrip(
 async function vanToLoad(ctx: Ctx, date: string, plan: DayPlan, standing: Standing): Promise<void> {
   const van1 = standing.vans.driver1
   if (!van1) return
-  const id = ctx.id(date, 'sheet', 'van-to-load')
+  const id = ctx.dayId(date, 'sheet', 'van-to-load')
   if (await maybe(ctx.read(contract.warehouse.loadSheets.get, { id }))) {
     ctx.summary.foundOne('godown', 'van to load')
     return
@@ -482,7 +486,7 @@ async function vanToLoad(ctx: Ctx, date: string, plan: DayPlan, standing: Standi
     () => ctx.as('godown'),
     contract.warehouse.loadSheets.create,
     {
-      idempotencyKey: demoKey(date, 'sheet', 'van-to-load'),
+      idempotencyKey: ctx.dayKey(date, 'sheet', 'van-to-load'),
       id,
       toLocationId: van1.locationId,
       tripId,
@@ -492,33 +496,60 @@ async function vanToLoad(ctx: Ctx, date: string, plan: DayPlan, standing: Standi
   )
 }
 
-/** How many trips of `date` the tool gave a driver it no longer has, and that have left (D6). */
-async function formerDriversTrips(ctx: Ctx, date: string): Promise<number> {
-  const trips = await pages((cursor) =>
-    ctx.read(contract.delivery.trips.list, {
-      from: date,
-      to: date,
-      limit: 200,
-      ...(cursor ? { cursor } : {}),
-    }),
-  )
-  return trips.filter(
-    (t) =>
-      isDemoId(t.id) &&
-      ctx.crewDriverOf(t.driverId) === null &&
-      t.state !== 'planned' &&
-      t.state !== 'cancelled',
-  ).length
+/** Every slot a day's plan can fill: its orders' ids say which crew made the date (`dayShift`). */
+export const DAY_SLOTS: readonly string[] = [
+  ...['t1', 't2'].flatMap((van) => [0, 1, 2, 3, 4, 5, 6, 7].map((n) => `${van}.${String(n)}`)),
+  ...['h1', 'w1', 'h2', 'w2', 'k1', 'k2', 'l1', 'l2'],
+]
+/** The shifts a date can have, in order (D6): its own, then one per crew that took the date over. */
+export const SHIFTS: readonly string[] = ['', 's2', 's3', 's4', 's5']
+
+/**
+ * THE SHIFT of `date` (D6). A date is made under one crew's ids. When the tool's former tester logins already made
+ * it — its orders were placed by a person who is not in today's crew — today's crew takes the next shift whose
+ * orders are nobody else's (`s2`, then `s3`…), after the former drivers finished their trips of the day, so the new
+ * testers open on work of their own that day and nothing of the first shift is made twice. A date only one crew
+ * made keeps no tag: the ids are the ones the tool always made. Reads only; the same answer on every run of the date.
+ */
+export async function dayShift(ctx: Ctx, date: string): Promise<string> {
+  const crew = new Set(ctx.userIds.values())
+  for (const shift of SHIFTS) {
+    let maker: string | null = null
+    for (const slot of DAY_SLOTS) {
+      const o = await getOrder(ctx, orderIdOf(ctx.tenantId, date, slot, shift || undefined))
+      if (o) {
+        maker = o.createdBy
+        break
+      }
+    }
+    if (maker === null || crew.has(maker)) return shift
+  }
+  throw new Error(`${date} has more shifts than the tool keeps (${String(SHIFTS.length)})`)
 }
 
 // ------------------------------------------------------------------------------------------- the day
 
+/** Reads the shift of `date` once per run and keeps it on the run (`Ctx.shifts`); the report says when there is one. */
+export async function takeShift(ctx: Ctx, date: string): Promise<string> {
+  const known = ctx.shifts.get(date)
+  if (known !== undefined) return known
+  const shift = await dayShift(ctx, date)
+  ctx.shifts.set(date, shift)
+  if (shift)
+    ctx.summary.note(
+      `${date} was already made by tester logins the tool no longer uses: today's testers take their own shift of it (${shift}), after the former drivers finished and checked in their trips (D6)`,
+    )
+  return shift
+}
+
 export async function makeDay(ctx: Ctx, date: string, standing: Standing): Promise<DayPlan> {
+  const shift = await takeShift(ctx, date)
   const world = await readWorld(ctx)
   const carried = await findCarried(ctx, date, standing)
   const plan = planDay({
     tenantId: ctx.tenantId,
     date,
+    shift: shift || undefined,
     shops: world.shops,
     items: world.items,
     repBeats: standing.repBeats,
@@ -555,16 +586,8 @@ export async function makeDay(ctx: Ctx, date: string, standing: Standing): Promi
     'open',
   )
 
-  // D6: a date the tool's former tester logins already made keeps its trips — a trip's driver is fixed when it is
-  // planned, and the date's bills ride those trips — so the drivers of today take their first trips the next date.
-  const byFormer = await formerDriversTrips(ctx, date)
-  if (byFormer > 0)
-    ctx.summary.note(
-      `${date} was made by tester logins the tool no longer uses (${String(byFormer)} of its trips are theirs, D6): a trip's driver is fixed when it is planned, so the drivers of today take their first trips on the next business date, and the next run has the desk finish these`,
-    )
-  else
-    for (const driver of ['driver1', 'driver2'] as const)
-      await planTrip(ctx, date, driver, plan, standing)
+  for (const driver of ['driver1', 'driver2'] as const)
+    await planTrip(ctx, date, driver, plan, standing)
   await vanToLoad(ctx, date, plan, standing)
   await returnToApprove(ctx, date)
   await officeMoney(ctx, date)

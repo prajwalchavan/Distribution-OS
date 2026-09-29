@@ -25,6 +25,7 @@ import {
   slotShopsOnVans,
   type ShopInfo,
 } from './plan.js'
+import { takeShift } from './day.js'
 import { readTrip } from './road.js'
 import type { World } from './world.js'
 
@@ -72,10 +73,11 @@ export async function ensurePeople(ctx: Ctx, world: World, date: string): Promis
   const phones = new Set([...world.staffPhones, ...world.shopPhones])
   // Every username of this distributor is someone's: the crew's own, or one the tool must not take (D5).
   const taken = new Set(staff.items.map((m) => m.username).filter((u): u is string => !!u))
+  const ownerPhone = staff.items.find((m) => m.userId === ctx.owner.userId)?.phone ?? null
   for (const t of TESTERS) {
     const member = crew.get(t.key)
     if (!member) {
-      await makeTester(ctx, t, date, taken, phones)
+      await makeTester(ctx, t, date, taken, phones, ownerPhone)
       continue
     }
     ctx.userIds.set(t.key, member.userId)
@@ -98,11 +100,53 @@ export async function ensurePeople(ctx: Ctx, world: World, date: string): Promis
 }
 
 /**
+ * Is a username someone's (D5)? `staff.create` looks a person up by username OR phone across the whole platform
+ * and gives the new login to the one it finds, and nothing the API answers shows a person of another distributor.
+ * So the tool asks the product first, without making anything: `staff.create` with that username and the phone of
+ * the OWNER, a person already in this distributor. The product refuses it either way — "already a member" when
+ * the only person it found is the owner (the username is nobody's), "two different people" when the username is
+ * someone else's. Anything else is read as taken: the tool then takes the next plain name rather than guess.
+ */
+export function probeAnswer(e: unknown): 'free' | 'taken' {
+  if (e instanceof ApiRefusal && e.status === 409 && /already a member/i.test(e.message))
+    return 'free'
+  return 'taken'
+}
+
+async function usernameIsFree(
+  ctx: Ctx,
+  t: Tester,
+  date: string,
+  username: string,
+  ownerPhone: string | null,
+): Promise<boolean> {
+  if (!ownerPhone) return true
+  try {
+    await ctx.api.call(ctx.owner, contract.tenancy.staff.create, {
+      idempotencyKey: demoKey(date, ...personParts(t.key, ctx.suffix), 'probe', username),
+      id: ctx.id(date, 'membership-probe', t.key, username),
+      userId: personId(ctx.tenantId, date, t.key, ctx.suffix),
+      username,
+      name: t.name,
+      phone: ownerPhone,
+      role: t.role,
+      locale: 'en-IN',
+      temporaryPassword: newPassword(),
+    })
+  } catch (e) {
+    if (e instanceof ApiRefusal && e.status === 0) throw e
+    return probeAnswer(e) === 'free'
+  }
+  // Never answered with a login (the owner is a member already); if it ever is, the name is not taken as free.
+  return false
+}
+
+/**
  * Make one tester: the owner adds the login with a temporary password under the first plain username nobody
- * holds, and the person changes it to the demo password. `staff.create` looks a person up by username OR phone
- * across the whole platform and, when one matches, gives the new login to that person: an answer carrying a user id
- * that is not the tool's means the username (or the phone) belonged to someone on another distributor, whom the
- * API could not show before. That login is switched off at once and the next plain name is asked (D5).
+ * holds, and the person changes it to the demo password. A plain username someone holds — the distributor's own
+ * staff (in the staff list) or a person of another distributor (`usernameIsFree`) — is never taken, and the next
+ * plain name is asked (D5). Should the API still give the new login to someone else (a phone the tool drew that
+ * a person of another distributor holds), that login is switched off at once and the next name is asked.
  */
 async function makeTester(
   ctx: Ctx,
@@ -110,6 +154,7 @@ async function makeTester(
   date: string,
   taken: Set<string>,
   phones: ReadonlySet<string>,
+  ownerPhone: string | null,
 ): Promise<void> {
   const plain = plainUsername(t.key, ctx.suffix)
   const userId = personId(ctx.tenantId, date, t.key, ctx.suffix)
@@ -124,6 +169,11 @@ async function makeTester(
       ctx.summary.wouldOne('people', 'tester login')
       said(username)
       return
+    }
+    if (!(await usernameIsFree(ctx, t, date, username, ownerPhone))) {
+      taken.add(username)
+      ctx.log(`  people: ${username} is someone else's; the next plain name is asked`)
+      continue
     }
     const temporary = newPassword()
     let made: { userId: string }
@@ -181,11 +231,28 @@ async function makeTester(
 /**
  * D6: the logins the tool made for testers and uses no more — the `tester.<role>` logins of the tool before
  * 2026-09-29, a crew of another login suffix — are switched off the way a staff member who left is (the owner,
- * `staff.setStatus`), after their open work was finished or carried in this run. Nobody else is touched.
+ * `staff.setStatus`), after their open work was finished or carried in this run. A login that still drives an open
+ * trip (a step of its finishing was refused) stays on, and the next run finishes the trip first. Nobody else is
+ * touched.
  */
 export async function switchOffFormer(ctx: Ctx, date: string): Promise<void> {
-  for (const f of ctx.former) {
-    if (f.member.status === 'disabled') continue
+  const live = ctx.former.filter((f) => f.member.status !== 'disabled')
+  if (live.length === 0) return
+  const open = await pages((cursor) =>
+    ctx.read(contract.delivery.trips.list, {
+      states: ['planned', 'loading', 'active', 'closing'],
+      limit: 200,
+      ...(cursor ? { cursor } : {}),
+    }),
+  )
+  for (const f of live) {
+    const still = open.filter((t) => t.driverId === f.member.userId)
+    if (ctx.commit && still.length > 0) {
+      ctx.summary.note(
+        `${f.member.username ?? f.member.userId} stays on: it still drives ${String(still.length)} open trip(s) (${still.map((t) => t.id).join(', ')}); the next run finishes them first`,
+      )
+      continue
+    }
     await ctx.write(
       'people',
       'former tester login switched off',
@@ -239,7 +306,17 @@ async function ensureVans(ctx: Ctx, world: World, date: string): Promise<Standin
 
 // --------------------------------------------------------------------------------- beats and credit
 
-async function ensureRepBeats(ctx: Ctx, world: World, from: string): Promise<Standing['repBeats']> {
+/**
+ * Each rep's beat. D6: a beat a former tester rep still walks goes to the rep of today, and the former rep's
+ * assignment ends on `lastFormerDay` (`beats.assign` again with an end date: the product's way to take a rep off a
+ * beat) — the day before `from`, or `from` itself when the former crew already worked that date (its shift).
+ */
+async function ensureRepBeats(
+  ctx: Ctx,
+  world: World,
+  from: string,
+  lastFormerDay: string,
+): Promise<Standing['repBeats']> {
   const existing: Standing['repBeats'] = {}
   for (const rep of ['sales1', 'sales2'] as const) {
     const userId = ctx.userIds.get(rep)
@@ -252,8 +329,6 @@ async function ensureRepBeats(ctx: Ctx, world: World, from: string): Promise<Sta
     const first = list.items.find((a) => world.beatIds.includes(a.beatId))
     if (first) existing[rep] = first.beatId
   }
-  // D6: a beat a former tester rep still walks is carried to the rep of today, and the former rep's assignment
-  // ends the day before (`beats.assign` again, with an end date: the product's way to take a rep off a beat).
   const carried: Standing['repBeats'] = {}
   const ending: {
     id: string
@@ -293,9 +368,8 @@ async function ensureRepBeats(ctx: Ctx, world: World, from: string): Promise<Sta
       validTo: null,
     })
   }
-  const dayBefore = addDays(from, -1)
   for (const a of ending) {
-    const validTo = a.validFrom > dayBefore ? a.validFrom : dayBefore
+    const validTo = a.validFrom > lastFormerDay ? a.validFrom : lastFormerDay
     if (a.validTo !== null && a.validTo <= validTo) continue
     await ctx.write('masters', 'former rep taken off a beat', manager(ctx), contract.retailers.beats.assign, {
       idempotencyKey: demoKey(from, 'beat', 'end', a.id),
@@ -475,8 +549,10 @@ export async function ensureStanding(
   earliest: string,
 ): Promise<Standing> {
   await ensurePeople(ctx, world, date)
+  // A date the former tester logins already made is theirs too: today's crew takes a shift of it (D6).
+  const shift = await takeShift(ctx, date)
   const vans = await ensureVans(ctx, world, date)
-  const repBeats = await ensureRepBeats(ctx, world, earliest)
+  const repBeats = await ensureRepBeats(ctx, world, earliest, shift ? date : addDays(earliest, -1))
   const creditShops = await ensureCreditShops(ctx, world, date, repBeats)
   const slotShops = chooseSlotShops(ctx.tenantId, world.shops, new Set(Object.values(creditShops)))
   // A shop the vans of `date` already carry as a stand-in keeps the offer until that day is over.
