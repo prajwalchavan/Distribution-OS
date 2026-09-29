@@ -12,7 +12,8 @@ import { signOffAndLoad } from './road.js'
  * and a desk would — the held orders decided, the vans' last doors delivered, the vans checked in and settled
  * with the cash handed over, the waves picked and packed (their bills ride today's vans), the supplier bills
  * matched and their goods counted and posted, the draft return issued, the money matched and banked, and a
- * week-old tool bill paid off by bank transfer. Nothing of `date` itself is touched.
+ * week-old tool bill paid off by bank transfer. Nothing of `date` itself is touched — except the open trips of
+ * tester logins the tool no longer uses (D6), which are finished or cancelled whatever their date.
  */
 export async function finishEarlier(ctx: Ctx, date: string): Promise<void> {
   await decideHeldOrders(ctx, date)
@@ -74,22 +75,82 @@ async function decideHeldOrders(ctx: Ctx, date: string): Promise<void> {
 // ------------------------------------------------------------------------------------------- trips
 
 async function finishTrips(ctx: Ctx, date: string): Promise<void> {
+  // Every open trip of the tool, whatever its date: a former driver's van load planned for the day AFTER `date`
+  // (the tool before 2026-09-29 plans tomorrow's van 1 tonight) is cancelled in this same run, so that the login
+  // can be switched off at its end (D6: healed in one run).
   const open = await pages((cursor) =>
     ctx.read(contract.delivery.trips.list, {
       states: ['planned', 'loading', 'active', 'closing'],
-      to: addDays(date, -1),
       limit: 200,
       ...(cursor ? { cursor } : {}),
     }),
   )
-  for (const t of open) {
-    if (!isDemoId(t.id) || t.tripDate >= date) continue
-    const driver: DriverKey = t.driverId === ctx.userIds.get('driver2') ? 'driver2' : 'driver1'
+  // Oldest first: a van's earlier trip is settled before a later one of it is loaded (a van carries one trip).
+  const ordered = [...open].sort(
+    (a, b) => a.tripDate.localeCompare(b.tripDate) || a.id.localeCompare(b.id),
+  )
+  for (const t of ordered) {
+    if (!isDemoId(t.id)) continue
+    const driver = ctx.crewDriverOf(t.driverId)
+    if (!driver) {
+      await finishFormerTrip(ctx, t, date)
+      continue
+    }
+    if (t.tripDate >= date) continue
     if (t.state === 'planned' || t.state === 'loading') await loadAndDepart(ctx, t.id, driver, date)
     await workDoors(ctx, t.id, driver, date, true)
     await returnTrip(ctx, t.id, driver, date)
     await settleTrip(ctx, t.id, date)
   }
+}
+
+/**
+ * D6: a trip of a driver the tool no longer has (a former tester login). A trip that has not left — the van load a
+ * former crew planned for the next morning, whatever its date — is CANCELLED by the desk (its draft sheet with it)
+ * and its bills go back on the planning board, where the vans of the next day the new crew makes carry them: the
+ * work goes to the new drivers. A trip that has left cannot be handed to anyone — no procedure changes a trip's
+ * driver — so its own driver finishes it, signed in as that former login before it is switched off: the last doors
+ * delivered, the van checked in; the accountant settles it. That includes a trip of `date` itself (a date the former
+ * logins made): the van must be back before today's crew takes it out on its own shift. When the former login
+ * cannot be signed in at all, the desk does the doorstep steps (the product gives the owner and the manager every
+ * one of them) and the report says so.
+ */
+async function finishFormerTrip(
+  ctx: Ctx,
+  t: { id: string; tripDate: string; state: string; vehicleId: string; driverId: string | null },
+  date: string,
+): Promise<void> {
+  const desk = (): ReturnType<Ctx['as']> => ctx.as('manager')
+  const van: DriverKey = ctx.vanOfVehicle(t.vehicleId) ?? 'driver1'
+  if (t.state === 'planned') {
+    await ctx.write(
+      'yesterday',
+      'trip of a former driver cancelled, its bills back on the board',
+      desk,
+      contract.delivery.trips.cancel,
+      {
+        idempotencyKey: demoKey(date, 'trip', t.id, 'cancel'),
+        id: t.id,
+        reason: 'The driver has left: the bills go out on another van',
+      },
+    )
+    return
+  }
+  const driverId = t.driverId ?? ''
+  const own = ctx.commit ? await ctx.asFormer(driverId) : null
+  const who = ctx.former.find((f) => f.member.userId === driverId)?.member.username ?? driverId
+  const actor = own ? () => Promise.resolve(own) : desk
+  if (ctx.commit)
+    ctx.summary.note(
+      own
+        ? `trip ${t.id} of ${t.tripDate} (${t.state}) cannot be handed to another driver: ${who} finishes it before the login is switched off`
+        : `trip ${t.id} of ${t.tripDate} (${t.state}) cannot be handed to another driver and ${who} could not be signed in: the desk finishes it`,
+    )
+  // Loading (loaded: the product cancels no loaded trip): the driver takes it out and brings it back.
+  if (t.state === 'loading') await loadAndDepart(ctx, t.id, van, date, actor)
+  await workDoors(ctx, t.id, van, date, true, actor)
+  await returnTrip(ctx, t.id, van, date, actor)
+  await settleTrip(ctx, t.id, date)
 }
 
 // ------------------------------------------------------------------------------------------- waves
@@ -349,8 +410,8 @@ async function matchAndBank(ctx: Ctx, date: string): Promise<void> {
       () => ctx.as('accounts'),
       contract.receivables.receipts.deposit,
       {
-        idempotencyKey: demoKey(date, 'finish', 'deposit'),
-        id: ctx.id(date, 'deposit'),
+        idempotencyKey: ctx.dayKey(date, 'finish', 'deposit'),
+        id: ctx.dayId(date, 'deposit'),
         receiptIds: inHand.sort(),
         depositAccountCode: 'BANK',
         depositedAt: new Date().toISOString(),
@@ -389,7 +450,7 @@ async function payOldBills(ctx: Ctx, date: string): Promise<void> {
     byShop.set(b.retailerId, [...(byShop.get(b.retailerId) ?? []), b])
   }
   for (const [retailerId, bills] of [...byShop.entries()].sort()) {
-    const id = ctx.id(date, 'transfer', retailerId)
+    const id = ctx.dayId(date, 'transfer', retailerId)
     const amount = bills.reduce((n, b) => n + b.amountDuePaise, 0)
     // Explicit, to the paisa of the tool's own bills: nothing left on account (DOS-312), nothing to recover a
     // write-off with (DOS-311), so no real bill is touched (rule 3b).
@@ -399,7 +460,7 @@ async function payOldBills(ctx: Ctx, date: string): Promise<void> {
       () => ctx.as('accounts'),
       contract.receivables.receipts.create,
       (attempt) => ({
-        idempotencyKey: demoKey(date, 'transfer', retailerId),
+        idempotencyKey: ctx.dayKey(date, 'transfer', retailerId),
         id,
         retailerId,
         mode: 'bank_transfer' as const,
@@ -407,7 +468,7 @@ async function payOldBills(ctx: Ctx, date: string): Promise<void> {
         reference: paymentReference('bank_transfer', date, id, null, attempt),
         strategy: 'explicit' as const,
         allocations: bills.map((b) => ({
-          id: ctx.id(date, 'transfer', retailerId, b.id),
+          id: ctx.dayId(date, 'transfer', retailerId, b.id),
           invoiceId: b.id,
           amountPaise: b.amountDuePaise,
         })),

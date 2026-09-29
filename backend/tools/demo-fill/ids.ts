@@ -86,6 +86,27 @@ export function demoId(tenantId: string, date: string, ...parts: readonly string
   return demoIdFromKey(tenantId, demoKey(date, ...parts))
 }
 
+/**
+ * A van's trip of a date: van 1 is `driver1`'s, van 2 `driver2`'s, and the driver's own user id is part of it. A
+ * trip's driver is fixed when it is planned (no procedure hands a trip to another person), so the trip of the
+ * driver the tool has today is never one it gave a driver it no longer uses (the former tester logins, D6).
+ */
+export function tripParts(van: 'driver1' | 'driver2', driverUserId: string): string[] {
+  return ['trip', van, driverUserId]
+}
+export function tripIdOf(
+  tenantId: string,
+  date: string,
+  van: 'driver1' | 'driver2',
+  driverUserId: string,
+): string {
+  return demoId(tenantId, date, ...tripParts(van, driverUserId))
+}
+/** A door of a trip: the trip's date, the trip and the door's place on its route. */
+export function stopIdOf(tenantId: string, date: string, tripId: string, sequence: number): string {
+  return demoId(tenantId, date, 'stop', tripId, String(sequence))
+}
+
 export function isDemoId(id: string | null | undefined): boolean {
   return typeof id === 'string' && DEMO_ID_RE.test(id)
 }
