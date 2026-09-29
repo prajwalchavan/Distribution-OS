@@ -1,3 +1,4 @@
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import { auditLog, type Db } from '@dos/db'
 import { uuidv7 } from '@dos/domain'
 import { currentTenant } from './tenant-context.js'
@@ -32,4 +33,38 @@ export async function writeAudit(tx: Db, entry: AuditEntryInput): Promise<void> 
     after: entry.after ?? null,
     deviceId: entry.deviceId ?? null,
   })
+}
+
+/**
+ * When `action` last happened to each of `entityIds` in this tenant (DOS-400: since when a shop has
+ * its app sign-in). One grouped read on `audit_log_entity_time_idx`; an entity with no such row is
+ * absent from the map. Read under the caller's own role, so only the back office gets answers.
+ */
+export async function lastAuditAt(
+  tx: Db,
+  input: { entityType: string; action: string; entityIds: readonly string[] },
+): Promise<Map<string, Date>> {
+  const out = new Map<string, Date>()
+  const ids = [...new Set(input.entityIds)]
+  if (ids.length === 0) return out
+  const rows = await tx
+    .select({
+      entityId: auditLog.entityId,
+      at: sql<Date | string>`max(${auditLog.occurredAt})`,
+    })
+    .from(auditLog)
+    .where(
+      and(
+        eq(auditLog.tenantId, currentTenant().tenantId),
+        eq(auditLog.entityType, input.entityType),
+        inArray(auditLog.entityId, ids),
+        eq(auditLog.action, input.action),
+      ),
+    )
+    .groupBy(auditLog.entityId)
+  for (const row of rows) {
+    const at = row.at instanceof Date ? row.at : new Date(row.at)
+    if (!Number.isNaN(at.getTime())) out.set(row.entityId, at)
+  }
+  return out
 }

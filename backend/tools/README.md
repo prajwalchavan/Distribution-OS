@@ -84,7 +84,8 @@ Mutations are pressed for real. That is the only way to know they work, and it i
   an example for those procedures the example wins, and the chain is only as re-runnable as the
   example's own id is.
 - Procedures matching `/cancel|delete|revoke|writeOff|disable/`, plus `auth.changePassword`,
-  `tenancy.staff.setPassword`, `tenancy.staff.setStatus` and `retailers.linkIdentity`, are skipped
+  `tenancy.staff.setPassword`, `tenancy.staff.setStatus`, `retailers.linkIdentity` and the three
+  `retailers.signIn.*` (a shop's app sign-in, DOS-400), are skipped
   unless `--destructive` is passed — they would change the credentials or the shop links every other
   tool and demo script depends on. They are listed in the output, never dropped quietly.
 - `--only GET` writes nothing at all. Use it when another agent is working in the same database.

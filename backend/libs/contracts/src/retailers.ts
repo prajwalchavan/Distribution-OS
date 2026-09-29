@@ -6,10 +6,12 @@ import {
   IdSchema,
   MutationBase,
   PaiseSchema,
+  PasswordSchema,
   PhoneSchema,
   QueryBoolSchema,
   QueryIntSchema,
   StateCodeSchema,
+  UsernameSchema,
 } from './common.js'
 
 /**
@@ -77,6 +79,19 @@ export const RetailerPublicSchema = z.object({
 })
 export type RetailerPublic = z.infer<typeof RetailerPublicSchema>
 
+/**
+ * THE SHOP'S APP SIGN-IN at this distributor (DOS-400; architect's ruling of 2026-09-29, docs/22 §8):
+ * the username the shopkeeper signs in with and since when this distributor's shop is on that
+ * sign-in's list. A shopkeeper is ONE user across the whole platform, known by the phone, so the same
+ * username may already be the shopkeeper's own from another distributor; the desk is never told where.
+ */
+export const ShopSignInSchema = z.object({
+  username: UsernameSchema.nullable(),
+  /** When this distributor gave the shop its sign-in (the latest time, after a stop and a new start). */
+  since: z.iso.datetime(),
+})
+export type ShopSignIn = z.infer<typeof ShopSignInSchema>
+
 /** Staff view: the public fields plus code, tier, credit terms and the identity link. */
 export const RetailerSchema = RetailerPublicSchema.extend({
   code: z.string(),
@@ -87,6 +102,13 @@ export const RetailerSchema = RetailerPublicSchema.extend({
   creditDays: z.number().int(),
   creditMode: CreditModeSchema,
   onboardedBy: IdSchema.nullable(),
+  /**
+   * DOS-400 (expand-only): may the shop use the app here, and with which username. Filled for the
+   * back office (owner, manager, accountant) on `list` and `get`: `null` = the shop cannot use the app
+   * yet. ABSENT for the field and on every write's answer — a rep must not learn whether a phone is
+   * known to the platform (docs/17 item 27).
+   */
+  appSignIn: ShopSignInSchema.nullable().optional(),
 })
 export type Retailer = z.infer<typeof RetailerSchema>
 
@@ -195,6 +217,70 @@ export const LinkIdentityOutput = z.object({
   link: RetailerLinkSchema,
   identityCreated: z.boolean(),
 })
+
+/**
+ * GIVE A SHOP ITS SIGN-IN (DOS-400): the owner or the manager, from the shop's own page.
+ *
+ * The phone is the shop's mobile of record; `phone` is needed only when the shop has none (a blank or
+ * a landline), and then becomes the shop's mobile. A person is one user across the platform, known by
+ * that phone:
+ *  - nobody has it yet → a user is made with `username` (or one made from the shop's name) and
+ *    `firstPassword`, a shopkeeper membership here and the shop's link to that user — answer `created`,
+ *    and the shopkeeper must choose its own password at the first sign-in;
+ *  - somebody already signs in with it → NO new user and NO new password: that user gets this shop on
+ *    its list — answer `existing`, and nothing about where else the number is known;
+ *  - this shop already has a sign-in → nothing is made — answer `already`, with what exists.
+ *
+ * WHERE THE FIRST PASSWORD COMES FROM: the desk's own device makes it and shows it once; this call
+ * carries it, the server keeps only its argon2id hash, and NO answer ever carries a password — so a
+ * replay of the same `idempotencyKey` cannot give one back, and the key is filed without it.
+ */
+export const GiveShopSignInInput = MutationBase.extend({
+  /** The shop (path). */
+  id: IdSchema,
+  /** Client-generated UUIDv7 of the user, used only when a new one is made. */
+  userId: IdSchema,
+  /** Client-generated UUIDv7 of this distributor's shopkeeper membership, used only when one is made. */
+  membershipId: IdSchema,
+  /** The shopkeeper's mobile, when the shop has none on its record. */
+  phone: PhoneSchema.optional(),
+  /** Omitted: made from the shop's name, e.g. `sharma.kirana`, and answered back. */
+  username: UsernameSchema.optional(),
+  /** Unused when the number already has a sign-in: the shopkeeper keeps its own password. */
+  firstPassword: PasswordSchema,
+})
+export type GiveShopSignInIn = z.infer<typeof GiveShopSignInInput>
+export const GiveShopSignInOutcomeSchema = z.enum(['created', 'existing', 'already'])
+export type GiveShopSignInOutcome = z.infer<typeof GiveShopSignInOutcomeSchema>
+export const GiveShopSignInOutput = z.object({
+  outcome: GiveShopSignInOutcomeSchema,
+  signIn: ShopSignInSchema,
+})
+export type GiveShopSignInOut = z.infer<typeof GiveShopSignInOutput>
+
+/**
+ * A NEW FIRST PASSWORD for a shop that forgot its own (the staff reset, for a shop): the shopkeeper
+ * must choose its own again at the next sign-in, the lockout clears and every device is signed out.
+ * Refused (409) when the sign-in is not this distributor's alone to reset — it is also used with
+ * another business — because a password set here would open that business's rows too.
+ */
+export const ShopSignInPasswordInput = MutationBase.extend({
+  id: IdSchema,
+  firstPassword: PasswordSchema,
+})
+export type ShopSignInPasswordIn = z.infer<typeof ShopSignInPasswordInput>
+
+/**
+ * STOP THE SHOP'S SIGN-IN here: the shop no longer sees this distributor in the app; its orders,
+ * bills and dues stay, and its other distributors are not touched. Stopping one that is not there
+ * answers the same.
+ */
+export const ShopSignInStopInput = MutationBase.extend({ id: IdSchema })
+export type ShopSignInStopIn = z.infer<typeof ShopSignInStopInput>
+
+/** What the shop's sign-in is after the write: `null` once it is stopped. */
+export const ShopSignInOutput = z.object({ signIn: ShopSignInSchema.nullable() })
+export type ShopSignInOut = z.infer<typeof ShopSignInOutput>
 
 export const BeatSchema = z.object({
   id: IdSchema,
@@ -346,6 +432,33 @@ export const retailersContract = {
     })
     .input(UpdateOwnRetailerInput)
     .output(UpdateOwnRetailerOutput),
+  /** DOS-400: the owner or the manager gives a shop its app sign-in, a new first password, or stops it. */
+  signIn: {
+    give: oc
+      .route({
+        method: 'POST',
+        path: '/retailers/{id}/sign-in',
+        summary: 'Give the shop an app sign-in (a username and a first password, shown once)',
+      })
+      .input(GiveShopSignInInput)
+      .output(GiveShopSignInOutput),
+    setPassword: oc
+      .route({
+        method: 'POST',
+        path: '/retailers/{id}/sign-in/password',
+        summary: 'Give the shop a new first password; it must choose its own at the next sign-in',
+      })
+      .input(ShopSignInPasswordInput)
+      .output(ShopSignInOutput),
+    stop: oc
+      .route({
+        method: 'POST',
+        path: '/retailers/{id}/sign-in/stop',
+        summary: 'Stop the shop signing in to this distributor (orders, bills and dues stay)',
+      })
+      .input(ShopSignInStopInput)
+      .output(ShopSignInOutput),
+  },
   beats: {
     list: oc
       .route({ method: 'GET', path: '/beats', summary: 'Beats of this distributor' })

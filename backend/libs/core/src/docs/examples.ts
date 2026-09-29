@@ -3679,6 +3679,19 @@ const OVERRIDES: Record<
     phone: ctx.retailerPhone,
     shopName: ctx.retailerName,
   }),
+  // DOS-400: the shop the other retailer examples show. The demo shop's number is on its record, so
+  // neither a phone nor a username is sent; a shop that already signs in answers `already` and makes
+  // nothing, so pressing Execute twice never makes a second login.
+  'retailers.signIn.give': (ctx) => ({
+    id: ctx.retailerId,
+    userId: createdId('retailers.signIn.give', 'userId'),
+    membershipId: createdId('retailers.signIn.give', 'membershipId'),
+    phone: DROP,
+    username: DROP,
+    firstPassword: DEMO_PASSWORD,
+  }),
+  'retailers.signIn.setPassword': (ctx) => ({ id: ctx.retailerId, firstPassword: DEMO_PASSWORD }),
+  'retailers.signIn.stop': (ctx) => ({ id: ctx.retailerId }),
   'retailers.beats.upsert': () => ({ name: 'Demo Beat (docs)', area: 'Kalyan West' }),
   'retailers.beats.assign': (ctx) => ({ id: ctx.beatId, userId: ctx.users?.salesperson?.id }),
   'retailers.visits.record': (ctx) => ({ retailerId: ctx.retailerId, beatId: ctx.beatId }),

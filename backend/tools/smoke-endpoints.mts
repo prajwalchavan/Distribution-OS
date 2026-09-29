@@ -154,6 +154,10 @@ const DESTRUCTIVE_EXTRA: Record<string, string> = {
   'tenancy.staff.setStatus': 'would disable a demo user',
   'retailers.linkIdentity':
     'would invite a made-up phone into a demo shop and add a retailer_links row every run',
+  // DOS-400: a shop's app sign-in is a demo shopkeeper's credential and link.
+  'retailers.signIn.give': 'would give a demo shop a sign-in every other tool then finds made',
+  'retailers.signIn.setPassword': 'would change a demo shopkeeper password',
+  'retailers.signIn.stop': 'would stop a demo shopkeeper signing in',
   // Both permanently undo real demo money. The receipts.reverse chain below is different: it only ever
   // reverses the throwaway receipt this run created, so it leaves the seeded ledger exactly as it was.
   'receivables.receipts.bounce':
@@ -1594,6 +1598,9 @@ async function planFor(
     case 'retailers.get':
     case 'retailers.setCredit':
     case 'retailers.linkIdentity':
+    case 'retailers.signIn.give':
+    case 'retailers.signIn.setPassword':
+    case 'retailers.signIn.stop':
       return { pathParams: { id: ctx.scopeRetailerId ?? (await fx.retailerId()) } }
     case 'retailers.beats.assign':
       return { pathParams: { id: await fx.beatId() } }

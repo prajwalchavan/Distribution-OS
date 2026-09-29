@@ -498,6 +498,12 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'retailers.setCredit': MANAGEMENT,
   // Back office only: a rep must not learn whether a phone exists in another distributor's network.
   'retailers.linkIdentity': ONBOARDERS,
+  // DOS-400 (architect's ruling 2026-09-29): the owner or the manager gives a shop its app sign-in,
+  // a new first password, or stops it. Not the accountant (it onboards nobody), not the field (a rep
+  // must not learn whether a phone is known to the platform), not the godown, the crew or a shop.
+  'retailers.signIn.give': ONBOARDERS,
+  'retailers.signIn.setPassword': ONBOARDERS,
+  'retailers.signIn.stop': ONBOARDERS,
   // Beats are the desk's to create and assign (docs/23 §8.14: a rep, a loader or a driver could
   // otherwise create beats and assign anyone); everyone in the field reads them, and a salesperson
   // reads its own assignment to learn today's beat.

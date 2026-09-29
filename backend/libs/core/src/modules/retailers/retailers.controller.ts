@@ -42,6 +42,27 @@ export class RetailersController {
     )
   }
 
+  @Implement(contract.retailers.signIn.give)
+  signInGive(@OwnsReply() _reply: unknown) {
+    return implement(contract.retailers.signIn.give).handler(({ input }) =>
+      this.svc.giveSignIn(input),
+    )
+  }
+
+  @Implement(contract.retailers.signIn.setPassword)
+  signInSetPassword(@OwnsReply() _reply: unknown) {
+    return implement(contract.retailers.signIn.setPassword).handler(({ input }) =>
+      this.svc.setSignInPassword(input),
+    )
+  }
+
+  @Implement(contract.retailers.signIn.stop)
+  signInStop(@OwnsReply() _reply: unknown) {
+    return implement(contract.retailers.signIn.stop).handler(({ input }) =>
+      this.svc.stopSignIn(input),
+    )
+  }
+
   @Implement(contract.retailers.beats.list)
   listBeats(@OwnsReply() _reply: unknown) {
     return implement(contract.retailers.beats.list).handler(({ input }) =>

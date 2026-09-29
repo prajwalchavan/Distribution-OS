@@ -68,6 +68,9 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | POST | `/retailers/{id}/credit` | Set tier and credit terms (owner/manager/accountant only) | owner, manager |
 | POST | `/retailers/{id}/link` | Link the retailer to its global identity by phone | owner, manager |
 | POST | `/retailers/me` | The shop edits its own contact and GST details (never credit, tier or beat) | retailer |
+| POST | `/retailers/{id}/sign-in` | Give the shop an app sign-in (a username and a first password, shown once) | owner, manager |
+| POST | `/retailers/{id}/sign-in/password` | Give the shop a new first password; it must choose its own at the next sign-in | owner, manager |
+| POST | `/retailers/{id}/sign-in/stop` | Stop the shop signing in to this distributor (orders, bills and dues stay) | owner, manager |
 | GET | `/beats` | Beats of this distributor | owner, manager, accountant, salesperson, warehouse, delivery |
 | POST | `/beats` | Create or update a beat | owner, manager |
 | POST | `/beats/{id}/assign` | Assign a salesperson to a beat for a date range | owner, manager |
@@ -3856,7 +3859,11 @@ curl "http://localhost:3004/retailers?q=campa&beatId=01a06d3e-cfdb-7635-85cb-ee4
       "creditLimitBills": 1,
       "creditDays": 7,
       "creditMode": "indicate",
-      "onboardedBy": "01a06d12-805d-700e-8caa-848bb93a39a1"
+      "onboardedBy": "01a06d12-805d-700e-8caa-848bb93a39a1",
+      "appSignIn": {
+        "username": "sunil.tarsun",
+        "since": "2026-09-04T10:30:00.000Z"
+      }
     }
   ],
   "nextCursor": null
@@ -3967,7 +3974,11 @@ curl "http://localhost:3004/retailers/01a06d17-0be7-794a-8dab-9b14cf78673b" \
     "creditLimitBills": 1,
     "creditDays": 7,
     "creditMode": "indicate",
-    "onboardedBy": "01a06d12-805d-700e-8caa-848bb93a39a1"
+    "onboardedBy": "01a06d12-805d-700e-8caa-848bb93a39a1",
+    "appSignIn": {
+      "username": "sunil.tarsun",
+      "since": "2026-09-04T10:30:00.000Z"
+    }
   }
 }
 ```
@@ -4144,7 +4155,11 @@ request.json
     "creditLimitBills": 1,
     "creditDays": 7,
     "creditMode": "indicate",
-    "onboardedBy": "01a06d12-805d-700e-8caa-848bb93a39a1"
+    "onboardedBy": "01a06d12-805d-700e-8caa-848bb93a39a1",
+    "appSignIn": {
+      "username": "sunil.tarsun",
+      "since": "2026-09-04T10:30:00.000Z"
+    }
   }
 }
 ```
@@ -4286,7 +4301,11 @@ request.json
     "creditLimitBills": 1,
     "creditDays": 7,
     "creditMode": "indicate",
-    "onboardedBy": "01a06d12-805d-700e-8caa-848bb93a39a1"
+    "onboardedBy": "01a06d12-805d-700e-8caa-848bb93a39a1",
+    "appSignIn": {
+      "username": "sunil.tarsun",
+      "since": "2026-09-04T10:30:00.000Z"
+    }
   }
 }
 ```
@@ -4597,6 +4616,352 @@ request.json
       }
     ]
   }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/retailers/{id}/sign-in`
+
+Give the shop an app sign-in (a username and a first password, shown once) · contract `retailers.signIn.give`
+
+**Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `userId` | uuid | yes |
+| `membershipId` | uuid | yes |
+| `phone` | string | no |
+| `username` | string | no |
+| `firstPassword` | string | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/retailers/01a06d17-0be7-794a-8dab-9b14cf78673b/sign-in" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "userId": "01a06d02-3731-7b6d-8798-5c7c2b7bf340",
+  "membershipId": "01a06d14-9c5c-7346-8aeb-8114bed5ae60",
+  "phone": "+919876543210",
+  "username": "sunil.tarsun",
+  "firstPassword": "Dos@1234"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "outcome": "created",
+  "signIn": {
+    "username": "sunil.tarsun",
+    "since": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call POST /retailers/{id}/sign-in",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/retailers/{id}/sign-in/password`
+
+Give the shop a new first password; it must choose its own at the next sign-in · contract `retailers.signIn.setPassword`
+
+**Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `firstPassword` | string | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/retailers/01a06d17-0be7-794a-8dab-9b14cf78673b/sign-in/password" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "firstPassword": "Dos@1234"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "signIn": {
+    "username": "sunil.tarsun",
+    "since": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call POST /retailers/{id}/sign-in/password",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/retailers/{id}/sign-in/stop`
+
+Stop the shop signing in to this distributor (orders, bills and dues stay) · contract `retailers.signIn.stop`
+
+**Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/retailers/01a06d17-0be7-794a-8dab-9b14cf78673b/sign-in/stop" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "signIn": {
+    "username": "sunil.tarsun",
+    "since": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call POST /retailers/{id}/sign-in/stop",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
 }
 ```
 
@@ -35953,6 +36318,9 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `retailers.setCredit` | – | – | – | – | – | – | – |
 | `retailers.linkIdentity` | – | – | – | – | – | – | – |
 | `retailers.updateOwn` | – | – | – | – | – | – | – |
+| `retailers.signIn.give` | – | – | – | – | – | – | – |
+| `retailers.signIn.setPassword` | – | – | – | – | – | – | – |
+| `retailers.signIn.stop` | – | – | – | – | – | – | – |
 | `retailers.beats.list` | – | – | – | – | ✓ | – | – |
 | `retailers.beats.upsert` | – | – | – | – | – | – | – |
 | `retailers.beats.assign` | – | – | – | – | – | – | – |

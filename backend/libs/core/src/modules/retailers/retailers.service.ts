@@ -5,6 +5,12 @@ import type { z } from 'zod'
 import type {
   AssignBeatInput,
   AssignBeatOutput,
+  GiveShopSignInIn,
+  GiveShopSignInOut,
+  RetailerView,
+  ShopSignInOut,
+  ShopSignInPasswordIn,
+  ShopSignInStopIn,
   BeatAssignmentsListInput,
   BeatAssignmentsListOutput,
   BeatsListInput,
@@ -43,6 +49,7 @@ import {
   type Db,
 } from '@dos/db'
 import {
+  BACK_OFFICE,
   currentTenant,
   DB,
   idempotent,
@@ -54,6 +61,7 @@ import {
   STAFF,
   writeAudit,
 } from '../../platform/index.js'
+import { TenancyService } from '../tenancy/index.js'
 import {
   deactivateRetailer,
   findBeatByName,
@@ -80,6 +88,7 @@ import {
 } from './beat-reads.js'
 import { contactPreferences, contactPreferencesFor, type ContactPreferences } from './contact.js'
 import { findOrCreateIdentity, nextRetailerCode } from './retailers.helpers.js'
+import { giveNewFirstPassword, giveSignIn, signInsFor, stopSignIn } from './sign-in.js'
 import {
   pickCredit,
   toAssignment,
@@ -134,7 +143,16 @@ const CREDIT_KEYS = [
 
 @Injectable()
 export class RetailersService {
-  constructor(@Optional() @Inject(DB) private readonly db: Db | null) {}
+  /** Tenancy owns the person's sign-in and the membership behind a shop's app sign-in (DOS-400). */
+  private readonly tenancy: TenancyService
+
+  constructor(
+    @Optional() @Inject(DB) private readonly db: Db | null,
+    @Optional() @Inject(TenancyService) tenancy?: TenancyService | null,
+  ) {
+    // The worker builds this service by hand (`createImportServices`), without Nest DI.
+    this.tenancy = tenancy ?? new TenancyService(db)
+  }
 
   // =============================================================================================================
   // the surface the generic importer calls (coordination §3.9 / §4: integrations → retailers), inside
@@ -239,10 +257,29 @@ export class RetailersService {
       const page = rows.slice(0, input.limit)
       const last = page[page.length - 1]
       return {
-        items: page.map((r) => toView(r, ctx)),
+        items: await this.withAppSignIn(
+          tx,
+          page.map((r) => toView(r, ctx)),
+        ),
         nextCursor: rows.length > input.limit && last ? last.id : null,
       }
     })
+  }
+
+  /**
+   * DOS-400: the back office sees whether each shop may use the app, and with which username; the
+   * field and the shop do not (the field must not learn whether a phone is known to the platform).
+   */
+  private async withAppSignIn(tx: Db, items: RetailerView[]): Promise<RetailerView[]> {
+    if (!BACK_OFFICE.includes(currentTenant().actorRole)) return items
+    const signIns = await signInsFor(
+      tx,
+      this.tenancy,
+      items.map((item) => item.id),
+    )
+    return items.map((item) =>
+      'code' in item ? { ...item, appSignIn: signIns.get(item.id)?.signIn ?? null } : item,
+    )
   }
 
   async get(input: GetIn): Promise<GetOut> {
@@ -251,8 +288,31 @@ export class RetailersService {
     return withTenant(db, ctx, async (tx) => {
       const [row] = await tx.select().from(retailers).where(eq(retailers.id, input.id))
       if (!row) throw new ORPCError('NOT_FOUND', { message: 'retailer not found' })
-      return { item: toView(row, ctx) }
+      const [item] = await this.withAppSignIn(tx, [toView(row, ctx)])
+      if (!item) throw new ORPCError('NOT_FOUND', { message: 'retailer not found' })
+      return { item }
     })
+  }
+
+  /**
+   * DOS-400 (architect's ruling 2026-09-29): the owner or the manager gives a shop its app sign-in
+   * from the shop's own page — `sign-in.ts` holds the three flows and says which rows a shopkeeper is.
+   */
+  async giveSignIn(input: GiveShopSignInIn): Promise<GiveShopSignInOut> {
+    requireRole(ONBOARDERS)
+    return giveSignIn(requireDb(this.db), this.tenancy, input)
+  }
+
+  /** A new first password for a shop that forgot its own; the shopkeeper must choose its own again. */
+  async setSignInPassword(input: ShopSignInPasswordIn): Promise<ShopSignInOut> {
+    requireRole(ONBOARDERS)
+    return giveNewFirstPassword(requireDb(this.db), this.tenancy, input)
+  }
+
+  /** Stop the shop signing in to this distributor; its orders, bills and dues stay. */
+  async stopSignIn(input: ShopSignInStopIn): Promise<ShopSignInOut> {
+    requireRole(ONBOARDERS)
+    return stopSignIn(requireDb(this.db), this.tenancy, input)
   }
 
   /**
