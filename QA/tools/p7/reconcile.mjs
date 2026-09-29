@@ -270,15 +270,21 @@ const dep = q(`
   select (select coalesce(sum(l.amount_paise), 0) from journal_entries e join journal_lines l on l.entry_id = e.id join accounts a on a.id = l.account_id where e.tenant_id = ${T} and e.ref_type = 'deposit' and a.code = 'BANK') bank_in,
          (select coalesce(sum(amount_paise), 0) from receipts where tenant_id = ${T} and deposited_at is not null and reverses_receipt_id is null) receipts_banked,
          (select count(*) from receipts where tenant_id = ${T} and status = 'deposited' and deposited_at is null) no_date,
-         (select count(*) from receipts where tenant_id = ${T} and deposited_at is not null and mode not in ('cash', 'cheque')) wrong_mode`)[0]
-check('R5b', 'deposits: Bank debited by deposits = Σ receipts marked banked; only cash/cheque banked', Number(dep.bank_in) !== Number(dep.receipts_banked) || Number(dep.no_date) > 0 || Number(dep.wrong_mode) > 0 ? [dep] : [], (x) => `bank in ${r(x.bank_in)} vs receipts banked ${r(x.receipts_banked)}; deposited without date ${x.no_date}; non cash/cheque banked ${x.wrong_mode}`)
+         (select count(*) from receipts where tenant_id = ${T} and deposited_at is not null and mode not in ('cash', 'cheque', 'upi')) wrong_mode`)[0]
+// UPI is banked too: architect ruling of 2026-09-28 on DOS-256 (the five questions of the simulation report) — UPI
+// money is confirmed at day-end against the bank or the UPI app, which marks it deposited on a deposit entry. A
+// bank transfer is still never banked by hand (409 not_bankable), so it stays a wrong mode here.
+check('R5b', 'deposits: Bank debited by deposits = Σ receipts marked banked; only cash/cheque/UPI banked', Number(dep.bank_in) !== Number(dep.receipts_banked) || Number(dep.no_date) > 0 || Number(dep.wrong_mode) > 0 ? [dep] : [], (x) => `bank in ${r(x.bank_in)} vs receipts banked ${r(x.receipts_banked)}; deposited without date ${x.no_date}; non cash/cheque/UPI banked ${x.wrong_mode}`)
+// A live receipt is one collected or deposited: architect ruling 1 of 2026-09-28 on money and credit (DOS-310) — a
+// bounced or cancelled (reversed) receipt frees its reference, so a cheque that bounced and was presented again is
+// one live receipt, not two (the same definition as migration 0079's dos_receipt_reference_duplicates).
 const dupe = q(`
   select mode::text mode, reference, count(*) n, count(distinct retailer_id) shops, string_agg(receipt_no, ',' order by receipt_no) nos from receipts
-   where tenant_id = ${T} and reverses_receipt_id is null and status <> 'cancelled' and reference is not null and mode in ('upi', 'bank_transfer')
+   where tenant_id = ${T} and reverses_receipt_id is null and status in ('collected', 'deposited') and reference is not null and mode in ('upi', 'bank_transfer')
    group by 1, 2 having count(*) > 1
   union all
   select mode::text, reference, count(*), count(distinct retailer_id), string_agg(receipt_no, ',' order by receipt_no) from receipts
-   where tenant_id = ${T} and reverses_receipt_id is null and status <> 'cancelled' and reference is not null and mode = 'cheque'
+   where tenant_id = ${T} and reverses_receipt_id is null and status in ('collected', 'deposited') and reference is not null and mode = 'cheque'
    group by 1, 2, retailer_id having count(*) > 1`)
 check('R5c', 'no live UPI / transfer reference (UTR) used twice anywhere, no cheque number recorded twice for one shop', dupe, (x) => `${x.mode} ${x.reference} recorded ${x.n}× across ${x.shops} shop(s) (${x.nos})`)
 say('')
