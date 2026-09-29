@@ -46,7 +46,7 @@ All 22 pages were verified after publishing: title, first heading and last line 
 
 ## The rule since 2026-09-29: app documentation only
 
-Founder, 2026-09-29 (docs/22 §8): **a Confluence page describes the product and nothing else.** No dated decisions ("Decided …"), no mention of the founder or of who decided, no build or test status, no plans and dates, no open questions, no to-do for anybody, no costs of accounts, no path of a file in the repository. Where a rule below says otherwise (rule 4's "Decided [date]" in the changed sentence), this one wins. Decisions, status and open questions stay in the repository.
+Founder, 2026-09-29 (docs/22 §8): **a Confluence page describes the product and nothing else.** No dated decisions ("Decided …"), no mention of the founder or of who decided, no build or test status, no plans and dates, no open questions, no to-do for anybody, no costs of accounts, no reference to a working document of the repository (anything under `docs/` or `QA/`, the build log, a decision record; the code layout belongs on the Architecture page). Scope (founder, same day): the eighteen documentation pages are cleaned; Decisions Log, Open Questions & Risks and Build Status & Roadmap stay as they are, and no cleaned page links to them. Where a rule below says otherwise (rule 4's "Decided [date]" in the changed sentence), this one wins. Decisions, status and open questions stay in the repository.
 
 Done: `space-overview.md` → page 295181, version 8, 2026-09-29. It was published as HTML: Confluence refuses a markdown replacement of a page that holds smart links ("would cause data loss"), so a page with links to other pages is sent with `contentFormat: "html"` and the links as `<a href="…" data-card-appearance="inline"></a>`.
 
