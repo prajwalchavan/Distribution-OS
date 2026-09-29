@@ -1,0 +1,153 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+2
+Fulfilment
+Billing
+1
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Staff
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Shops
+Birla College Road
+Godrej Hill
+Kalyan West Market
+Khadakpada
+Kolsewadi
+Station Road
+Any date, matching "Jai Bhavani"
+Filters (1)
+Clear
+Code	Shop	Beat	Tier	Terms	Limit ₹	Over the limit	Phone	App sign-in
+
+R-0005
+	
+Jai Bhavani Stores
+	
+Station Road
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++919004006141
+	
+Not yet
+
+1 rows								
+Jai Bhavani Stores
+Close
+Code
+R-0005
+Beat
+Station Road
+Limit ₹
+50,000.00
+Days to pay
+7
+Over the limit
+Needs approval
+Payment terms
+Credit
+Phone
++919004006141
+GSTIN
+—
+App sign-in
+This shop cannot use the app yet
+Give this shop a sign-in
+Give this shop a sign-in
+The shop gets a username and a first password. You will see them once, here, to hand to the shopkeeper.
+This mobile number belongs to someone who works for you. A shop needs its own mobile number to sign in.
+Cancel
+Give the sign-in
+Owes ₹
+₹4,744.00
+₹4,744.00 overdue
+Oldest bill
+17 Aug 2026
+How they buy
+Usually pays in 23 days
+Last order 3 Sep
+Statement of account
+Debit ₹
+Credit ₹
+Balance ₹
+Opening balance
+1 Jul 2026
+—
+—
+0.00
+Invoice · INV/0041
+6 Jul 2026
+3,208.00
+—
+3,208.00
+Invoice · INV/0072
+9 Jul 2026
+5,665.00
+—
+8,873.00
+Invoice · INV/0113
+13 Jul 2026
+5,456.00
+—
+14,329.00
+Invoice · INV/0216
+24 Jul 2026
+6,144.00
+—
+20,473.00
+Invoice · INV/0244
+27 Jul 2026
+7,033.00
+—
+27,506.00
+Receipt · RCPT-0080
+29 Jul 2026
+—
+3,208.00
+24,298.00
+Invoice · INV/0277
+30 Jul 2026
+3,518.00
+—
+27,816.00
+Receipt · RCPT-0097
+1 Aug 2026
+—
+5,665.00
+22,151.00
+Invoice · INV/0346
+5 Aug 2026
+3,729.00
+—
+25,880.00
+Receipt · RCPT-0163
+8 Aug 2026
+—
+6,144.00
+19,736.00
+Receipt · RCPT-0164
+8 Aug 2026
+—
+3,119.00
+16,617.00
+Invoice · INV/0392
+10 Aug 2026
+4,744.00
+—
+21,361.00
+Change the credit terms
+Send the statement

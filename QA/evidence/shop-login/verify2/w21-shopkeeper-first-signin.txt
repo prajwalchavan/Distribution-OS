@@ -1,0 +1,15 @@
+Distribution OS
+Change your password
+
+This password was given to you by someone else. Set your own before you carry on.
+
+Current password
+Show
+New password
+Show
+At least 8 characters, with a letter and a digit
+New password again
+Show
+Set password
+Enter the password you signed in with
+Your other devices will be signed out.

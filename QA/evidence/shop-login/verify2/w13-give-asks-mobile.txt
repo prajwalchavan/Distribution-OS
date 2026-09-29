@@ -1,0 +1,91 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+2
+Fulfilment
+Billing
+1
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Staff
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Shops
+Birla College Road
+Godrej Hill
+Kalyan West Market
+Khadakpada
+Kolsewadi
+Station Road
+Any date, matching "Landline"
+Filters (1)
+Clear
+Code	Shop	Beat	Tier	Terms	Limit ₹	Over the limit	Phone	App sign-in
+
+R-9039
+	
+Landline Corner Stores
+	
+—
+	
+C
+	
+Credit
+	0.00	Warn only	
++912512200300
+	
+Not yet
+
+1 rows								
+Landline Corner Stores
+Close
+Code
+R-9039
+Beat
+—
+Limit ₹
+0.00
+Days to pay
+0
+Over the limit
+Warn only
+Payment terms
+Credit
+Phone
++912512200300
+GSTIN
+—
+App sign-in
+This shop cannot use the app yet
+Give this shop a sign-in
+Give this shop a sign-in
+The shop gets a username and a first password. You will see them once, here, to hand to the shopkeeper.
+Shopkeeper’s mobile number
+This shop has no mobile number yet. It will be saved on the shop.
+Cancel
+Give the sign-in
+Owes ₹
+₹0.00
+₹0.00 overdue
+Oldest bill
+—
+Statement of account
+Debit ₹
+Credit ₹
+Balance ₹
+Opening balance
+1 Jul 2026
+—
+—
+0.00
+Change the credit terms
+Send the statement

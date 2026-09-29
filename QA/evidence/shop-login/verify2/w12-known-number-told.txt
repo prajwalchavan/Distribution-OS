@@ -1,0 +1,108 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+2
+Fulfilment
+Billing
+1
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Staff
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Shops
+Birla College Road
+Godrej Hill
+Kalyan West Market
+Khadakpada
+Kolsewadi
+Station Road
+Any date, matching "Datta"
+Filters (1)
+Clear
+Code	Shop	Beat	Tier	Terms	Limit ₹	Over the limit	Phone	App sign-in
+
+R-9038
+	
+Datta Kirana Tarsun Side
+	
+—
+	
+C
+	
+Credit
+	0.00	Warn only	
++918452015314
+	
+hitesh.mehta
+
+
+R-0010
+	
+Balaji Wholesale Stores
+	
+Station Road
+	
+A
+	
+Credit
+	10,00,000.00	Warn only	
++919867013861
+	
+fatima.shaikh
+
+2 rows								
+Datta Kirana Tarsun Side
+Close
+Code
+R-9038
+Beat
+—
+Limit ₹
+0.00
+Days to pay
+0
+Over the limit
+Warn only
+Payment terms
+Credit
+Phone
++918452015314
+GSTIN
+—
+App sign-in
+hitesh.mehta
+Since 29 Sep, 12:58 pm
+New first password
+Stop this sign-in
+Sign-in added
+This number already has a sign-in. The shopkeeper uses their own password and will now see your shop.
+Username
+hitesh.mehta
+Cancel
+Close
+Owes ₹
+₹0.00
+₹0.00 overdue
+Oldest bill
+—
+Statement of account
+Debit ₹
+Credit ₹
+Balance ₹
+Opening balance
+1 Jul 2026
+—
+—
+0.00
+Change the credit terms
+Send the statement
