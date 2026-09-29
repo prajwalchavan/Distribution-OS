@@ -197,6 +197,26 @@ export default function OrderDetail(): React.JSX.Element {
                   {failure}
                 </Txt>
               )}
+              {/*
+                Ruling 7 (docs/22 §8, 2026-09-28): a draft is sent at today's prices, and what moved since it
+                was drafted is said here, from the reply to the send itself.
+              */}
+              {(submit.data?.priceChanges?.length ?? 0) === 0 ? null : (
+                <Stack gap={1} testID="r8-price-changes">
+                  <Txt field="label" desk="meta" color={colors.status.ochre.fg}>
+                    {t('r8.pricesChanged')}
+                  </Txt>
+                  {submit.data?.priceChanges?.map((change) => (
+                    <Txt key={change.lineId} field="body" desk="body">
+                      {t('r8.priceChange', {
+                        item: change.itemName,
+                        from: formatMoney(change.fromRatePaise),
+                        to: formatMoney(change.toRatePaise),
+                      })}
+                    </Txt>
+                  ))}
+                </Stack>
+              )}
 
               {/* --- what was ordered --------------------------------------------------------- */}
               <Panel

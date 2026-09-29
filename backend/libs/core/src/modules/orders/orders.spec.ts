@@ -16,6 +16,7 @@ import {
   memberships,
   priceListItems,
   priceLists,
+  retailerPriceOverrides,
   products,
   productVariants,
   retailerIdentities,
@@ -3507,6 +3508,16 @@ describeDb('orders (DATABASE_URL)', () => {
     const bargainRule = (bargainId: string): unknown =>
       expect.objectContaining({ kind: 'bargain', ruleId: bargainId, amountPaise: 1_200 })
     const ids = (): Placed => ({ orderId: uuidv7(), lineId: uuidv7(), bargainId: uuidv7() })
+    type PriceChange = {
+      lineId: string
+      itemName: string
+      fromRatePaise: number
+      toRatePaise: number
+      fromLineNetPaise: number
+      toLineNetPaise: number
+    }
+    /** What the last `placeHeld` submit's reply said re-pricing the draft changed (ruling 7). */
+    let placedChanges: PriceChange[] = []
 
     beforeAll(async () => {
       // The shortage test holds variant A's first 100 pieces: 60 of its own, so every order here holds its 12.
@@ -3576,7 +3587,7 @@ describeDb('orders (DATABASE_URL)', () => {
         tag,
       ).toMatchObject({ qtyPcs: 12, ratePaise: 1_000, lineTotalPaise: 13_440, appliedRules: [] })
       await opts.afterCreate?.()
-      const submitted = await call<{ item: Detail }>(
+      const submitted = await call<{ item: Detail; priceChanges?: PriceChange[] }>(
         app,
         rep,
         'POST',
@@ -3584,6 +3595,7 @@ describeDb('orders (DATABASE_URL)', () => {
         { idempotencyKey: `dos126-submit-${tag}-${run}` },
       )
       expect(submitted.status, tag).toBe(200)
+      placedChanges = submitted.body.priceChanges ?? []
       return submitted.body.item
     }
 
@@ -3766,7 +3778,7 @@ describeDb('orders (DATABASE_URL)', () => {
       }
     })
 
-    it('DOS-126: confirm changes only the line the approval priced — another line keeps its drafted rate and is not rewritten after an office price edit', async () => {
+    it('rulings 6 and 7 (docs/22 §8, 2026-09-28): a draft is re-priced when it is placed and the reply names what moved; a held order confirms at the rates in force then, the approved one included', async () => {
       const p = ids()
       const other = uuidv7()
       const variantBItem = and(
@@ -3781,55 +3793,115 @@ describeDb('orders (DATABASE_URL)', () => {
             )
           ).rows as { at: string }[]
         )[0]?.at
-      const untouched = {
-        listRatePaise: 2_500,
-        ratePaise: 2_500,
+      // variant B placed after the office's edit: ₹26.00 + 12 % = ₹29.12
+      const placedAtToday = {
+        listRatePaise: 2_600,
+        ratePaise: 2_600,
         discountPaise: 0,
-        taxPaise: 300,
-        lineTotalPaise: 2_800,
+        taxPaise: 312,
+        lineTotalPaise: 2_912,
         appliedRules: [],
         priceLocked: false,
       }
-      // 14 500 gross − 1 200 + 1 596 GST = 14 896 → ₹149.00 (at list ₹162.00; a full re-price would say ₹150.00)
+      // 14 600 gross − 1 200 + 1 608 GST = 15 008 → ₹150.00
       const totals = {
-        subtotalPaise: 14_500,
+        subtotalPaise: 14_600,
         discountPaise: 1_200,
-        taxPaise: 1_596,
-        roundOffPaise: 4,
-        totalPaise: 14_900,
+        taxPaise: 1_608,
+        roundOffPaise: -8,
+        totalPaise: 15_000,
       }
       try {
         const submitted = await placeHeld('t6', retailerA, p, {
           extra: [{ id: other, variantId: variantB, enteredQty: 1, enteredUnit: 'piece' }],
-          // the office edits variant B's list rate in place between the draft and the decision
+          // the office edits variant B's list rate in place between the draft and placing it
           afterCreate: async () => {
             await db.update(priceListItems).set({ ratePaise: 2_600 }).where(variantBItem)
           },
         })
         expect(submitted.approvalFlags).toEqual(['bargain'])
-        expect(submitted.totalPaise).toBe(16_200)
+        // ruling 7: placed at today's list — 13 440 + 2 912 = 16 352 → ₹164.00 — and the reply says so
+        expect(submitted.totalPaise).toBe(16_400)
+        expect(submitted.lines.find((l) => l.id === other)).toMatchObject(placedAtToday)
+        expect(placedChanges).toEqual([
+          {
+            lineId: other,
+            variantId: variantB,
+            itemName: expect.any(String) as unknown as string,
+            fromRatePaise: 2_500,
+            toRatePaise: 2_600,
+            fromLineNetPaise: 2_500,
+            toLineNetPaise: 2_600,
+          },
+        ])
         const before = await touchedAt()
         expect(before).toBeDefined()
 
+        // ruling 6: the approval confirms at the rates in force now — the approved ₹9 on A; B is already there
         const last = await approveGate('t6', p.orderId, 'bargain')
         expect(last.status).toBe(200)
         const order = last.body.order
         expect(order?.state).toBe('confirmed')
         expect(order?.lines.find((l) => l.id === p.lineId)).toMatchObject(CHARGED_LINE)
-        expect(order?.lines.find((l) => l.id === other)).toMatchObject(untouched)
+        expect(order?.lines.find((l) => l.id === other)).toMatchObject(placedAtToday)
         const [stored] = await db
           .select()
           .from(salesOrderLines)
           .where(eq(salesOrderLines.id, other))
-        expect(stored).toMatchObject(untouched)
+        expect(stored).toMatchObject(placedAtToday)
+        // a line whose price did not move at confirm is not written again
         expect(await touchedAt()).toBe(before)
         expect(order).toMatchObject(totals)
         const [header] = await db.select().from(salesOrders).where(eq(salesOrders.id, p.orderId))
         expect(header).toMatchObject(totals)
-        expect(await confirmedTotals(p.orderId)).toEqual([14_900])
+        expect(await confirmedTotals(p.orderId)).toEqual([15_000])
       } finally {
         await db.update(priceListItems).set({ ratePaise: 2_500 }).where(variantBItem)
         await cancel('t6', p.orderId)
+      }
+    })
+
+    it('ruling 6: a shop’s own rate lowered while its order is held is charged when the order confirms (QA IF5c)', async () => {
+      const p = ids()
+      const overrideId = uuidv7()
+      try {
+        const submitted = await placeHeld('t8', retailerA, p)
+        expect(submitted.approvalFlags).toEqual(['bargain'])
+        // while it is held, the owner gives the shop its own rate of ₹9.50 on variant A — above the ask
+        await db.insert(retailerPriceOverrides).values({
+          id: overrideId,
+          tenantId,
+          retailerId: retailerA,
+          variantId: variantA,
+          ratePaise: 950,
+          final: false,
+          validFrom: '2020-01-01',
+        })
+        // the ask is refused, the order is not: reject the gate would cancel it, so the desk approves the
+        // rate request at the shop's own rate instead — and confirm charges ₹9.50, the rate in force
+        const rejectedAsk = await call(
+          app,
+          owner,
+          'POST',
+          `/pricing/bargains/${p.bargainId}/decide`,
+          {
+            idempotencyKey: `dos126-rate-t8-${run}`,
+            id: p.bargainId,
+            decision: 'reject',
+          },
+        )
+        expect(rejectedAsk.status).toBe(200)
+        const last = await approveGate('t8', p.orderId, 'bargain')
+        expect(last.status).toBe(200)
+        expect(last.body.order?.state).toBe('confirmed')
+        expect(last.body.order?.lines.find((l) => l.id === p.lineId)).toMatchObject({
+          ratePaise: 950,
+          listRatePaise: 1_000,
+          lineTotalPaise: 11_400 + 1_368,
+        })
+      } finally {
+        await db.delete(retailerPriceOverrides).where(eq(retailerPriceOverrides.id, overrideId))
+        await cancel('t8', p.orderId)
       }
     })
 
@@ -3913,7 +3985,7 @@ describeDb('orders (DATABASE_URL)', () => {
         })
         expect(refused.status).toBe(400)
         expect(refused.body.message).toBe(
-          `${submitted.orderNo ?? ''} holds an approved rate that cannot be priced today (No price for variant ${variantA} (line ${p.lineId})); fix the price list or reject the rate request`,
+          `${submitted.orderNo ?? ''} cannot be priced at today's rates (No price for variant ${variantA} (line ${p.lineId})); fix the price list, or reject or cancel the order`,
         )
         expect(refused.body.data?.code).toBe('reprice_failed')
 

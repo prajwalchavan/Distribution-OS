@@ -55,7 +55,7 @@ import {
   useShop,
 } from '../../../src/groups/sales/lib/local'
 import { piecesOfLine, useSubmitAcceptedDrafts } from '../../../src/groups/sales/lib/queue'
-import { quoteOnDevice } from '../../../src/groups/sales/lib/pricing'
+import { describePriceChange, quoteOnDevice } from '../../../src/groups/sales/lib/pricing'
 import { Field, Panel, orderFamily } from '../../../src/groups/sales/lib/ui'
 import { useWord } from '../../../src/groups/sales/lib/words'
 
@@ -264,6 +264,27 @@ export default function OrderDetail(): React.JSX.Element {
           <Txt field="body" desk="body" color={colors.status.brick.fg}>
             {submit.error.message}
           </Txt>
+        )}
+        {/*
+          Ruling 7 (docs/22 §8, 2026-09-28): a draft is placed at today's prices, and what moved since it
+          was drafted is said here, from the submit reply itself, while the rep is still at the counter.
+        */}
+        {(submit.data?.priceChanges?.length ?? 0) === 0 ? null : (
+          <Stack gap={1} testID="submit-price-changes">
+            <Txt field="label" desk="meta" color={colors.status.ochre.fg}>
+              {t('s5.pricesChangedAtPlacing')}
+            </Txt>
+            {submit.data?.priceChanges?.map((change) => (
+              <Txt key={change.lineId} field="body" desk="body">
+                {describePriceChange({
+                  variantId: change.variantId,
+                  name: change.itemName,
+                  fromRatePaise: change.fromRatePaise,
+                  toRatePaise: change.toRatePaise,
+                })}
+              </Txt>
+            ))}
+          </Stack>
         )}
 
         {/*

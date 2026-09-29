@@ -355,7 +355,27 @@ export const SubmitOrderInput = MutationBase.extend({
   id: IdSchema,
   deviceId: DeviceIdSchema.optional(),
 })
-export const SubmitOrderOutput = OrderItemOutput
+/**
+ * What re-pricing an order at today's rates changed on one typed line (docs/22 §8, 2026-09-28, rulings 6 and 7):
+ * a draft is re-priced when it is placed, a held order when it is confirmed, and the reply names the item, its
+ * old and new rate a piece, and its value before GST, so the screen can say it.
+ */
+export const OrderPriceChangeSchema = z.object({
+  lineId: IdSchema,
+  variantId: IdSchema,
+  itemName: z.string(),
+  fromRatePaise: PaiseSchema,
+  toRatePaise: PaiseSchema,
+  fromLineNetPaise: PaiseSchema,
+  toLineNetPaise: PaiseSchema,
+})
+export type OrderPriceChange = z.infer<typeof OrderPriceChangeSchema>
+
+export const SubmitOrderOutput = z.object({
+  item: OrderDetailSchema,
+  /** Ruling 7: what placing the draft at today's rates changed; empty or absent when nothing moved. */
+  priceChanges: z.array(OrderPriceChangeSchema).optional(),
+})
 
 export const ConfirmOrderInput = MutationBase.extend({
   id: IdSchema,
@@ -364,6 +384,8 @@ export const ConfirmOrderInput = MutationBase.extend({
 export const ConfirmOrderOutput = z.object({
   item: OrderDetailSchema,
   shortages: z.array(OrderShortageSchema),
+  /** Ruling 6: what confirming at the rates in force now changed on a held order; absent when nothing moved. */
+  priceChanges: z.array(OrderPriceChangeSchema).optional(),
 })
 
 /**

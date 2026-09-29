@@ -251,6 +251,8 @@ export const strings = {
   's3.placedBody': 'The office has it, with its number and its price.',
   /* DOS-082: named right below "Order placed" — the price the shop was quoted, and what it became. */
   's3.pricesChanged': 'Prices changed since you built this order:',
+  /* Ruling 7 (docs/22 §8, 2026-09-28): a draft is placed at today's prices. */
+  's5.pricesChangedAtPlacing': 'Placed at today’s prices — these changed since the draft:',
   /* DOS-078: the godown's answer at the counter — the order stands, the rest follows. */
   's3.shortAtGodown': 'The godown is short on {count} item(s) — the shop gets the rest:',
   's3.noneInStock': 'none in stock',

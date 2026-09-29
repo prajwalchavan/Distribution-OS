@@ -1,6 +1,6 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
-import { and, asc, eq, type SQL, type SQLWrapper } from 'drizzle-orm'
+import { and, asc, eq, gt, type SQL, type SQLWrapper } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   ApprovalKind,
@@ -94,10 +94,11 @@ import { loadDetail, type OrderRow } from './orders.mappers.js'
 import {
   isRewardLine,
   priceOrderLines,
-  repriceApprovedBargains,
+  repriceOrder,
   type EnteredLine,
   type OrderTotals,
-  type RepricedLines,
+  type OrderPriceChange,
+  type RepricedOrder,
 } from './pricing-lines.js'
 
 type CreateIn = z.infer<typeof CreateOrderInput>
@@ -317,8 +318,8 @@ export class OrdersService {
       idempotent(tx, input.idempotencyKey, input, async () => {
         const order = await this.lockReachableOrder(tx, input.id)
         this.assertRetailerOwns(order)
-        const { item } = await this.submitInTx(tx, order, input.deviceId ?? null)
-        return { item }
+        const { item, priceChanges } = await this.submitInTx(tx, order, input.deviceId ?? null)
+        return { item, priceChanges }
       }),
     )
   }
@@ -346,6 +347,8 @@ export class OrdersService {
     flags: ApprovalKind[]
     creditNotice: CreditNotice | null
     creditWaived: boolean
+    /** Ruling 7: what re-pricing the draft at placing changed (item, old rate, new rate); empty when nothing. */
+    priceChanges: OrderPriceChange[]
   }> {
     const ctx = currentTenant()
     const to = transition(order.state, 'submit')
@@ -359,10 +362,13 @@ export class OrdersService {
     if (lines.length === 0)
       throw new ORPCError('BAD_REQUEST', { message: 'an order needs at least one line' })
     const now = new Date()
+    // Ruling 7 (docs/22 §8, 2026-09-28): a draft is re-priced when it is placed, and the reply says what moved.
+    const placed = order.state === 'draft' ? await this.priceAtPlacing(tx, order, lines) : null
+    const pricedLines = placed?.lines ?? lines
     const { flags, bargainIds, creditNotice, creditWaived } = await approvalFlags(
       tx,
-      order,
-      lines,
+      placed?.order ?? order,
+      pricedLines,
       options,
     )
     const [submitted] = await tx
@@ -389,7 +395,13 @@ export class OrdersService {
         ctx.actorRole === 'retailer'
           ? await asSystem(tx, () => this.confirmInTx(tx, next, deviceId, confirmOptions))
           : await this.confirmInTx(tx, next, deviceId, confirmOptions)
-      return { item: confirmed.item, flags, creditNotice, creditWaived }
+      return {
+        item: confirmed.item,
+        flags,
+        creditNotice,
+        creditWaived,
+        priceChanges: placed?.priceChanges ?? [],
+      }
     }
     // One gate per kind, except `bargain`: one gate per request it waits on, naming that request, so deciding
     // the gate decides the request and the queue holds one record per bargain (DOS-005).
@@ -410,7 +422,68 @@ export class OrdersService {
         })),
       ),
     )
-    return { item: await this.detail(tx, next), flags, creditNotice, creditWaived }
+    return {
+      item: await this.detail(tx, next),
+      flags,
+      creditNotice,
+      creditWaived,
+      priceChanges: placed?.priceChanges ?? [],
+    }
+  }
+
+  /**
+   * Ruling 7: the draft at today's rates, written back before its gates are measured. Every line of the draft is
+   * written again — its typed lines with the same ids, quantities and entered units, the scheme rewards it earns
+   * today — the way `setLines` writes a draft (delete, insert: the shop's own login may do exactly that to its
+   * own draft), and the header takes the new totals. Null when nothing moved.
+   */
+  private async priceAtPlacing(
+    tx: Db,
+    order: OrderRow,
+    lines: readonly (typeof salesOrderLines.$inferSelect)[],
+  ): Promise<{
+    order: OrderRow
+    lines: (typeof salesOrderLines.$inferSelect)[]
+    priceChanges: OrderPriceChange[]
+  } | null> {
+    const repriced = await this.chargeTodaysRates(tx, order, lines)
+    if (!repriced) return null
+    await tx.delete(salesOrderLines).where(eq(salesOrderLines.orderId, order.id))
+    const typed = repriced.lines.filter((line) => !isRewardLine(line))
+    const rows = [
+      ...typed.map(({ createdAt: _c, updatedAt: _u, ...line }) => line),
+      ...(repriced.rewards ?? repriced.lines.filter((line) => isRewardLine(line))).map(
+        (line, i) => ({
+          ...line,
+          lineNo: typed.length + i + 1,
+        }),
+      ),
+    ]
+    if (rows.length > 0)
+      await tx.insert(salesOrderLines).values(
+        rows.map((row) => {
+          const {
+            createdAt: _c,
+            updatedAt: _u,
+            ...rest
+          } = row as typeof row & {
+            createdAt?: Date
+            updatedAt?: Date
+          }
+          return rest
+        }),
+      )
+    const [updated] = await tx
+      .update(salesOrders)
+      .set({ ...repriced.totals, updatedAt: new Date() })
+      .where(eq(salesOrders.id, order.id))
+      .returning()
+    const stored = await tx
+      .select()
+      .from(salesOrderLines)
+      .where(eq(salesOrderLines.orderId, order.id))
+      .orderBy(asc(salesOrderLines.lineNo))
+    return { order: updated ?? order, lines: stored, priceChanges: repriced.priceChanges }
   }
 
   /**
@@ -494,9 +567,24 @@ export class OrdersService {
       .from(salesOrderLines)
       .where(eq(salesOrderLines.orderId, order.id))
       .orderBy(asc(salesOrderLines.lineNo))
-    // Only a line an approved rate now prices lower is written, in place: its id stays, so the reservation below
-    // follows it, and the 0040 touch trigger moves `updated_at`, so the rep's and the shop's devices pull it.
-    const repriced = await this.chargeApprovedRates(tx, order, stored)
+    // Ruling 6 (docs/22 §8, 2026-09-28): the order is confirmed at the rates in force NOW, a shop's own rate and
+    // a rate approved by the decision that confirms included. A typed line whose money moved is written in
+    // place: its id stays, so the reservation below follows it, and the 0040 touch trigger moves `updated_at`,
+    // so the rep's and the shop's devices pull it. Scheme rewards the order now earns replace the stored ones
+    // (nothing is reserved yet).
+    const repriced = await this.chargeTodaysRates(tx, order, stored)
+    if (repriced?.rewards) {
+      await tx
+        .delete(salesOrderLines)
+        .where(
+          and(
+            eq(salesOrderLines.orderId, order.id),
+            eq(salesOrderLines.qtyPcs, 0),
+            gt(salesOrderLines.freeQtyPcs, 0),
+          ),
+        )
+      if (repriced.rewards.length > 0) await tx.insert(salesOrderLines).values(repriced.rewards)
+    }
     for (const line of repriced?.changed ?? [])
       await tx
         .update(salesOrderLines)
@@ -574,7 +662,13 @@ export class OrdersService {
       after: { state: to, totalPaise: next.totalPaise },
       deviceId,
     })
-    return { item: await this.detail(tx, next), shortages }
+    return {
+      item: await this.detail(tx, next),
+      shortages,
+      ...(repriced && repriced.priceChanges.length > 0
+        ? { priceChanges: repriced.priceChanges }
+        : {}),
+    }
   }
 
   /**
@@ -658,21 +752,21 @@ export class OrdersService {
   }
 
   /**
-   * `repriceApprovedBargains` for confirm, with the engine's refusal said so the desk can act on it (DOS-126): an
-   * approved rate that cannot be priced (the draft's price list switched off, the item's price or GST rate gone)
-   * rolls the decision back with a sentence naming the order, and never confirms at the wrong rate.
+   * `repriceOrder` for placing and confirm, with the engine's refusal said so the desk can act on it: an order
+   * that cannot be priced today (its price list switched off, an item's price or GST rate gone) rolls the
+   * submit or the decision back with a sentence naming the order, and never confirms at a stale rate.
    */
-  private async chargeApprovedRates(
+  private async chargeTodaysRates(
     tx: Db,
     order: OrderRow,
     lines: readonly (typeof salesOrderLines.$inferSelect)[],
-  ): Promise<RepricedLines | null> {
+  ): Promise<RepricedOrder | null> {
     try {
-      return await repriceApprovedBargains(tx, this.quotes, { order, lines })
+      return await repriceOrder(tx, this.quotes, { order, lines })
     } catch (err) {
       if (err instanceof ORPCError && err.code === 'BAD_REQUEST')
         throw new ORPCError('BAD_REQUEST', {
-          message: `${order.orderNo ?? order.id} holds an approved rate that cannot be priced today (${err.message}); fix the price list or reject the rate request`,
+          message: `${order.orderNo ?? 'This order'} cannot be priced at today's rates (${err.message}); fix the price list, or reject or cancel the order`,
           data: { code: 'reprice_failed' },
           cause: err,
         })

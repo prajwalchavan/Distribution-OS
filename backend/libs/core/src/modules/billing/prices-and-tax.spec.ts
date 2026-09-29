@@ -19,6 +19,7 @@ import {
   productVariants,
   retailerIdentities,
   retailerLinks,
+  retailerPriceOverrides,
   retailers,
   returnPolicies,
   schemeAmountFaults,
@@ -1398,6 +1399,47 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
       ).rows[0] as { c: string }
     ).c
     expect(Number(thirdCgst)).toBe(billedCgst)
+  })
+
+  it('ruling 8: a shop’s final rate blocks schemes, not a rate request approved for it (QA O07)', async () => {
+    const shop = await newShop('O07')
+    await db.insert(retailerPriceOverrides).values({
+      id: uuidv7(),
+      tenantId,
+      retailerId: shop,
+      variantId: v.marie,
+      ratePaise: 2200,
+      final: true,
+      validFrom: '2020-01-01',
+    })
+    const fivePct = uuidv7()
+    const made = await call(app, owner, 'POST', '/pricing/schemes', {
+      idempotencyKey: `o07-scheme-${run}`,
+      id: fivePct,
+      name: `O07 5 % ${run}`,
+      scope: { variantIds: [v.marie] },
+      applicability: { retailerIds: [shop] },
+      triggerKind: 'qty',
+      triggerMin: 1,
+      triggerUnit: 'pcs',
+      rewardKind: 'line_pct',
+      rewardValue: 500,
+      validFrom: '2020-01-01',
+      validTo: '2099-12-31',
+      fundingSource: 'distributor',
+    })
+    expect(made.status).toBe(200)
+    // the desk asks (the rep's 20 % bound of the DOS-335 case would approve it on the spot anyway)
+    const asked = await ask(manager, shop, v.marie, 2150, 'o07')
+    expect(asked.status, JSON.stringify(asked.body)).toBe(200)
+    expect(asked.body.item.status).toBe('approved')
+    const quoted = (await quote(shop, [{ variantId: v.marie, qtyPcs: 10 }])) as Quote & {
+      lines: { ratePaise: number; appliedRules: { kind: string; ruleId: string }[] }[]
+    }
+    // the final ₹22.00 keeps the 5 % scheme off; the approved ₹21.50 still applies
+    expect(quoted.lines[0]?.ratePaise).toBe(2150)
+    expect(quoted.lines[0]?.appliedRules.map((r) => r.kind).sort()).toEqual(['bargain', 'override'])
+    expect(quoted.lines[0]?.appliedRules.some((r) => r.ruleId === fivePct)).toBe(false)
   })
 
   it('the release check is clean for this distributor’s bills written now', async () => {

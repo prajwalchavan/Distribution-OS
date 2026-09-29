@@ -5,13 +5,8 @@ import { paise, roundToRupee, uuidv7 } from '@dos/domain'
 import type { salesOrderLines } from '@dos/db'
 import { productVariants, tenantProducts, type AppliedRule, type Db } from '@dos/db'
 import { currentTenant } from '../../platform/index.js'
-import {
-  approvedBargainsFor,
-  loadHsnRates,
-  todayIst,
-  type HsnRate,
-  type QuoteService,
-} from '../pricing/index.js'
+import { loadHsnRates, todayIst, type HsnRate, type QuoteService } from '../pricing/index.js'
+import { variantNames } from '../tenant-catalog/index.js'
 import type { OrderRow } from './orders.mappers.js'
 
 /**
@@ -136,7 +131,7 @@ export type PricedLineFields = Pick<
 
 /**
  * What one quoted line puts on an order line: the one copy of this arithmetic, shared by drafting
- * (`priceOrderLines`) and confirm (`repriceApprovedBargains`), so a re-priced line is stored exactly as a drafted one.
+ * (`priceOrderLines`) and the re-price at placing and at confirm (`repriceOrder`), so a re-priced line is stored exactly as a drafted one.
  */
 export function pricedLineFields(q: QuotedLine): PricedLineFields {
   // A bargain is a discount from the retailer's point of view, so both land in `discount_paise`.
@@ -360,76 +355,107 @@ function rewardLines(
   }))
 }
 
-/** The approved rate a stored line already carries: the `ruleId` of its `bargain` rule, or null. */
-function storedBargain(line: Pick<OrderLineRow, 'appliedRules'>): string | null {
-  return line.appliedRules.find((r) => r.kind === 'bargain')?.ruleId ?? null
+/** What a re-price changed on one line the rep or the shop typed: the item, its rate and its value. */
+export interface OrderPriceChange {
+  lineId: string
+  variantId: string
+  itemName: string
+  fromRatePaise: number
+  toRatePaise: number
+  /** The line's value before GST (`line_total − tax`), before and after. */
+  fromLineNetPaise: number
+  toLineNetPaise: number
 }
 
-export interface RepricedLines {
-  /** Every line of the order, the changed ones carrying their new money: what confirm reserves. */
+export interface RepricedOrder {
+  /** Every line of the order as it now prices: what confirm reserves and what submit re-inserts. */
   lines: OrderLineRow[]
-  /** Only the lines whose money changed: what confirm writes. */
+  /** The typed lines whose money changed (same id, quantities and counters): what confirm writes in place. */
   changed: OrderLineRow[]
+  /** The scheme reward lines the order now earns, when they differ from the stored ones (DOS-185). */
+  rewards: (typeof salesOrderLines.$inferInsert)[] | null
   /** The header from `lines`. */
   totals: OrderTotals
+  /** In words for the screen (ruling 7): each typed line whose rate or value moved. */
+  priceChanges: OrderPriceChange[]
+}
+
+const PRICED_KEYS = [
+  'freeQtyPcs',
+  'listRatePaise',
+  'ratePaise',
+  'discountBps',
+  'discountPaise',
+  'gstBps',
+  'cessBps',
+  'taxPaise',
+  'cessPaise',
+  'lineTotalPaise',
+  'priceLocked',
+] as const
+
+/** jsonb gives the keys back in its own order: compare the rules key by key, not as written. */
+const rulesText = (rules: readonly AppliedRule[]): string =>
+  JSON.stringify(
+    rules.map((r) =>
+      Object.fromEntries(Object.entries(r).sort(([x], [y]) => (x < y ? -1 : x > y ? 1 : 0))),
+    ),
+  )
+
+function samePrice(a: PricedLineFields, b: PricedLineFields): boolean {
+  return (
+    PRICED_KEYS.every((key) => a[key] === b[key]) &&
+    rulesText(a.appliedRules) === rulesText(b.appliedRules)
+  )
+}
+
+/** The reward lines' identity: which item, for which rule, how many — ids and line numbers aside. */
+function rewardKey(
+  lines: readonly Pick<OrderLineRow, 'variantId' | 'freeQtyPcs' | 'appliedRules'>[],
+) {
+  return lines
+    .map((l) => `${l.variantId}|${l.appliedRules[0]?.ruleId ?? ''}|${String(l.freeQtyPcs)}`)
+    .sort()
+    .join(',')
 }
 
 /**
- * DOS-126: at confirm, the drafted prices plus any rate approved since the draft, and nothing else.
+ * THE ORDER AT TODAY'S RATES (docs/22 §8, 2026-09-28, prices and tax rulings 6 and 7).
  *
- * Lines are priced only while the order is a draft, so a rate request still waiting then was absent from the quote
- * and its line was stored at the list rate. A line changes here only when BOTH hold: the engine now prices it with
- * an approved rate the stored line does not carry, and that lowers its net. Every other line keeps its drafted
- * money: price-list rates and schemes are edited in place, so a full re-price would move lines to later edits and
- * could raise a total a credit decision was taken on.
+ *  - A DRAFT is re-priced when it is placed (`submit`), and the reply names what moved — item, old rate, new
+ *    rate — so the screen can say it (ruling 7; QA IF7: a draft priced at ₹14.24 confirmed at ₹14.24 after
+ *    the list went to ₹15.74, and nobody was told). Once placed, an order keeps its price to the bill.
+ *  - A HELD order (waiting on an approval) is confirmed at the rates in force AT CONFIRM, a shop's own rate
+ *    included (ruling 6; QA IF5c: an override lowered while the order was held was not applied). This replaces
+ *    DOS-126's "the drafted prices plus any rate approved since": a rate approved by the decision that confirms
+ *    is still charged, because the quote runs on the CALLER's transaction and sees it.
  *
- *  - The cheap check first: `approvedBargainsFor` (the rule the quote applies: this order's asks and the shop's
- *    standalone ones) says whether any line lacks an approved rate for its item; an order with none runs no quote.
- *  - The quote runs on the CALLER's transaction (`quoteInTx`), because the rate approved by the decision that
- *    confirms is not committed yet. It prices the stored pieces (never entered × today's case size, docs/17 A3) on
- *    the draft's date — `writeLines` re-inserts every line in the transaction that quoted them, so the earliest
- *    `created_at` is that day — and passes the delivery date when the order prices on delivery, as `writeLines` does.
- *  - Engine and GST errors propagate: an approved rate that cannot be priced never confirms at the wrong rate.
- *
- * A changed line takes every priced field of that one engine result, so its rules and free pieces agree, and keeps
- * its id, quantities and fulfilment counters, so reservations, picks and device rows follow it. Null = no change.
+ * The engine is never re-implemented: the stored pieces of every typed line go through `quoteInTx` on today's
+ * date (the delivery date too when the order prices on delivery) — never entered × today's case size, which
+ * would change a quantity (docs/17 A3). A typed line keeps its id, quantities and counters and takes every
+ * priced field of the one engine result. The scheme rewards (DOS-185) are what the order earns today: when
+ * they differ from the stored ones the caller replaces them. Null = nothing moved.
  */
-export async function repriceApprovedBargains(
+export async function repriceOrder(
   tx: Db,
   quotes: QuoteService,
   args: {
     order: Pick<OrderRow, 'id' | 'retailerId' | 'pricingDateMode' | 'expectedDeliveryDate'>
     lines: readonly OrderLineRow[]
   },
-): Promise<RepricedLines | null> {
+): Promise<RepricedOrder | null> {
   const { order, lines } = args
   const ctx = currentTenant()
-  const priced = lines.filter((line) => line.qtyPcs > 0)
-  if (priced.length === 0) return null
-  const approved = await approvedBargainsFor(tx, {
-    tenantId: ctx.tenantId,
-    retailerId: order.retailerId,
-    orderId: order.id,
-    variantIds: [...new Set(priced.map((line) => line.variantId))],
-  })
-  const lacksApprovedRate = priced.some((line) => {
-    const rate = approved.find((b) => b.variantId === line.variantId)
-    return rate !== undefined && rate.id !== storedBargain(line)
-  })
-  if (!lacksApprovedRate) return null
-
-  const draftedAt = new Date(Math.min(...lines.map((line) => line.createdAt.getTime())))
+  const typed = lines.filter((line) => !isRewardLine(line) && line.qtyPcs > 0)
+  if (typed.length === 0) return null
   const quote = await quotes.quoteInTx(tx, ctx, {
     retailerId: order.retailerId,
     orderId: order.id,
-    pricingDate: todayIst(draftedAt),
+    pricingDate: todayIst(),
     ...(order.pricingDateMode === 'delivery' && order.expectedDeliveryDate
       ? { deliveryDate: order.expectedDeliveryDate }
       : {}),
-    // A reward line (DOS-185) is not priced: it carries no rate for a bargain to replace, and the engine
-    // would refuse a variant the shop's price list does not name. Its free pieces depend on the quantities
-    // ordered, which a rate approval never changes, so it comes through confirm exactly as drafted.
-    lines: priced.map((line) => ({
+    lines: typed.map((line) => ({
       lineId: line.id,
       variantId: line.variantId,
       qtyPcs: line.qtyPcs,
@@ -438,20 +464,56 @@ export async function repriceApprovedBargains(
   const quoted = new Map(quote.lines.map((q) => [q.lineId, q]))
 
   const changed: OrderLineRow[] = []
-  const merged = lines.map((line) => {
-    // Exactly the lines `priced` left out of the quote above: a reward line, and nothing else today.
-    if (line.qtyPcs <= 0) return line
+  const repriced = typed.map((line) => {
     const q = quoted.get(line.id)
     if (!q) throw new ORPCError('INTERNAL_SERVER_ERROR', { message: `quote lost line ${line.id}` })
-    const stored = storedBargain(line)
-    const newRate = q.appliedRules.some((r) => r.kind === 'bargain' && r.ruleId !== stored)
-    if (!newRate || q.lineNetPaise >= line.lineTotalPaise - line.taxPaise) return line
-    const next: OrderLineRow = { ...line, ...pricedLineFields(q) }
+    const fields = pricedLineFields(q)
+    if (samePrice(line, fields)) return line
+    const next: OrderLineRow = { ...line, ...fields }
     changed.push(next)
     return next
   })
-  if (changed.length === 0) return null
-  return { lines: merged, changed, totals: orderTotals(merged) }
+  const storedRewards = lines.filter((line) => isRewardLine(line))
+  const earned = rewardLines(
+    ctx.tenantId,
+    order.id,
+    quote,
+    typed.length,
+    await rewardRates(tx, quotes, quote),
+  )
+  const rewardsChanged = rewardKey(storedRewards) !== rewardKey(earned as OrderLineRow[])
+  if (changed.length === 0 && !rewardsChanged) return null
+
+  const all = [...repriced, ...(rewardsChanged ? (earned as OrderLineRow[]) : storedRewards)]
+  const names = await variantNames(
+    tx,
+    changed.map((line) => line.variantId),
+  )
+  const before = new Map(typed.map((line) => [line.id, line]))
+  const priceChanges: OrderPriceChange[] = []
+  for (const next of changed) {
+    const was = before.get(next.id)
+    if (!was) continue
+    const fromNet = was.lineTotalPaise - was.taxPaise
+    const toNet = next.lineTotalPaise - next.taxPaise
+    if (was.ratePaise === next.ratePaise && fromNet === toNet) continue
+    priceChanges.push({
+      lineId: next.id,
+      variantId: next.variantId,
+      itemName: names.get(next.variantId) ?? 'this item',
+      fromRatePaise: was.ratePaise,
+      toRatePaise: next.ratePaise,
+      fromLineNetPaise: fromNet,
+      toLineNetPaise: toNet,
+    })
+  }
+  return {
+    lines: all,
+    changed,
+    rewards: rewardsChanged ? earned : null,
+    totals: orderTotals(all),
+    priceChanges,
+  }
 }
 
 /**

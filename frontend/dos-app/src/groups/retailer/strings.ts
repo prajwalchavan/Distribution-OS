@@ -275,6 +275,9 @@ export const strings = {
   'r8.cancelled': 'Order cancelled',
   'r8.cancelFailed': 'Could not cancel the order',
   'r8.submit': 'Send this order',
+  /* Ruling 7 (docs/22 §8, 2026-09-28): a draft is sent at today's prices, and the screen says what moved. */
+  'r8.pricesChanged': 'Sent at today’s prices — these changed since the draft:',
+  'r8.priceChange': '{item}: {from} → {to} a piece',
   'r8.notes': 'Your note',
   'r8.lineGst': '+ GST {amount}',
 

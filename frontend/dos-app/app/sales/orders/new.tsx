@@ -289,13 +289,26 @@ export default function OrderEntry(): React.JSX.Element {
        * is what the order and the bill carry — never re-priced again here, and no contract change.
        * This only NAMES what moved, from the two replies the screen already holds, before submit.
        */
-      const priceChanges =
+      const createdChanges =
         quote.result === null ? [] : diffQuoteVsOrder(quote.result.lines, created.item.lines)
       const submitted = await api.api.orders.submit({
         id: draft.id,
         idempotencyKey: `${draft.id}:submit`,
         deviceId: deviceId(),
       })
+      // Ruling 7: placing re-prices the draft at today's rates; what the server moved there wins per item.
+      const placedChanges: PriceChange[] = (submitted.priceChanges ?? []).map((change) => ({
+        variantId: change.variantId,
+        name: change.itemName,
+        fromRatePaise:
+          createdChanges.find((c) => c.variantId === change.variantId)?.fromRatePaise ??
+          change.fromRatePaise,
+        toRatePaise: change.toRatePaise,
+      }))
+      const priceChanges = [
+        ...createdChanges.filter((c) => !placedChanges.some((p) => p.variantId === c.variantId)),
+        ...placedChanges,
+      ]
       void meta
       /*
        * DOS-078: the godown's answer, from the submit reply the tap already has. An order beyond what

@@ -11725,7 +11725,18 @@ request.json
         "createdAt": "2026-09-04T10:30:00.000Z"
       }
     ]
-  }
+  },
+  "priceChanges": [
+    {
+      "lineId": "01a06db2-da39-7334-863c-3d85d8b13619",
+      "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+      "itemName": "text",
+      "fromRatePaise": 4000,
+      "toRatePaise": 4000,
+      "fromLineNetPaise": 2680000,
+      "toLineNetPaise": 2680000
+    }
+  ]
 }
 ```
 
@@ -11967,6 +11978,17 @@ request.json
       "requestedPcs": 24,
       "reservedPcs": 24,
       "shortQtyPcs": 24
+    }
+  ],
+  "priceChanges": [
+    {
+      "lineId": "01a06db2-da39-7334-863c-3d85d8b13619",
+      "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+      "itemName": "text",
+      "fromRatePaise": 4000,
+      "toRatePaise": 4000,
+      "fromLineNetPaise": 2680000,
+      "toLineNetPaise": 2680000
     }
   ]
 }
