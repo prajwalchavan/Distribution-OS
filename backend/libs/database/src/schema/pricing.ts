@@ -253,13 +253,15 @@ export const bargainRequests = pgTable(
     tenantOrOwnRetailerPolicy('bargain_requests_read', 'retailer_id'),
     // Who may ASK, and with what starting status. An owner/manager may file one already `approved`;
     // a rep files `requested` or, inside its bound, `auto_approved`; a shop files `requested` for
-    // itself only. Nobody outside APPROVER_ROLES can write `approved` — that is the decision.
+    // itself only. Nobody outside APPROVER_ROLES can write `approved` — that is the decision. The
+    // accountant, the godown and the crew ask for no rate at all (docs/22 §8 2026-09-28, ruling 5, QA
+    // DOS-336): the permission matrix refuses them, and so does the table.
     pgPolicy('bargain_requests_insert', {
       for: 'insert',
       to: appRw,
       withCheck: sql`tenant_id = (SELECT current_setting('app.tenant_id', true)) AND (
         (SELECT current_setting('app.actor_role', true)) IN ('owner', 'manager', 'system')
-        OR ((SELECT current_setting('app.actor_role', true)) NOT IN ('retailer', 'owner', 'manager', 'system')
+        OR ((SELECT current_setting('app.actor_role', true)) = 'salesperson'
             AND status IN ('requested', 'auto_approved')
             AND requested_by = (SELECT current_setting('app.actor_id', true)))
         OR ((SELECT current_setting('app.actor_role', true)) = 'retailer'

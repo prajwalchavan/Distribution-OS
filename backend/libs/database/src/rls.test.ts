@@ -2733,6 +2733,30 @@ describeDb('row level security and ledger guarantees', () => {
         `${role} must not file an approved bargain`,
       ).rejects.toThrow()
     }
+    // QA DOS-336 (docs/22 §8 2026-09-28, ruling 5; prices lane, blind check 1): only the rep, the shopkeeper, the
+    // manager and the owner ask for a rate — the accountant, the godown and the crew file no request at all, not
+    // even a `requested` one of their own, whatever path reaches the table.
+    const refusedByPolicy = (e: unknown): boolean => {
+      const err = e as { code?: string; cause?: { code?: string } }
+      return (err.cause?.code ?? err.code) === '42501'
+    }
+    for (const role of ['accountant', 'warehouse', 'delivery'] as const) {
+      await expect(
+        as(role)((tx) =>
+          tx.insert(bargainRequests).values({
+            id: uuidv7(),
+            tenantId: tenantA,
+            retailerId: retailerA,
+            variantId: variant,
+            requestedBy: actorFor(role),
+            listRatePaise: 4_000,
+            askedRatePaise: 3_900,
+            status: 'requested',
+          }),
+        ),
+        `${role} must not ask for a rate`,
+      ).rejects.toSatisfy(refusedByPolicy)
+    }
     // deciding: the accountant's UPDATE matches no row; the manager's does
     await as('accountant')((tx) =>
       tx

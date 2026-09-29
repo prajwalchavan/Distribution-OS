@@ -552,7 +552,7 @@
       "idx": 83,
       "version": "7",
       "when": 1790900000900,
-      "tag": "0083_daily_scheme_spend_counted_once_expand",
+      "tag": "0083_scheme_spend_once_and_rate_askers",
       "breakpoints": true
     }
   ]
