@@ -10,11 +10,13 @@ import {
   chooseRepBeats,
   chooseSlotShops,
   creditLimitFor,
+  leftOutNote,
   offerShops,
   offerStep,
   planCounts,
   planDay,
   quantityFor,
+  shopsLeftOut,
   slotShopsOnVans,
   stockBudget,
   type ItemInfo,
@@ -354,7 +356,33 @@ describe('the plan of a day', () => {
     for (const o of plan.orders) expect(marked.has(o.shopId), `${o.slot} ${o.shopId}`).toBe(false)
   })
 
-  it("gives the door whose money stays on account a shop that owes nothing on a real bill, never a carried bill", () => {
+  it('says in the report how many shops it leaves out, and why (rule 3b)', () => {
+    const shops = [
+      shop(1, { foreignOnAccountPaise: 10_000 }),
+      shop(2, { foreignOnAccountPaise: 5_000 }),
+      shop(3, { creditMode: 'stop', foreignOnAccountPaise: 5_000 }),
+      shop(4, { active: false }),
+      shop(5, { foreignOpenPaise: 20_000 }),
+      shop(6, { writtenOff: true, foreignOpenPaise: 0 }),
+      shop(7, { foreignOpenPaise: 0 }),
+      shop(8, { foreignOpenPaise: 0 }),
+    ]
+    expect(shopsLeftOut(shops)).toEqual({
+      realMoneyOnAccount: 2,
+      creditStopped: 1,
+      closed: 1,
+      noToolMoneyOnAccount: 2,
+    })
+    const note = leftOutNote(shops) ?? ''
+    expect(note).toMatch(/^shops left out: 2 billed by the tool no more .*rule 3b/)
+    expect(note).toContain('1 with credit stopped and 1 closed')
+    expect(note).toContain('2 billed but never left money of the tool on account')
+    expect(
+      leftOutNote([shop(7, { foreignOpenPaise: 0 }), shop(8, { foreignOpenPaise: 0 })]),
+    ).toBeNull()
+  })
+
+  it('gives the door whose money stays on account a shop that owes nothing on a real bill, never a carried bill', () => {
     // Every shop that owes nothing on a real bill is taken by the other doors first, except one.
     const [driver, index] = ON_ACCOUNT_DOOR
     for (const date of ['2026-09-29', '2026-09-30', '2026-10-01', '2026-10-02']) {
@@ -402,14 +430,22 @@ describe('the plan of a day', () => {
     const plan = planDay(input({ carried }))
     const at = (inv: string) =>
       (['driver1', 'driver2'] as const).flatMap((d) =>
-        plan.trips[d].filter((x) => x.carried?.invoiceId === inv).map((x) => `${d}:${String(x.sequence)}`),
+        plan.trips[d]
+          .filter((x) => x.carried?.invoiceId === inv)
+          .map((x) => `${d}:${String(x.sequence)}`),
       )
     expect(at('inv-load-1')).toEqual([`driver1:${String((VAN_LOAD_DOORS[0] ?? 0) + 1)}`])
     expect(at('inv-load-2')).toEqual([`driver1:${String((VAN_LOAD_DOORS[1] ?? 1) + 1)}`])
     expect(at('inv-3')).toHaveLength(1)
     // The van-load doors are never a stand-in shop's or the on-account door.
     for (const d of VAN_LOAD_DOORS) {
-      expect(SLOT_DOORS.some((s) => s.delivered.join() === `driver1,${String(d)}` || s.onTheWay.join() === `driver1,${String(d)}`)).toBe(false)
+      expect(
+        SLOT_DOORS.some(
+          (s) =>
+            s.delivered.join() === `driver1,${String(d)}` ||
+            s.onTheWay.join() === `driver1,${String(d)}`,
+        ),
+      ).toBe(false)
       expect(d).not.toBe(ON_ACCOUNT_DOOR[1])
     }
   })
@@ -439,15 +475,14 @@ describe('the plan of a day', () => {
     }
     const doorA = [...plan.trips.driver1, ...plan.trips.driver2].filter((d) => d.shopId === shopA)
     expect(doorA).toHaveLength(1)
-    expect([doorA[0]?.carried?.invoiceId, ...(doorA[0]?.alsoCarried ?? []).map((c) => c.invoiceId)]).toEqual([
-      'inv-a1',
-      'inv-a2',
-      'inv-a3',
-    ])
+    expect([
+      doorA[0]?.carried?.invoiceId,
+      ...(doorA[0]?.alsoCarried ?? []).map((c) => c.invoiceId),
+    ]).toEqual(['inv-a1', 'inv-a2', 'inv-a3'])
     expect(plan.trips.driver1.find((d) => d.sequence === 1)?.carried?.invoiceId).toBe('inv-b1')
-    expect(plan.trips.driver2.filter((d) => d.shopId === shopB).map((d) => d.carried?.invoiceId)).toEqual([
-      'inv-b2',
-    ])
+    expect(
+      plan.trips.driver2.filter((d) => d.shopId === shopB).map((d) => d.carried?.invoiceId),
+    ).toEqual(['inv-b2'])
     // A shop a carried bill visits gets no fresh order of its own the same day.
     expect(plan.orders.some((o) => o.shopId === shopA || o.shopId === shopB)).toBe(false)
   })

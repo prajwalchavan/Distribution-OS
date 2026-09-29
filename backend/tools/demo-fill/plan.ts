@@ -50,6 +50,39 @@ export function clean(s: ShopInfo): boolean {
   return billable(s) && s.foreignOpenPaise <= 0 && !s.writtenOff
 }
 
+/**
+ * The shops the tool leaves out, and why, in counts (the report says so; architect rule 3b): open shops holding
+ * money on account the tool did not put there (the product would apply it to the tool's bill, DOS-312), shops
+ * whose credit is stopped (they take no order, DOS-314) and closed shops; and, of the shops it does bill, those it
+ * never leaves its own money on account with (they owe on a real bill or have one written off).
+ */
+export function shopsLeftOut(shops: readonly ShopInfo[]): {
+  realMoneyOnAccount: number
+  creditStopped: number
+  closed: number
+  noToolMoneyOnAccount: number
+} {
+  const open = shops.filter((s) => s.active)
+  return {
+    realMoneyOnAccount: open.filter((s) => s.creditMode !== 'stop' && s.foreignOnAccountPaise > 0)
+      .length,
+    creditStopped: open.filter((s) => s.creditMode === 'stop').length,
+    closed: shops.length - open.length,
+    noToolMoneyOnAccount: shops.filter((s) => billable(s) && !clean(s)).length,
+  }
+}
+
+/** The report's line for `shopsLeftOut`, or null when the tool leaves no shop out. */
+export function leftOutNote(shops: readonly ShopInfo[]): string | null {
+  const n = shopsLeftOut(shops)
+  if (n.realMoneyOnAccount + n.creditStopped + n.closed + n.noToolMoneyOnAccount === 0) return null
+  return (
+    `shops left out: ${String(n.realMoneyOnAccount)} billed by the tool no more (they hold money on account the tool did not put there, which the product would apply to a new bill: rule 3b, DOS-312), ` +
+    `${String(n.creditStopped)} with credit stopped and ${String(n.closed)} closed (no order, DOS-314); ` +
+    `${String(n.noToolMoneyOnAccount)} billed but never left money of the tool on account (they owe on a real bill or have one written off)`
+  )
+}
+
 export interface ItemInfo {
   variantId: string
   /** The shop's rate from the price list (`pricing.rates`); 0 = no price. */
@@ -215,8 +248,7 @@ export function chooseCreditShop(
   // Its order must be HELD, not refused: never a stopped shop (it takes no order, DOS-314) nor a pay-on-delivery
   // one (never held for credit, DOS-225); and the limit must bite on what it owes, so no money on account.
   const on = shops.filter(
-    (s) =>
-      billable(s) && s.paymentTerms !== 'ON' && s.beatId === beatId && !exclude.has(s.id),
+    (s) => billable(s) && s.paymentTerms !== 'ON' && s.beatId === beatId && !exclude.has(s.id),
   )
   const already = on
     .filter((s) => s.creditMode === 'strict' && s.outstandingPaise > s.creditLimitPaise)

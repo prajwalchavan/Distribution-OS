@@ -6,7 +6,7 @@ import { makeDay } from './day.js'
 import { finishEarlier } from './finish.js'
 import { pages } from './helpers.js'
 import { addDays, isDemoId } from './ids.js'
-import { planCounts } from './plan.js'
+import { leftOutNote, planCounts } from './plan.js'
 import { readTrip } from './road.js'
 import { ensureStanding, type Standing } from './setup.js'
 import { KNOWN_GAPS, Summary, type Section } from './summary.js'
@@ -54,6 +54,10 @@ async function prepare(
   ctx.log(
     `  read: ${String(world.shops.length)} shops, ${String(world.beatIds.length)} beats, ${String(world.items.length)} listed items (${String(world.items.filter((i) => i.ratePaise > 0 && i.available > 0).length)} priced and in stock), ${String(world.suppliers.length)} suppliers`,
   )
+  // Rule 3b: the shops the product offers the tool no way to bill without real money reaching its bill are left
+  // out, and the report says how many (counts only).
+  const leftOut = leftOutNote(world.shops)
+  if (leftOut) ctx.summary.note(leftOut)
   // A day after one the tool has already made cannot be made before it: the vans are on later trips.
   const later = await pages(
     (cursor) =>

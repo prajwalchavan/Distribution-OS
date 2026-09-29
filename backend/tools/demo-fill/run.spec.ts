@@ -322,6 +322,12 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     )
     const date = daysAgo(5)
     const hurt = await fill(date, true, door.url).finally(door.close)
+    // The run after the real money arrived says it leaves that one shop out (rule 3b), in counts only.
+    expect(
+      hurt.summary.notes.filter((n) =>
+        n.startsWith('shops left out: 1 billed by the tool no more'),
+      ),
+    ).toHaveLength(1)
     expect(door.stopped).toBe(2)
     expect(
       hurt.summary.refused.get('manager:supplier bill in review → 503 SERVICE_UNAVAILABLE'),
