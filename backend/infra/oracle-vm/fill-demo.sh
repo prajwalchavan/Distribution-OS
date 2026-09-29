@@ -467,10 +467,13 @@ mac_main() {
   local ownerpw="$HOME/.config/dos/live-owner-password.txt"
   [ -f "$key" ] || die "no SSH key at $key"
   scp -q -i "$key" "${BASH_SOURCE[0]}" "$vm:/opt/dos/fill-demo.sh"
-  if ! ssh -i "$key" "$vm" "test -s $OWNER_PW"; then
-    [ -s "$ownerpw" ] || die "the VM has no $OWNER_PW and this Mac has no $ownerpw"
-    ssh -i "$key" "$vm" "umask 077 && cat > $OWNER_PW" <"$ownerpw"
+  # The password saved on this Mac is the one that counts: it is sent every time, so a corrected one replaces
+  # a wrong one on the VM. Without a file here the VM's own is used.
+  if [ -s "$ownerpw" ]; then
+    ssh -i "$key" "$vm" "umask 077 && cat > $OWNER_PW && chmod 600 $OWNER_PW" <"$ownerpw"
     echo "owner password: sent to the VM ($OWNER_PW, mode 600; not shown)"
+  elif ! ssh -i "$key" "$vm" "test -s $OWNER_PW"; then
+    die "the VM has no $OWNER_PW and this Mac has no $ownerpw"
   fi
   # The distributor and the owner's username go with it, so FILL_TENANT / FILL_OWNER set on this Mac hold there.
   ssh -i "$key" "$vm" "FILL_TENANT=$(printf '%q' "$TENANT") FILL_OWNER=$(printf '%q' "$OWNER") bash /opt/dos/fill-demo.sh vm" || rc=$?
