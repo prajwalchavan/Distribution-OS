@@ -59,7 +59,9 @@ const slug = values.tenant ?? stop('--tenant <slug> is required')
 const baseline: Record<string, number> = values.baseline
   ? (() => {
       try {
-        const b = JSON.parse(readFileSync(values.baseline, 'utf8')) as { kinds?: Record<string, number> }
+        const b = JSON.parse(readFileSync(values.baseline, 'utf8')) as {
+          kinds?: Record<string, number>
+        }
         return b.kinds ?? {}
       } catch {
         return stop(`cannot read the baseline ${values.baseline}`)

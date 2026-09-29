@@ -29,6 +29,8 @@ export interface CoverageSessions {
   godown?: Session | undefined
   driver1?: Session | undefined
   driver2?: Session | undefined
+  /** The reps' user ids, for a read as the owner (the tool's own read-back, which signs no rep in). */
+  repUserIds?: Partial<Record<'sales1' | 'sales2', string>> | undefined
 }
 
 function seen(row: Row, feature: string, ok: boolean, detail: string): Seen {
@@ -56,8 +58,8 @@ export async function shopkeeperRow(api: Api, s: CoverageSessions, date: string)
     seen('shopkeeper', 'login', false, 'no shopkeeper login can be made through the API (DOS-400)'),
   ]
   const trips = {
-    driver1: await tripOf(api, s.owner, demoId(date, 'trip', 'driver1')),
-    driver2: await tripOf(api, s.owner, demoId(date, 'trip', 'driver2')),
+    driver1: await tripOf(api, s.owner, demoId(s.owner.tenantId, date, 'trip', 'driver1')),
+    driver2: await tripOf(api, s.owner, demoId(s.owner.tenantId, date, 'trip', 'driver2')),
   }
   const stopAt = (driver: 'driver1' | 'driver2', index: number) =>
     trips[driver]?.stops.find((x) => x.sequence === index + 1) ?? null
@@ -122,7 +124,7 @@ export async function salesRow(api: Api, s: CoverageSessions, date: string): Pro
   for (const rep of ['sales1', 'sales2'] as const) {
     const session = s[rep] ?? s.owner
     const as = s[rep] ? '' : ' (read as the owner: no rep signed in)'
-    const userId = s[rep]?.userId
+    const userId = s[rep]?.userId ?? s.repUserIds?.[rep]
     const assignments = await api.call(session, contract.retailers.beats.assignments.list, {
       on: date,
       currentOnly: true,
@@ -138,7 +140,7 @@ export async function salesRow(api: Api, s: CoverageSessions, date: string): Pro
       ),
     )
     const slots = rep === 'sales1' ? ['h1', 'w1'] : ['h2', 'w2']
-    const wanted = new Set(slots.map((slot) => demoId(date, 'order', slot)))
+    const wanted = new Set(slots.map((slot) => demoId(s.owner.tenantId, date, 'order', slot)))
     const orders = await api.call(session, contract.orders.list, {
       ...(userId ? { salespersonId: userId } : {}),
       limit: 200,
@@ -300,7 +302,7 @@ export async function driverRow(api: Api, s: CoverageSessions, date: string): Pr
       ...(own ? { mine: true } : {}),
       limit: 20,
     })
-    const tripId = demoId(date, 'trip', driver)
+    const tripId = demoId(s.owner.tenantId, date, 'trip', driver)
     const row = list.items.find((t) => t.id === tripId && t.state === 'active')
     const trip = row ? await tripOf(api, session, row.id) : null
     const stops = trip?.stops ?? []

@@ -289,10 +289,10 @@ export function planDay(input: PlanInput): DayPlan {
       emptySlots.push(slot)
       return null
     }
-    const id = demoId(date, 'order', slot)
+    const id = demoId(input.tenantId, date, 'order', slot)
     const lines = chooseLines(
       `${date}:${slot}`,
-      (n) => demoId(date, 'order', slot, 'line', String(n)),
+      (n) => demoId(input.tenantId, date, 'order', slot, 'line', String(n)),
       input.items,
       budget,
     )

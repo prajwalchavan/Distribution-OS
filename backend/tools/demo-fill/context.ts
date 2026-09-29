@@ -129,8 +129,9 @@ export class Ctx {
   key(date: string, ...parts: string[]): string {
     return demoKey(date, ...parts)
   }
+  /** The id of a row of this distributor (see `demoIdFromKey`). */
   id(date: string, ...parts: string[]): string {
-    return demoId(date, ...parts)
+    return demoId(this.tenantId, date, ...parts)
   }
 
   /**
@@ -183,7 +184,7 @@ export class Ctx {
           'person',
           t.username,
           'reset',
-          demoId(date, 'reset', temporary),
+          this.id(date, 'reset', temporary),
         ),
         userId,
         temporaryPassword: temporary,

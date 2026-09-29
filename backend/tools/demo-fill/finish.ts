@@ -3,7 +3,7 @@ import type { Ctx } from './context.js'
 import { pack, wave } from './day.js'
 import { openGate, supplierCodeOf } from './desk.js'
 import { digitsFrom, earlier, pages } from './helpers.js'
-import { addDays, demoId, demoIdDate, demoKey, isDemoId } from './ids.js'
+import { addDays, demoIdDate, demoKey, isDemoId } from './ids.js'
 import { loadAndDepart, returnTrip, settleTrip, workDoors, type DriverKey } from './road.js'
 import { signOffAndLoad } from './road.js'
 
@@ -293,7 +293,7 @@ async function matchAndBank(ctx: Ctx, date: string): Promise<void> {
       if (left <= 0) break
       const amount = Math.min(left, b.amountDuePaise)
       if (amount <= 0) continue
-      lines.push({ id: demoId(date, 'match', r.id, b.id), invoiceId: b.id, amountPaise: amount })
+      lines.push({ id: ctx.id(date, 'match', r.id, b.id), invoiceId: b.id, amountPaise: amount })
       left -= amount
     }
     if (lines.length === 0) continue
@@ -304,7 +304,7 @@ async function matchAndBank(ctx: Ctx, date: string): Promise<void> {
       contract.receivables.allocations.create,
       {
         idempotencyKey: demoKey(date, 'finish', 'match', r.id),
-        id: demoId(date, 'match', r.id),
+        id: ctx.id(date, 'match', r.id),
         sourceType: 'receipt',
         sourceId: r.id,
         lines,
@@ -332,7 +332,7 @@ async function matchAndBank(ctx: Ctx, date: string): Promise<void> {
       contract.receivables.receipts.deposit,
       {
         idempotencyKey: demoKey(date, 'finish', 'deposit'),
-        id: demoId(date, 'deposit'),
+        id: ctx.id(date, 'deposit'),
         receiptIds: inHand.sort(),
         depositAccountCode: 'BANK',
         depositedAt: new Date().toISOString(),
@@ -371,7 +371,7 @@ async function payOldBills(ctx: Ctx, date: string): Promise<void> {
     byShop.set(b.retailerId, [...(byShop.get(b.retailerId) ?? []), b])
   }
   for (const [retailerId, bills] of [...byShop.entries()].sort()) {
-    const id = demoId(date, 'transfer', retailerId)
+    const id = ctx.id(date, 'transfer', retailerId)
     const amount = bills.reduce((n, b) => n + b.amountDuePaise, 0)
     await ctx.write(
       'yesterday',
@@ -387,7 +387,7 @@ async function payOldBills(ctx: Ctx, date: string): Promise<void> {
         reference: `NEFT${digitsFrom(id.replace(/-/g, '').slice(-15), 10)}`,
         strategy: 'explicit',
         allocations: bills.map((b) => ({
-          id: demoId(date, 'transfer', retailerId, b.id),
+          id: ctx.id(date, 'transfer', retailerId, b.id),
           invoiceId: b.id,
           amountPaise: b.amountDuePaise,
         })),

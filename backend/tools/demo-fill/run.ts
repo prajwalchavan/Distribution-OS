@@ -5,7 +5,7 @@ import { allRows } from './coverage.js'
 import { makeDay } from './day.js'
 import { finishEarlier } from './finish.js'
 import { pages } from './helpers.js'
-import { addDays, demoId, isDemoId } from './ids.js'
+import { addDays, isDemoId } from './ids.js'
 import { planCounts } from './plan.js'
 import { readTrip } from './road.js'
 import { ensureStanding } from './setup.js'
@@ -76,8 +76,8 @@ export async function runFill(opts: RunOptions): Promise<RunResult> {
     // finish it first, so today opens with "yesterday's trip settled".
     const yesterday = addDays(date, -1)
     const hadYesterday =
-      (await readTrip(ctx, demoId(yesterday, 'trip', 'driver1'))) ??
-      (await readTrip(ctx, demoId(yesterday, 'trip', 'driver2')))
+      (await readTrip(ctx, ctx.id(yesterday, 'trip', 'driver1'))) ??
+      (await readTrip(ctx, ctx.id(yesterday, 'trip', 'driver2')))
     const leadIn = hadYesterday ? null : yesterday
     const standing = await ensureStanding(ctx, world, date, leadIn ?? date)
     ctx.log(
@@ -106,12 +106,19 @@ export async function runFill(opts: RunOptions): Promise<RunResult> {
         for (const t of ctx.testers) await ctx.as(t.key)
       })
 
-    const read = await allRows(ctx.api, { owner: ctx.owner }, date).catch((e: unknown) => {
-      summary.note(
-        `could not read the result back: ${e instanceof ApiRefusal ? e.label : String(e)}`,
-      )
-      return { seen: [], notes: [] }
-    })
+    const repUserIds: Partial<Record<'sales1' | 'sales2', string>> = {}
+    for (const rep of ['sales1', 'sales2'] as const) {
+      const userId = ctx.userIds.get(rep)
+      if (userId) repUserIds[rep] = userId
+    }
+    const read = await allRows(ctx.api, { owner: ctx.owner, repUserIds }, date).catch(
+      (e: unknown) => {
+        summary.note(
+          `could not read the result back: ${e instanceof ApiRefusal ? e.label : String(e)}`,
+        )
+        return { seen: [], notes: [] }
+      },
+    )
     for (const s of read.seen) {
       const gap = KNOWN_GAPS[`${s.row}:${s.feature}`]
       summary.feature(

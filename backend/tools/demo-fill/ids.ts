@@ -65,22 +65,25 @@ export function istDateOf(ms: number): string {
 }
 
 /**
- * The id of the row a demo key writes. `key` must be a demo key (it carries the date the timestamp is
- * placed in). Deterministic: SHA-256 of the key decides the time of day and the free bits.
+ * The id of the row a demo key writes in one distributor. `key` must be a demo key (it carries the date the
+ * timestamp is placed in); `tenantId` keeps two distributors on one database apart, because a row's id is
+ * unique across the platform while an idempotency key is only unique inside its distributor.
+ * Deterministic: SHA-256 of the two decides the time of day and the free bits.
  */
-export function demoIdFromKey(key: string): string {
+export function demoIdFromKey(tenantId: string, key: string): string {
   const date = demoKeyDate(key)
   if (!date) throw new Error('demoIdFromKey: not a demo-fill key')
-  const h = createHash('sha256').update(`id:${key}`).digest()
+  if (!tenantId) throw new Error('demoIdFromKey: no distributor')
+  const h = createHash('sha256').update(`id:${tenantId}:${key}`).digest()
   const ms = istMidnightMs(date) + (h.readUInt32BE(0) % DAY_MS)
   const ts = ms.toString(16).padStart(12, '0')
   const tail = h.subarray(4, 8).toString('hex')
   return `${ts.slice(0, 8)}-${ts.slice(8, 12)}-${DEMO_TAG.g3}-${DEMO_TAG.g4}-${DEMO_TAG.g5}${tail}`
 }
 
-/** `demoIdFromKey(demoKey(date, …parts))`. */
-export function demoId(date: string, ...parts: readonly string[]): string {
-  return demoIdFromKey(demoKey(date, ...parts))
+/** `demoIdFromKey(tenantId, demoKey(date, …parts))`. */
+export function demoId(tenantId: string, date: string, ...parts: readonly string[]): string {
+  return demoIdFromKey(tenantId, demoKey(date, ...parts))
 }
 
 export function isDemoId(id: string | null | undefined): boolean {

@@ -1,7 +1,7 @@
 import { contract } from '@dos/contracts'
 import type { Ctx } from './context.js'
 import { digitsFrom, maybe } from './helpers.js'
-import { addDays, demoId, demoKey, shuffled, unit } from './ids.js'
+import { addDays, demoKey, shuffled, unit } from './ids.js'
 import type { ItemInfo } from './plan.js'
 import { readTrip } from './road.js'
 import type { World } from './world.js'
@@ -15,7 +15,7 @@ import type { World } from './world.js'
 
 /** The bill a door of today's van carries (null when the door or its bill is not there). */
 async function doorBill(ctx: Ctx, date: string, driver: 'driver1' | 'driver2', sequence: number) {
-  const trip = await readTrip(ctx, demoId(date, 'trip', driver))
+  const trip = await readTrip(ctx, ctx.id(date, 'trip', driver))
   const stop = trip?.stops.find((s) => s.sequence === sequence)
   const d = stop?.deliveries[0]
   if (!stop || !d) return null
@@ -27,7 +27,7 @@ async function doorBill(ctx: Ctx, date: string, driver: 'driver1' | 'driver2', s
  * raises the credit note and leaves it as a draft for the manager to issue.
  */
 export async function returnToApprove(ctx: Ctx, date: string): Promise<void> {
-  const id = demoId(date, 'return', 'driver2')
+  const id = ctx.id(date, 'return', 'driver2')
   if (await maybe(ctx.read(contract.billing.creditNotes.get, { id }))) {
     ctx.summary.foundOne('manager', 'return to approve')
     return
@@ -52,7 +52,7 @@ export async function returnToApprove(ctx: Ctx, date: string): Promise<void> {
       autoIssue: false,
       lines: [
         {
-          id: demoId(date, 'return', 'driver2', 'line'),
+          id: ctx.id(date, 'return', 'driver2', 'line'),
           invoiceLineId: line.id,
           qtyPcs: 2,
           saleable: false,
@@ -68,7 +68,7 @@ export async function returnToApprove(ctx: Ctx, date: string): Promise<void> {
  * matched to a bill yet ("collections to match").
  */
 export async function officeMoney(ctx: Ctx, date: string): Promise<void> {
-  const cheque = demoId(date, 'office', 'cheque')
+  const cheque = ctx.id(date, 'office', 'cheque')
   if (await maybe(ctx.read(contract.receivables.receipts.get, { id: cheque })))
     ctx.summary.foundOne('accountant', 'cheque at the counter')
   else {
@@ -95,7 +95,7 @@ export async function officeMoney(ctx: Ctx, date: string): Promise<void> {
           strategy: 'explicit',
           allocations: [
             {
-              id: demoId(date, 'office', 'cheque', 'allocation'),
+              id: ctx.id(date, 'office', 'cheque', 'allocation'),
               invoiceId: door.delivery.invoiceId,
               amountPaise: bill.item.amountDuePaise,
             },
@@ -104,7 +104,7 @@ export async function officeMoney(ctx: Ctx, date: string): Promise<void> {
       )
     }
   }
-  const upi = demoId(date, 'office', 'upi')
+  const upi = ctx.id(date, 'office', 'upi')
   if (await maybe(ctx.read(contract.receivables.receipts.get, { id: upi })))
     ctx.summary.foundOne('accountant', 'payment to match')
   else {
@@ -167,6 +167,7 @@ export function supplierLines(
   items: readonly ItemInfo[],
   skip: ReadonlySet<string>,
   count: number,
+  lineId: (n: number) => string,
 ): BillLine[] {
   const pool = [...items]
     .filter(
@@ -182,7 +183,7 @@ export function supplierLines(
       const taxable = rate * qty
       const tax = Math.round((taxable * (item.gstBps ?? 0)) / 10_000)
       return {
-        id: demoId(date, 'supplier-bill', kind, 'line', String(n)),
+        id: lineId(n),
         lineNo: n + 1,
         description: `Item ${supplierCodeOf(item.variantId)}`,
         supplierCode: supplierCodeOf(item.variantId),
@@ -227,11 +228,13 @@ export async function supplierBills(ctx: Ctx, date: string, world: World): Promi
     shuffled(suppliers, `${date}:${kind}:supplier`, (s) => s.id)[0] ?? suppliers[0]
   const used = new Set<string>()
   for (const kind of ['review', 'gate'] as const) {
-    const id = demoId(date, 'supplier-bill', kind)
+    const id = ctx.id(date, 'supplier-bill', kind)
     const have = await maybe(ctx.read(contract.procurement.supplierInvoices.get, { id }))
     let status = have?.item.status ?? null
     if (!have) {
-      const lines = supplierLines(date, kind, world.items, used, kind === 'review' ? 3 : 4)
+      const lines = supplierLines(date, kind, world.items, used, kind === 'review' ? 3 : 4, (n) =>
+        ctx.id(date, 'supplier-bill', kind, 'line', String(n)),
+      )
       if (lines.length === 0) {
         ctx.summary.refusedOne(
           kind === 'review' ? 'manager' : 'godown',
@@ -294,7 +297,7 @@ export async function openGate(ctx: Ctx, date: string, supplierInvoiceId: string
     contract.procurement.grns.open,
     {
       idempotencyKey: demoKey(date, 'grn', supplierInvoiceId),
-      id: demoId(date, 'grn', supplierInvoiceId),
+      id: ctx.id(date, 'grn', supplierInvoiceId),
       supplierInvoiceId,
       locationId: godown.id,
     },

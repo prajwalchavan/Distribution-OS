@@ -16,6 +16,8 @@ import {
   unit,
 } from './ids.js'
 
+const T = '01a0eb1e-3c50-74e3-8bdb-c81a7fd0d498'
+
 /** SQL `LIKE` as a regular expression, to prove the pattern the marker check uses. */
 function likeToRegExp(like: string): RegExp {
   const body = like
@@ -49,15 +51,23 @@ describe('the marker: keys and the ids derived from them', () => {
   })
 
   it('derives the same id from the same key, a different id from another', () => {
-    expect(demoId('2026-09-29', 'order', 'h1')).toBe(demoId('2026-09-29', 'order', 'h1'))
-    expect(demoId('2026-09-29', 'order', 'h1')).not.toBe(demoId('2026-09-29', 'order', 'h2'))
-    expect(demoId('2026-09-29', 'order', 'h1')).not.toBe(demoId('2026-09-28', 'order', 'h1'))
-    expect(() => demoIdFromKey('not-a-demo-key')).toThrow()
+    expect(demoId(T, '2026-09-29', 'order', 'h1')).toBe(demoId(T, '2026-09-29', 'order', 'h1'))
+    expect(demoId(T, '2026-09-29', 'order', 'h1')).not.toBe(demoId(T, '2026-09-29', 'order', 'h2'))
+    expect(demoId(T, '2026-09-29', 'order', 'h1')).not.toBe(demoId(T, '2026-09-28', 'order', 'h1'))
+    expect(() => demoIdFromKey(T, 'not-a-demo-key')).toThrow()
+  })
+
+  it('gives two distributors on one database different ids for the same key', () => {
+    const key = demoKey('2026-09-29', 'order', 'h1')
+    const other = '01a0eb35-6ca8-76cf-acb7-9bb46e5ff354'
+    expect(demoIdFromKey(T, key)).not.toBe(demoIdFromKey(other, key))
+    expect(demoIdDate(demoIdFromKey(other, key))).toBe('2026-09-29')
+    expect(() => demoIdFromKey('', key)).toThrow()
   })
 
   it('makes a valid UUIDv7 whose time falls inside the business date in IST and carries the tag', () => {
     for (let n = 0; n < 200; n++) {
-      const id = demoId('2026-09-29', 'probe', String(n))
+      const id = demoId(T, '2026-09-29', 'probe', String(n))
       expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
       expect(isDemoId(id)).toBe(true)
       expect(demoIdDate(id)).toBe('2026-09-29')
@@ -69,7 +79,7 @@ describe('the marker: keys and the ids derived from them', () => {
 
   it('is found by the SQL pattern of the marker check, and a server id is not', () => {
     const like = likeToRegExp(DEMO_ID_LIKE)
-    expect(like.test(demoId('2026-09-29', 'receipt', 'x'))).toBe(true)
+    expect(like.test(demoId(T, '2026-09-29', 'receipt', 'x'))).toBe(true)
     const server = '01a0eb1e-3c50-74e3-8bdb-c81a7fd0d498'
     expect(like.test(server)).toBe(false)
     expect(isDemoId(server)).toBe(false)

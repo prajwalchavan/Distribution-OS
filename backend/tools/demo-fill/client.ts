@@ -243,8 +243,14 @@ export class Api {
     const isRead = method === 'GET' || route.path === '/pricing/quote'
     if (isRead) this.stats.reads++
     else this.stats.writes++
-    let r = await this.http(url, init())
-    if (r.status === 401 && (await this.refresh(s))) r = await this.http(url, init())
+    let r: Awaited<ReturnType<Api['http']>>
+    try {
+      r = await this.http(url, init())
+      if (r.status === 401 && (await this.refresh(s))) r = await this.http(url, init())
+    } catch (e) {
+      this.stats.refusals++
+      throw e
+    }
     if (!r.ok) {
       if (isRead && r.status === 404) this.stats.notFound++
       else this.stats.refusals++

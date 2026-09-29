@@ -1,6 +1,6 @@
 import { contract } from '@dos/contracts'
 import type { Ctx } from './context.js'
-import { addDays, demoId, demoKey, isDemoId, unit } from './ids.js'
+import { addDays, demoKey, isDemoId, unit } from './ids.js'
 import { newPassword, testerPhone } from './people.js'
 import {
   chooseCreditShop,
@@ -60,7 +60,7 @@ export async function ensurePeople(ctx: Ctx, world: World, date: string): Promis
       continue
     }
     const temporary = newPassword()
-    const userId = demoId(date, 'person', t.username)
+    const userId = ctx.id(date, 'person', t.username)
     const made = await ctx.write(
       'people',
       'tester login',
@@ -68,7 +68,7 @@ export async function ensurePeople(ctx: Ctx, world: World, date: string): Promis
       contract.tenancy.staff.create,
       {
         idempotencyKey: demoKey(date, 'person', t.username, 'create'),
-        id: demoId(date, 'membership', t.username),
+        id: ctx.id(date, 'membership', t.username),
         userId,
         username: t.username,
         name: t.name,
@@ -109,7 +109,7 @@ async function ensureVans(ctx: Ctx, world: World, date: string): Promise<Standin
       contract.delivery.vehicles.upsert,
       {
         idempotencyKey: demoKey(date, 'van', regNo),
-        id: demoId(date, 'van', regNo),
+        id: ctx.id(date, 'van', regNo),
         regNo,
         name: n === 1 ? 'Tata Ace' : 'Mahindra Supro',
         kind: 'tempo',
@@ -149,7 +149,7 @@ async function ensureRepBeats(ctx: Ctx, world: World, from: string): Promise<Sta
     await ctx.write('masters', 'beat assignment', manager(ctx), contract.retailers.beats.assign, {
       idempotencyKey: demoKey(from, 'beat', rep, beatId),
       id: beatId,
-      assignmentId: demoId(from, 'beat', rep, beatId),
+      assignmentId: ctx.id(from, 'beat', rep, beatId),
       userId,
       validFrom: from,
       validTo: null,
@@ -200,7 +200,16 @@ async function ensureCreditShops(
 
 // ---------------------------------------------------------------------------------------------- offer
 
-async function ensureOffer(ctx: Ctx, world: World, date: string): Promise<void> {
+/**
+ * One offer, "buy 12, get 1 free" on the item the godown holds most of, for the three shops that stand for
+ * the shopkeepers only: a real shop's order is priced as it was, and the offer is the tool's to see.
+ */
+async function ensureOffer(
+  ctx: Ctx,
+  world: World,
+  date: string,
+  shops: readonly string[],
+): Promise<void> {
   const live = await ctx.read(contract.pricing.schemes.list, {
     activeOnly: true,
     on: date,
@@ -220,7 +229,7 @@ async function ensureOffer(ctx: Ctx, world: World, date: string): Promise<void> 
   }
   await ctx.write('masters', 'offer', manager(ctx), contract.pricing.schemes.upsert, {
     idempotencyKey: demoKey(date, 'offer', item.variantId),
-    id: demoId(date, 'offer', item.variantId),
+    id: ctx.id(date, 'offer', item.variantId),
     name: 'Buy 12, get 1 free',
     scope: { variantIds: [item.variantId] },
     triggerKind: 'qty',
@@ -229,6 +238,7 @@ async function ensureOffer(ctx: Ctx, world: World, date: string): Promise<void> 
     rewardKind: 'free_qty',
     rewardValue: 1,
     freeVariantId: item.variantId,
+    applicability: { retailerIds: [...shops] },
     validFrom: date,
     validTo: addDays(date, 30),
     fundingSource: 'distributor',
@@ -248,7 +258,7 @@ async function ensureConsents(ctx: Ctx, date: string): Promise<void> {
     }
     await ctx.write('masters', 'gps consent', () => ctx.as(key), contract.delivery.consents.grant, {
       idempotencyKey: demoKey(date, 'consent', key),
-      id: demoId(date, 'consent', key),
+      id: ctx.id(date, 'consent', key),
       granted: true,
       noticeVersion: GPS_NOTICE_VERSION,
       locale: 'en-IN',
@@ -269,7 +279,7 @@ export async function ensureStanding(
   const repBeats = await ensureRepBeats(ctx, world, earliest)
   const creditShops = await ensureCreditShops(ctx, world, date, repBeats)
   const slotShops = chooseSlotShops(ctx.tenantId, world.shops, new Set(Object.values(creditShops)))
-  await ensureOffer(ctx, world, date)
+  await ensureOffer(ctx, world, date, slotShops)
   await ensureConsents(ctx, date)
   return { repBeats, creditShops, slotShops, vans }
 }

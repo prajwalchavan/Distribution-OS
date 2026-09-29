@@ -1,7 +1,7 @@
 import { contract } from '@dos/contracts'
 import type { Ctx } from './context.js'
 import { SIGNATURE_PNG, digitsFrom, istTime, maybe } from './helpers.js'
-import { demoId, demoKey, unit } from './ids.js'
+import { demoKey, unit } from './ids.js'
 import { TRIP_DOORS, type DoorOutcome } from './plan.js'
 
 /**
@@ -72,7 +72,7 @@ export async function loadAndDepart(
     const sheet = await ctx.read(contract.warehouse.loadSheets.get, { id: s.id })
     for (const o of sheet.item.orders) onDraft.set(o.orderId, s.id)
   }
-  const ownSheet = demoId(date, 'sheet', tripId)
+  const ownSheet = ctx.id(date, 'sheet', tripId)
   const loose = packed.filter((o) => !onDraft.has(o))
   if (
     loose.length > 0 &&
@@ -130,7 +130,7 @@ export async function signOffAndLoad(ctx: Ctx, sheetId: string, date: string): P
       idempotencyKey: demoKey(date, 'sheet', sheetId, 'confirm'),
       id: sheetId,
       countedPackages: sheet.item.expectedPackages,
-      challanId: demoId(date, 'challan', sheetId),
+      challanId: ctx.id(date, 'challan', sheetId),
     },
   )
 }
@@ -157,7 +157,7 @@ export async function workDoors(
     if (outcome === 'pending') continue
     if (!TERMINAL_STOPS.has(stop.state)) await deliverDoor(ctx, trip, stop, driver, outcome, date)
     if (outcome === 'cash' || outcome === 'upi' || outcome === 'cheque') {
-      const id = demoId(date, 'collection', stop.id)
+      const id = ctx.id(date, 'collection', stop.id)
       if (!collected.has(id)) await takeMoney(ctx, trip, stop, driver, outcome, date)
     }
   }
@@ -194,7 +194,7 @@ async function deliverDoor(
             ? Math.max(1, Math.floor(all / 3))
             : 0
       return {
-        id: demoId(date, 'delivery-line', planned.id, String(n)),
+        id: ctx.id(date, 'delivery-line', planned.id, String(n)),
         invoiceLineId: l.id,
         deliveredQtyPcs: all - back,
         returnedQtyPcs: back,
@@ -213,7 +213,7 @@ async function deliverDoor(
       lines,
       pod: [
         {
-          id: demoId(date, 'pod', planned.id),
+          id: ctx.id(date, 'pod', planned.id),
           kind: 'signature',
           inline: { mimeType: 'image/png', contentBase64: SIGNATURE_PNG },
         },
@@ -236,14 +236,14 @@ async function takeMoney(
     const bill = await ctx.read(contract.billing.invoices.get, { id: d.invoiceId })
     if (bill.item.amountDuePaise > 0)
       allocations.push({
-        id: demoId(date, 'allocation', stop.id, d.invoiceId),
+        id: ctx.id(date, 'allocation', stop.id, d.invoiceId),
         invoiceId: d.invoiceId,
         amountPaise: bill.item.amountDuePaise,
       })
   }
   const amount = allocations.reduce((n, a) => n + a.amountPaise, 0)
   if (amount <= 0) return
-  const id = demoId(date, 'collection', stop.id)
+  const id = ctx.id(date, 'collection', stop.id)
   const hex = id.replace(/-/g, '')
   await ctx.write(
     'driver',
@@ -253,7 +253,7 @@ async function takeMoney(
     {
       idempotencyKey: demoKey(date, 'collection', stop.id),
       id,
-      receiptId: demoId(date, 'receipt', stop.id),
+      receiptId: ctx.id(date, 'receipt', stop.id),
       tripId: trip.id,
       stopId: stop.id,
       retailerId: stop.retailerId,
@@ -303,7 +303,7 @@ export async function settleTrip(ctx: Ctx, tripId: string, date: string): Promis
     contract.delivery.trips.settle,
     {
       idempotencyKey: demoKey(date, 'trip', tripId, 'settle'),
-      id: demoId(date, 'settlement', tripId),
+      id: ctx.id(date, 'settlement', tripId),
       tripId,
       handedOverCashPaise: preview.expectedCashPaise,
       counted: preview.expectedVanStock.map((l) => ({ lotId: l.lotId, countedPcs: l.expectedPcs })),

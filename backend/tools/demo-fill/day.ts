@@ -2,7 +2,7 @@ import { contract } from '@dos/contracts'
 import type { Ctx } from './context.js'
 import { officeMoney, returnToApprove, supplierBills } from './desk.js'
 import { billOf, earlier, getOrder, istTime, maybe, pages } from './helpers.js'
-import { demoId, demoKey, unit } from './ids.js'
+import { demoKey, unit } from './ids.js'
 import { planCounts, planDay, type CarriedBill, type DayPlan, type PlannedOrder } from './plan.js'
 import { loadAndDepart, readTrip, workDoors, type DriverKey } from './road.js'
 import type { Standing } from './setup.js'
@@ -48,7 +48,7 @@ export async function findCarried(
         mustRideVan1: false,
       })
   for (const driver of ['driver1', 'driver2'] as const) {
-    const trip = await readTrip(ctx, demoId(date, 'trip', driver))
+    const trip = await readTrip(ctx, ctx.id(date, 'trip', driver))
     for (const stop of trip?.stops ?? [])
       for (const d of stop.deliveries)
         if (d.orderId && earlier(d.orderId, date))
@@ -110,7 +110,7 @@ async function placeOrder(ctx: Ctx, order: PlannedOrder, date: string): Promise<
         const asked = Math.min(q.ratePaise - 100, Math.floor((q.ratePaise * 0.97) / 100) * 100)
         await ctx.write(section, 'rate asked', placer, contract.pricing.bargains.request, {
           idempotencyKey: demoKey(date, 'bargain', order.slot),
-          id: demoId(date, 'bargain', order.slot),
+          id: ctx.id(date, 'bargain', order.slot),
           retailerId: order.shopId,
           variantId: line.variantId,
           askedRatePaise: asked,
@@ -179,7 +179,7 @@ async function recordVisit(ctx: Ctx, order: PlannedOrder, date: string): Promise
     contract.retailers.visits.record,
     {
       idempotencyKey: demoKey(date, 'visit', order.slot),
-      id: demoId(date, 'visit', order.slot),
+      id: ctx.id(date, 'visit', order.slot),
       retailerId: order.shopId,
       startedAt: istTime(date, order.slot.endsWith('1') ? 10 : 11, minute),
       endedAt: istTime(date, order.slot.endsWith('1') ? 10 : 11, minute + 9),
@@ -201,7 +201,7 @@ export async function wave(
   orderIds: readonly string[],
   upTo: 'open' | 'picked' | 'packed',
 ): Promise<void> {
-  const id = demoId(date, 'wave', name)
+  const id = ctx.id(date, 'wave', name)
   let pl = await maybe(ctx.read(contract.warehouse.picklists.get, { id }))
   if (!pl) {
     const ready: string[] = []
@@ -282,7 +282,7 @@ export async function pack(ctx: Ctx, date: string, orderId: string): Promise<voi
     contract.warehouse.packs.confirm,
     {
       idempotencyKey: demoKey(date, 'pack', orderId),
-      id: demoId(date, 'pack', orderId),
+      id: ctx.id(date, 'pack', orderId),
       orderId,
       packages: Math.max(1, Math.ceil(lines / 2)),
     },
@@ -298,7 +298,7 @@ async function planTrip(
   plan: DayPlan,
   standing: Standing,
 ): Promise<void> {
-  const id = demoId(date, 'trip', driver)
+  const id = ctx.id(date, 'trip', driver)
   const van = standing.vans[driver]
   const driverId = ctx.userIds.get(driver)
   const existing = await readTrip(ctx, id)
@@ -319,11 +319,11 @@ async function planTrip(
       const bill = door.carried
         ? { id: door.carried.invoiceId, retailerId: door.carried.shopId }
         : door.orderSlot
-          ? await billOf(ctx, demoId(date, 'order', door.orderSlot))
+          ? await billOf(ctx, ctx.id(date, 'order', door.orderSlot))
           : null
       if (!bill) continue
       stops.push({
-        id: demoId(date, 'stop', driver, String(door.sequence)),
+        id: ctx.id(date, 'stop', driver, String(door.sequence)),
         sequence: door.sequence,
         retailerId: bill.retailerId,
         invoiceIds: [bill.id],
@@ -358,7 +358,7 @@ async function planTrip(
 async function vanToLoad(ctx: Ctx, date: string, plan: DayPlan, standing: Standing): Promise<void> {
   const van1 = standing.vans.driver1
   if (!van1) return
-  const id = demoId(date, 'sheet', 'van-to-load')
+  const id = ctx.id(date, 'sheet', 'van-to-load')
   if (await maybe(ctx.read(contract.warehouse.loadSheets.get, { id }))) {
     ctx.summary.foundOne('godown', 'van to load')
     return
