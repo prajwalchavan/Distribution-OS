@@ -1,0 +1,5 @@
+Redacted after blind check 1 (finding m5): the walk signed its accounts up with randomly drawn mobile numbers, which
+may belong to real people. Those numbers are masked in the page texts ("+91 7XXXXXXXXX (masked)"), and the seven
+screenshots that showed one (03 sign-up filled, 09 and 10 the desk's join requests and approve dialog, 11 approved,
+12 the shop page under the request list, 18 and 19 the approve-by-name dialog) are removed. The page texts of those
+screens stay. The shop's own phone on 12 is the demo seed's invented number.
