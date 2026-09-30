@@ -1,6 +1,14 @@
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
-import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, unlinkSync } from 'node:fs'
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  unlinkSync,
+  writeFileSync as writeFile,
+} from 'node:fs'
 import { createServer, request } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -152,6 +160,23 @@ async function doorway(target: string, rule: (method: string, path: string) => V
       })
     })
   return d
+}
+
+/** A node script run as a child WITHOUT blocking this process (whose event loop serves the in-process API). */
+function runNode(
+  args: readonly string[],
+  cwd: string,
+): Promise<{ status: number | null; stdout: string; stderr: string }> {
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, [...args], { cwd, env: process.env })
+    let stdout = ''
+    let stderr = ''
+    child.stdout.on('data', (b: Buffer) => (stdout += b.toString('utf8')))
+    child.stderr.on('data', (b: Buffer) => (stderr += b.toString('utf8')))
+    child.on('close', (status) => {
+      resolve({ status, stdout, stderr })
+    })
+  })
 }
 
 describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenant', () => {
@@ -504,6 +529,9 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     dir = mkdtempSync(join(tmpdir(), 'demo-fill-spec-'))
     loginsFile = join(dir, 'tester-logins.txt')
     pool = createPool(url, 2)
+    // Sign-ups are limited per client address per hour (founder, 2026-09-29), and every run of this suite signs its
+    // crews' shopkeepers up from 127.0.0.1: a second run of the suite inside the hour would otherwise meet the limit.
+    await pool.query(`delete from otp_rate_limits where key like 'signup:%'`)
     process.env.NODE_ENV ??= 'test'
     process.env.OBJECT_STORAGE_DIR = join(dir, 'storage')
     const built = await buildLookalikeTenant(createDb(pool), {
@@ -1065,6 +1093,52 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     expect(Object.fromEntries([...crew].map(([k, m]) => [k, m.username]))).toEqual(USERNAME)
     expect(await coverageGaps(today)).toEqual([])
     expect(await duplicates()).toEqual([])
+  }, 600_000)
+
+  it('check:demo-coverage signs the shopkeepers in on their own accounts and reads every row, the shopkeeper’s included, as made', async () => {
+    const passwordFile = join(dir, 'owner.pw')
+    writeFile(passwordFile, `${ownerPassword}\n`, { mode: 0o600 })
+    const json = join(dir, 'coverage.json')
+    // Spawned WITHOUT blocking: the API it reads is booted in this very process.
+    const check = await runNode(
+      [
+        '--import',
+        'tsx',
+        'check-demo-coverage.mts',
+        '--api',
+        api,
+        '--tenant',
+        slug,
+        '--owner-username',
+        ownerUsername,
+        '--owner-password-file',
+        passwordFile,
+        '--logins-file',
+        loginsFile,
+        '--login-suffix',
+        suffix,
+        '--date',
+        today,
+        '--json',
+        json,
+      ],
+      fileURLToPath(new URL('..', import.meta.url)),
+    )
+    unlinkSync(passwordFile)
+    expect(check.status, `${check.stdout}\n${check.stderr}`).toBe(0)
+    const read = JSON.parse(readFileSync(json, 'utf8')) as {
+      failed: number
+      rows: { row: string; feature: string; state: string; detail: string }[]
+    }
+    expect(read.failed).toBe(0)
+    const login = read.rows.find((r) => r.row === 'shopkeeper' && r.feature === 'login')
+    expect(login?.state).toBe('ok')
+    expect(read.rows.filter((r) => r.row === 'shopkeeper').every((r) => r.state === 'ok')).toBe(
+      true,
+    )
+    // Rule 5: what the check prints names no password.
+    expect(check.stdout.includes(DEMO_PASSWORD)).toBe(false)
+    expect(check.stdout.includes(ownerPassword)).toBe(false)
   }, 600_000)
 
   it('finds exactly the rows the runs made, and every rule of the books holds', async () => {
