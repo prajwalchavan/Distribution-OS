@@ -150,6 +150,15 @@ export default function MyShopScreen(): React.JSX.Element {
                     {t('r11.nameLocked', { name: distributor })}
                   </Txt>
                   <Field label={t('r11.phone')}>{shop.phone}</Field>
+                  {/* m4: the code its bills print, which a shopkeeper types to ask to join this shop. */}
+                  {shop.shopCode === undefined ? null : (
+                    <Stack gap={1} testID="r11-shop-code">
+                      <Field label={t('r11.shopCode')}>{shop.shopCode}</Field>
+                      <Txt field="label" desk="meta" color={colors.text.secondary}>
+                        {t('r11.shopCodeBody', { name: distributor })}
+                      </Txt>
+                    </Stack>
+                  )}
                   <Field label={t('r11.terms')}>
                     <StatusChip label={word(shop.paymentTerms)} family="neutral" />
                   </Field>

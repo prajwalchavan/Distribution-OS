@@ -350,6 +350,7 @@ export const strings = {
   'r4.none': 'No bills yet',
   'r4.detailTitle': 'Bill {no}',
   'r4.from': 'FROM',
+  'r4.shopCode': 'Your shop code: {code}',
   'r4.lines': 'WHAT IS ON THIS BILL',
   'r4.taxes': 'THE TOTAL',
   'r4.taxable': 'Goods',
@@ -503,6 +504,9 @@ export const strings = {
   'r11.details': 'WHAT THEY HAVE ON FILE',
   'r11.name': 'Shop name',
   'r11.nameLocked': 'Only {name} can change the shop name.',
+  'r11.shopCode': 'Shop code',
+  'r11.shopCodeBody':
+    'Printed on your bills from {name}. Type it in the app to ask {name} to join you to this shop.',
   'r11.owner': 'Owner’s name',
   'r11.phone': 'Phone',
   'r11.altPhone': 'Another phone',

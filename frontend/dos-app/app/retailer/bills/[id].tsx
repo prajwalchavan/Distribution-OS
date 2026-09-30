@@ -150,6 +150,18 @@ export default function BillDetail(): React.JSX.Element {
                   </Txt>
                 </Stack>
               </Panel>
+              {/* m4: the shop code this bill prints beside the shop's name. */}
+              {bill.buyerShopCode === undefined ? null : (
+                <Txt
+                  field="label"
+                  desk="meta"
+                  color={colors.text.secondary}
+                  numeric
+                  testID="r4-shop-code"
+                >
+                  {t('r4.shopCode', { code: bill.buyerShopCode })}
+                </Txt>
+              )}
 
               {/* --- the document ------------------------------------------------------------- */}
               {url === null ? (
