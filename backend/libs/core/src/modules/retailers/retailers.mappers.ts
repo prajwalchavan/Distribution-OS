@@ -49,6 +49,7 @@ export function toPublic(row: typeof retailers.$inferSelect): RetailerPublic {
     cashDiscountBps: row.cashDiscountBps,
     cashDiscountDays: row.cashDiscountDays,
     active: row.active,
+    shopCode: row.shopCode,
   }
 }
 
@@ -59,7 +60,6 @@ export function toRetailer(row: typeof retailers.$inferSelect): Retailer {
     code: row.code,
     identityId: row.identityId,
     onboardedBy: row.onboardedBy,
-    shopCode: row.shopCode,
   }
 }
 

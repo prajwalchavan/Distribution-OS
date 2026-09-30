@@ -83,6 +83,14 @@ export const RetailerPublicSchema = z.object({
   cashDiscountBps: BpsSchema,
   cashDiscountDays: z.number().int(),
   active: z.boolean(),
+  /**
+   * Expand-only (the shopkeeper is independent, founder 2026-09-29): the SHOP CODE printed on this shop's bills,
+   * `K7MQ-4P2X`, which a shopkeeper who signed up alone types to ask to be joined to this shop. Unique across the
+   * platform and made by the database for every shop. In the public shape too (blind check, m4), so the shopkeeper
+   * reads its own code on its shop's page as its bills print it; the godown and the crew carry those bills anyway.
+   * Absent from a server older than it.
+   */
+  shopCode: z.string().optional(),
 })
 export type RetailerPublic = z.infer<typeof RetailerPublicSchema>
 
@@ -116,12 +124,7 @@ export const RetailerSchema = RetailerPublicSchema.extend({
    * known to the platform (docs/17 item 27).
    */
   appSignIn: ShopSignInSchema.nullable().optional(),
-  /**
-   * Expand-only (the shopkeeper is independent, founder 2026-09-29): the SHOP CODE printed on this shop's bills,
-   * `K7MQ-4P2X`, which a shopkeeper who signed up alone types to ask to be joined to this shop. Unique across the
-   * platform and made by the database for every shop. Absent from a server older than it.
-   */
-  shopCode: z.string().optional(),
+  // `shopCode` comes from the public shape above.
 })
 export type Retailer = z.infer<typeof RetailerSchema>
 

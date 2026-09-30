@@ -541,6 +541,28 @@ describeDb('the shopkeeper signs up, asks to join a shop, the desk decides (DATA
       expect(again.body.message).toBe('You are already joined to this shop.')
     })
 
+    it('shows the shopkeeper its own shop code on its shop, as its bills print it (m4)', async () => {
+      const token = first.pair.accessToken
+      const list = await asAccount<{ items: { id: string; shopCode?: string }[] }>(
+        token,
+        'GET',
+        '/retailers',
+      )
+      expect(list.status, JSON.stringify(list.body)).toBe(200)
+      expect(list.body.items).toEqual([
+        expect.objectContaining({ id: shopOne, shopCode: code(shopOne) }),
+      ])
+      const one = await asAccount<{ item: { id: string; shopCode?: string; code?: string } }>(
+        token,
+        'GET',
+        `/retailers/${shopOne}`,
+      )
+      expect(one.status, JSON.stringify(one.body)).toBe(200)
+      expect(one.body.item.shopCode).toBe(code(shopOne))
+      // Still the shop's public shape: the distributor's own code and terms stay the desk's.
+      expect(one.body.item.code).toBeUndefined()
+    })
+
     it('keeps a shop’s existing sign-in when a second account is approved for it', async () => {
       const given = await call<{ outcome: string; signIn: { username: string } }>(
         app,

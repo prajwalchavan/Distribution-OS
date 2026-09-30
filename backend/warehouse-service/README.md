@@ -3855,6 +3855,7 @@ curl "http://localhost:3004/retailers?q=campa&beatId=01a06d3e-cfdb-7635-85cb-ee4
       "cashDiscountBps": 500,
       "cashDiscountDays": 7,
       "active": true,
+      "shopCode": "R-0001",
       "code": "R-0001",
       "identityId": "01a06da2-6993-796d-8c2d-0a8fd008d8c8",
       "tier": "A",
@@ -3866,8 +3867,7 @@ curl "http://localhost:3004/retailers?q=campa&beatId=01a06d3e-cfdb-7635-85cb-ee4
       "appSignIn": {
         "username": "sunil.tarsun",
         "since": "2026-09-04T10:30:00.000Z"
-      },
-      "shopCode": "R-0001"
+      }
     }
   ],
   "nextCursor": null
@@ -3971,6 +3971,7 @@ curl "http://localhost:3004/retailers/01a06d17-0be7-794a-8dab-9b14cf78673b" \
     "cashDiscountBps": 500,
     "cashDiscountDays": 7,
     "active": true,
+    "shopCode": "R-0001",
     "code": "R-0001",
     "identityId": "01a06da2-6993-796d-8c2d-0a8fd008d8c8",
     "tier": "A",
@@ -3982,8 +3983,7 @@ curl "http://localhost:3004/retailers/01a06d17-0be7-794a-8dab-9b14cf78673b" \
     "appSignIn": {
       "username": "sunil.tarsun",
       "since": "2026-09-04T10:30:00.000Z"
-    },
-    "shopCode": "R-0001"
+    }
   }
 }
 ```
@@ -4153,6 +4153,7 @@ request.json
     "cashDiscountBps": 500,
     "cashDiscountDays": 7,
     "active": true,
+    "shopCode": "R-0001",
     "code": "R-0001",
     "identityId": "01a06da2-6993-796d-8c2d-0a8fd008d8c8",
     "tier": "A",
@@ -4164,8 +4165,7 @@ request.json
     "appSignIn": {
       "username": "sunil.tarsun",
       "since": "2026-09-04T10:30:00.000Z"
-    },
-    "shopCode": "R-0001"
+    }
   }
 }
 ```
@@ -4300,6 +4300,7 @@ request.json
     "cashDiscountBps": 500,
     "cashDiscountDays": 7,
     "active": true,
+    "shopCode": "R-0001",
     "code": "R-0001",
     "identityId": "01a06da2-6993-796d-8c2d-0a8fd008d8c8",
     "tier": "A",
@@ -4311,8 +4312,7 @@ request.json
     "appSignIn": {
       "username": "sunil.tarsun",
       "since": "2026-09-04T10:30:00.000Z"
-    },
-    "shopCode": "R-0001"
+    }
   }
 }
 ```
@@ -4581,7 +4581,8 @@ request.json
     "paymentTerms": "PRE",
     "cashDiscountBps": 500,
     "cashDiscountDays": 7,
-    "active": true
+    "active": true,
+    "shopCode": "R-0001"
   }
 }
 ```
