@@ -221,6 +221,13 @@ describe('<TextInput> on a phone-sized browser', () => {
     expect(html).toContain('spellCheck="false"')
   })
 
+  it('names the field for a screen reader by its label (m7, blind check of the sign-up)', () => {
+    const html = renderDesk(
+      <TextInput label="Mobile number" value="" onChange={() => undefined} testID="m" />,
+    )
+    expect(html).toMatch(/<input[^>]*aria-label="Mobile number"/)
+  })
+
   it('still lets a prose field ask for capitals', () => {
     const html = renderDesk(
       <TextInput label="Shop name" value="" onChange={() => undefined} capitalize="words" />,

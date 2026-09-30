@@ -187,6 +187,8 @@ export function TextInput({
       <View>
         <RNTextInput
           testID={testID}
+          // The label is a Text beside the field: name the field for TalkBack and VoiceOver (m7).
+          accessibilityLabel={label}
           value={value}
           onChangeText={onChange}
           placeholder={placeholder}

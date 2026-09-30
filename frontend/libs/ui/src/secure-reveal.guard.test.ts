@@ -21,6 +21,11 @@ describe('UX-F-5: a password field can be read back', () => {
     expect(web).toContain('aria-pressed={revealed}')
   })
 
+  it('both renderers name the field by its label for a screen reader (m7)', () => {
+    expect(read('web/controls.tsx')).toContain('aria-label={label}')
+    expect(read('native/controls.tsx')).toContain('accessibilityLabel={label}')
+  })
+
   it('the native field hides by default and the toggle flips secureTextEntry', () => {
     const native = read('native/controls.tsx')
     expect(native).toContain('secureTextEntry={secure === true && !revealed}')

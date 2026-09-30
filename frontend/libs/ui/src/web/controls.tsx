@@ -124,6 +124,8 @@ export function TextInput({
       autoFocus={autoFocus}
       readOnly={resolved === 'readonly'}
       disabled={resolved === 'disabled'}
+      // The label above is a sibling, not a `for=`: name the field for a screen reader (m7).
+      aria-label={label}
       aria-invalid={resolved === 'error'}
       aria-errormessage={error ? `${id}-msg` : undefined}
       onChange={(e) => {
