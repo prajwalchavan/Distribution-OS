@@ -18,16 +18,8 @@ import { newId } from '@dos/api-client'
 import { Button, ErrorState, Link, Screen, Stack, TextInput, useStrings } from '@dos/ui'
 import { useState } from 'react'
 
+import { normalUsername, signUpProblems, type SignUpProblems } from '../src/join/sign-up-form'
 import { toMobile } from '../src/shops/sign-in-forms'
-
-interface Problems {
-  phone?: string
-  name?: string
-  shopName?: string
-  username?: string
-  password?: string
-  again?: string
-}
 
 export default function SignUp(): React.JSX.Element {
   const t = useStrings()
@@ -39,19 +31,17 @@ export default function SignUp(): React.JSX.Element {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [again, setAgain] = useState('')
-  const [problems, setProblems] = useState<Problems>({})
+  const [problems, setProblems] = useState<SignUpProblems>({})
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  const check = (): Problems => {
-    const found: Problems = {}
-    if (toMobile(phone) === null) found.phone = t('su.mobileBad')
-    if (name.trim().length < 2) found.name = t('su.nameNeeded')
-    if (shopName.trim().length < 2) found.shopName = t('su.shopNeeded')
-    if (username.trim().length < 3) found.username = t('su.usernameNeeded')
-    if (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password))
-      found.password = t('app.passwordRule')
-    if (again !== password) found.again = t('app.passwordMismatch')
+  /* Every rule the server holds, answered on its field in words (M1): `src/join/sign-up-form.ts`. */
+  const check = (): SignUpProblems => {
+    const found: SignUpProblems = {}
+    const keys = signUpProblems({ phone, name, shopName, username, password, again })
+    for (const [field, key] of Object.entries(keys) as [keyof SignUpProblems, string][]) {
+      found[field] = t(key)
+    }
     return found
   }
 
@@ -67,7 +57,7 @@ export default function SignUp(): React.JSX.Element {
     void signUp({
       id,
       phone: mobile,
-      username: username.trim().toLowerCase(),
+      username: normalUsername(username),
       password,
       name: name.trim(),
       shopName: shopName.trim(),

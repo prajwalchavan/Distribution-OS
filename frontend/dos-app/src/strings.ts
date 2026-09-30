@@ -67,6 +67,10 @@ export const strings = {
   'su.username': 'Username',
   'su.usernameHelp': 'Letters, digits, dot or underscore. You sign in with it.',
   'su.usernameNeeded': 'Choose a username of 3 letters or more',
+  'su.usernameSpace': 'No spaces in a username. Use a dot or an underscore, like ravi.kumar',
+  'su.usernameChars':
+    'Use only English letters, digits, a dot (.) or an underscore (_), and start with a letter or a digit',
+  'su.usernameLong': 'A username is at most 32 letters and digits',
   'su.password': 'Password',
   'su.passwordAgain': 'Password again',
   'su.create': 'Create account',
