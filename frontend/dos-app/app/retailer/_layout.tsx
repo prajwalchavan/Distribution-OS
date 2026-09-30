@@ -90,11 +90,14 @@ export default function RetailerLayout(): React.JSX.Element | null {
    */
   const choices = useMemo<readonly TenantChoice[]>(
     () =>
-      (session?.memberships ?? []).map((membership) => ({
-        id: membership.tenantId,
-        name: membership.displayName,
-        roleLabel: '',
-      })),
+      (session?.memberships ?? [])
+        // A distributor the shop left, or that stopped its sign-in, is not one to switch to (founder, 2026-09-29).
+        .filter((membership) => membership.status === 'active')
+        .map((membership) => ({
+          id: membership.tenantId,
+          name: membership.displayName,
+          roleLabel: '',
+        })),
     [session],
   )
 

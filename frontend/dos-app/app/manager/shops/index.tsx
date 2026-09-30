@@ -69,6 +69,7 @@ import {
 import { useHotkeys, useRegisterKeys } from '../../../src/groups/manager/lib/keys'
 import { useWord } from '../../../src/groups/manager/lib/words'
 import { CreditDialog } from '../../../src/pricing/editors'
+import { JoinRequestsPanel, ShopCodeLine } from '../../../src/shops/joins'
 import { ShopSignInRow } from '../../../src/shops/sign-in'
 import { appSignInCell } from '../../../src/shops/sign-in-forms'
 
@@ -254,6 +255,8 @@ export default function Shops(): React.JSX.Element {
       }
     >
       <Stack gap={4}>
+        {/* The shopkeeper is independent (founder, 2026-09-29): shops asking to join, waiting on this desk. */}
+        <JoinRequestsPanel onToast={setToast} />
         <Chips
           testID="shops-beats"
           items={(beats.data?.items ?? []).map((beat) => ({
@@ -313,6 +316,7 @@ export default function Shops(): React.JSX.Element {
               <Field label={t('px.terms')}>{word(current.paymentTerms)}</Field>
               <Field label={t('m14.phone')}>{current.phone ?? t('app.none')}</Field>
               <Field label={t('m14.gstin')}>{current.gstin ?? t('app.none')}</Field>
+              <ShopCodeLine shop={current} />
               <ShopSignInRow shop={current} when={instantWithClock} onToast={setToast} />
 
               <Panel title={t('m14.owes')}>

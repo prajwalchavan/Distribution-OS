@@ -59,7 +59,12 @@ interface AppUnderGuard {
 
 const APPS: readonly AppUnderGuard[] = [
   { dir: 'libs/app-template', welcomeRole: '{APP.role}', landingTitle: 'appTitle={APP.title}' },
-  { dir: 'dos-app', welcomeRole: '"member"', landingTitle: 'appTitle={GROUPS[group].title}' },
+  {
+    dir: 'dos-app',
+    // The shopkeeper's own account (founder, 2026-09-29): the one app's welcome also offers "Create your account".
+    welcomeRole: '"member" createAccountHref="/sign-up"',
+    landingTitle: 'appTitle={GROUPS[group].title}',
+  },
   { dir: 'admin-app', welcomeRole: '{APP.role}', landingTitle: 'appTitle={APP.title}' },
 ]
 

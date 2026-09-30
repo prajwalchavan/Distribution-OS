@@ -114,12 +114,20 @@ function inGroup(pathname: string, group: GroupName): boolean {
  * the product's own mark appears nowhere else).
  */
 function Shell(): React.JSX.Element {
-  const { session, hydrating, signOut } = useSession()
+  const { session, account, hydrating, signOut } = useSession()
   const pathname = usePathname()
   const router = useRouter()
   const choosing = useChoosing()
   const onSignIn = pathname === '/sign-in'
   const onChangePassword = pathname === '/change-password'
+  /*
+   * THE SHOPKEEPER'S OWN ACCOUNT (founder, 2026-09-29, docs/22 §8). `/sign-up` stands beside `/sign-in` for a
+   * person with no session; `/join` ("Add a distributor") is where an account that no distributor has joined yet
+   * lives — signed in, with no group, until a distributor approves and the next refresh brings a session.
+   */
+  const onSignUp = pathname === '/sign-up'
+  const onJoin = pathname === '/join'
+  const accountMustChange = account?.user.mustChangePassword === true
   /**
    * docs/23 §0 X2. A staff account is created with a TEMPORARY password — `tenancy.staff.create` and
    * the platform console both set `must_change_password`, and a manager reads it out loud — so the
@@ -178,9 +186,17 @@ function Shell(): React.JSX.Element {
     hydrating || choosing
       ? null
       : session === null
-        ? onSignIn
-          ? null
-          : '/sign-in'
+        ? account !== null && account !== undefined
+          ? accountMustChange
+            ? onChangePassword
+              ? null
+              : '/change-password'
+            : onJoin || onChangePassword
+              ? null
+              : '/join'
+          : onSignIn || onSignUp
+            ? null
+            : '/sign-in'
         : mustChangePassword
           ? onChangePassword
             ? null

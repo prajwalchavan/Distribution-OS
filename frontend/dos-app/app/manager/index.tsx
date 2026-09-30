@@ -47,6 +47,7 @@ import {
 } from '../../src/groups/manager/lib/ui'
 import { instantWithClock, rangeOf, shortDate, today } from '../../src/groups/manager/lib/dates'
 import { useWord } from '../../src/groups/manager/lib/words'
+import { useWaitingJoins } from '../../src/shops/joins'
 
 export default function Today(): React.JSX.Element {
   const t = useStrings()
@@ -68,6 +69,7 @@ export default function Today(): React.JSX.Element {
    * The six queues of docs/23 §2.1, each read with the same filter the destination screen opens on,
    * so landing there costs nothing: the cache already holds the rows.
    */
+  const joins = useWaitingJoins()
   const submitted = useQuery(['orders', 'list', 'submitted', 'badge'], () =>
     api.api.orders.list({ state: 'submitted', limit: 100 }),
   )
@@ -178,6 +180,8 @@ export default function Today(): React.JSX.Element {
   const grnQueue = pagedCount(grns)
   const postQueue = pagedCount(toPost)
   const docQueue = pagedCount(documents)
+  // The shopkeeper is independent (founder, 2026-09-29): shops asking to join, counted as the queues are.
+  const joinQueue = pagedCount(joins)
 
   /**
    * One queue row: what is waiting, how much of it, and the register that holds it. `count` is
@@ -257,6 +261,14 @@ export default function Today(): React.JSX.Element {
       money: chequeValue,
       href: routeFor('manager', '/money/day-end'),
       show: can('receivables.receipts.deposit'),
+    },
+    {
+      id: 'joins',
+      label: t('sj.title'),
+      of: joinQueue,
+      href: routeFor('manager', '/shops'),
+      // Shown when someone asks: a queue of nobody asking is not a job on this desk.
+      show: can('retailers.joins.list') && (joinQueue.count ?? 0) > 0,
     },
   ]
 

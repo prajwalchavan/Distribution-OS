@@ -20,6 +20,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { storage } from '../platform/storage.web.js'
+import { getRouterNavigate } from '../router-bridge.js'
 import { appShortName } from '../strings.js'
 import { useTheme } from '../theme.js'
 import { space } from '../tokens.js'
@@ -47,7 +48,13 @@ export function clearWelcomeSeen(): void {
   storage.setItemSync(SEEN_KEY, null)
 }
 
-export function Welcome({ appTitle, role, children, testID }: WelcomeProps): React.JSX.Element {
+export function Welcome({
+  appTitle,
+  role,
+  children,
+  createAccountHref,
+  testID,
+}: WelcomeProps): React.JSX.Element {
   const theme = useTheme()
   const [seen, setSeen] = useState(welcomeSeen)
   const enter = useCallback(() => {
@@ -86,6 +93,18 @@ export function Welcome({ appTitle, role, children, testID }: WelcomeProps): Rea
           fullWidth
           testID="welcome-sign-in"
         />
+        {createAccountHref === undefined ? null : (
+          <Button
+            label={theme.t('welcome.createAccount')}
+            onPress={() => {
+              markWelcomeSeen()
+              getRouterNavigate()?.(createAccountHref, false)
+            }}
+            variant="ghost"
+            fullWidth
+            testID="welcome-create-account"
+          />
+        )}
       </Stack>
     </Screen>
   )

@@ -20,12 +20,17 @@ import {
   type AuthMe,
   type AuthPlatform,
   type MembershipRole,
-  type TokenPair,
 } from '@dos/contracts'
 
 import { ApiError, ORPCError, toApiError } from './errors.js'
 import { DEFAULT_REQUEST_TIMEOUT_MS, fetchWithDeadline, join } from './link.js'
-import { SessionStore, type Session, type SessionState } from './session.js'
+import {
+  SessionStore,
+  type AccountSession,
+  type Session,
+  type SessionState,
+  type SignedIn,
+} from './session.js'
 import { memoryTokenStorage, webTokenStorage, type TokenStorage } from './storage.js'
 
 export type ApiRouter = ContractRouterClient<typeof contract>
@@ -47,6 +52,7 @@ export type AuthRouter = ContractRouterClient<typeof authContract>
  */
 const BODY_AUTHENTICATED_AUTH_PATHS: ReadonlySet<string> = new Set([
   'login',
+  'signUp',
   'refresh',
   'logout',
   'switchTenant',
@@ -123,6 +129,13 @@ export interface CreateApiClientOptions {
   actAs?: MembershipRole
   /** Device name for the sessions list. Defaults to the browser's user agent, trimmed. */
   deviceName?: string
+  /**
+   * THE SHOPKEEPER'S OWN ACCOUNT (founder, 2026-09-29). True when this app can open an account that no distributor
+   * has joined yet: every sign-in then says so (`LoginInput.accountWithoutDistributor`), and such an account lands
+   * in `SessionState.account` instead of being refused. The one app sets it; an app that cannot show "Add a
+   * distributor" leaves it off and the server refuses such an account as before.
+   */
+  accountWithoutDistributor?: boolean
   /** Called whenever the session ends, including when a refresh is rejected. */
   onSignOut?: (reason: ApiError | null) => void
   /**
@@ -151,6 +164,20 @@ export interface SignInOptions {
   actAs?: MembershipRole
 }
 
+/**
+ * A shopkeeper signs up (founder, 2026-09-29): the person's own account, no distributor yet. `id` is the new
+ * person's UUIDv7, made ONCE per sign-up form: sent again with the same answers after a reply that never arrived,
+ * the server signs in instead of refusing.
+ */
+export interface SignUpOptions {
+  id: string
+  phone: string
+  username: string
+  password: string
+  name: string
+  shopName: string
+}
+
 /** The id and the idempotency key one user intent carries — the SAME pair on every retry. */
 export interface MutationMeta {
   /** Client-generated UUIDv7 primary key for the row being created. */
@@ -174,8 +201,23 @@ export interface ApiClient {
   /** auth-service procedures. */
   readonly auth: AuthRouter
   readonly session: SessionStore
-  /** Sign in with username + password. Resolves once the session is live. */
-  signIn: (options: SignInOptions) => Promise<Session>
+  /**
+   * Sign in with username + password. Resolves once the session is live: a member of a distributor, or — for an
+   * app built with `accountWithoutDistributor` — the shopkeeper's account that no distributor has joined yet.
+   */
+  signIn: (options: SignInOptions) => Promise<SignedIn>
+  /** A shopkeeper makes their own account and is signed in with it (no distributor yet). */
+  signUp: (options: SignUpOptions) => Promise<AccountSession>
+  /**
+   * Ask auth-service for a fresh pair now. For the shopkeeper's account this is "check again": once a distributor has
+   * approved, the fresh pair is a session on that distributor's shop.
+   */
+  refreshSession: () => Promise<void>
+  /**
+   * The shopkeeper leaves a distributor: it stops seeing that distributor's shops, and this device is moved to
+   * another distributor of the account, or to the account alone (a fresh pair follows at once).
+   */
+  leaveDistributor: (tenantId: string) => Promise<void>
   /** Revokes this device's session server-side (best effort), then always clears locally. */
   signOut: () => Promise<void>
   /**
@@ -519,7 +561,7 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
     session,
     newMutation,
 
-    async signIn(input: SignInOptions): Promise<Session> {
+    async signIn(input: SignInOptions): Promise<SignedIn> {
       // A new session: anything still on its way for the last one writes nothing (problem 1).
       generation += 1
       // Never on a phone that is still leaving (addendum (y)): the last sign-out finishes on the device first — for at
@@ -527,12 +569,13 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
       await waitForLeaving()
       const want = input.actAs ?? options.actAs
       storage.setDurable?.(input.remember !== false)
-      const pair: TokenPair = await authClient.login({
+      const pair = await authClient.login({
         username: input.username,
         password: input.password,
         deviceId: session.deviceId,
         ...(deviceName ? { deviceName } : {}),
         ...(options.platform ? { platform: options.platform } : {}),
+        ...(options.accountWithoutDistributor === true ? { accountWithoutDistributor: true } : {}),
         // Sent ONLY for a user with more than one membership: a tenantId they are not a member of is
         // a 403, including the sample value an API console pre-fills (auth contract, LoginInput).
         ...(input.tenantId ? { tenantId: input.tenantId } : {}),
@@ -546,9 +589,44 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
       // The election this session runs under, so the switches after it repeat this choice.
       elected = want
       session.applyTokens(pair)
-      const current = session.getSnapshot().session
+      const settled = session.getSnapshot()
+      const current = settled.session ?? settled.account ?? null
       if (!current) throw new ApiError({ kind: 'unknown', message: 'Sign-in did not settle.' })
       return current
+    },
+
+    async signUp(input: SignUpOptions): Promise<AccountSession> {
+      // A new session: anything still on its way for the last one writes nothing (problem 1).
+      generation += 1
+      await waitForLeaving()
+      storage.setDurable?.(true)
+      const pair = await authClient.signUp({
+        id: input.id,
+        phone: input.phone,
+        username: input.username,
+        password: input.password,
+        name: input.name,
+        shopName: input.shopName,
+        deviceId: session.deviceId,
+        ...(deviceName ? { deviceName } : {}),
+        ...(options.platform ? { platform: options.platform } : {}),
+      })
+      elected = undefined
+      session.applyTokens(pair)
+      const account = session.getSnapshot().account ?? null
+      if (!account) throw new ApiError({ kind: 'unknown', message: 'Sign-up did not settle.' })
+      return account
+    },
+
+    refreshSession(): Promise<void> {
+      return ensureFreshAccessToken()
+    },
+
+    async leaveDistributor(tenantId: string): Promise<void> {
+      await authClient.joins.leave({ idempotencyKey: uuidv7(), tenantId })
+      // The session this device holds was moved on the server: calls for the distributor it left are never replayed.
+      generation += 1
+      await ensureFreshAccessToken()
     },
 
     async signOut(): Promise<void> {

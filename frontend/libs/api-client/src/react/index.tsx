@@ -19,15 +19,23 @@ import type { MembershipRole } from '@dos/contracts'
 
 import { QueryCache, type QueryEntry, type QueryKey } from '../cache.js'
 import { toApiError, type ApiError } from '../errors.js'
-import { newMutation, type ApiClient, type MutationMeta, type SignInOptions } from '../client.js'
+import {
+  newMutation,
+  type ApiClient,
+  type MutationMeta,
+  type SignInOptions,
+  type SignUpOptions,
+} from '../client.js'
 import type { PlatformApiClient, PlatformSignInOptions } from '../platform-client.js'
 import type {
+  AccountSession,
   PlatformSession,
   PlatformSessionState,
   Session,
   SessionSnapshotLike,
   SessionState,
   SessionStoreLike,
+  SignedIn,
 } from '../session.js'
 
 /**
@@ -82,7 +90,8 @@ function cacheOwner(snapshot: SessionSnapshotLike): string | null {
     readonly user: { readonly id: string }
     readonly tenant?: { readonly id: string }
   } | null
-  if (session === null) return null
+  // The shopkeeper's account with no distributor yet reads its own requests: its rows are its own too.
+  if (session === null) return snapshot.account ? `${snapshot.account.user.id}:account` : null
   return `${session.user.id}:${session.tenant?.id ?? ''}`
 }
 
@@ -139,7 +148,13 @@ export function useQueryCache(): QueryCache {
 // ---------------------------------------------------------------------------
 
 export interface UseSession extends SessionState {
-  signIn: (options: SignInOptions) => Promise<Session>
+  signIn: (options: SignInOptions) => Promise<SignedIn>
+  /** A shopkeeper makes their own account and is signed in with it (no distributor yet). */
+  signUp: (options: SignUpOptions) => Promise<AccountSession>
+  /** "Check again": a fresh pair now — after a distributor approved, a session on its shop. */
+  refreshSession: () => Promise<void>
+  /** The shopkeeper leaves a distributor; this device moves to another, or to the account alone. */
+  leaveDistributor: (tenantId: string) => Promise<void>
   signOut: () => Promise<void>
   /**
    * Sign out on this device at once, run the device's leaving, and revoke on the server after it (DOS-167 addendum
@@ -192,9 +207,21 @@ export function useSession(): UseSession {
     },
     [client, cache],
   )
+  const leaveDistributor = useCallback(
+    async (tenantId: string): Promise<void> => {
+      await client.leaveDistributor(tenantId)
+      // What the device read of the distributor it left is not the shopkeeper's any more.
+      cache.clear()
+    },
+    [client, cache],
+  )
   return {
     ...state,
+    account: state.account ?? null,
     signIn: client.signIn,
+    signUp: client.signUp,
+    refreshSession: client.refreshSession,
+    leaveDistributor,
     signOut,
     signOutOnDevice: client.signOutOnDevice,
     switchDistributor,
@@ -267,8 +294,10 @@ export interface UseQueryOptions {
  * would make a returning user stare at a skeleton for a round trip.
  */
 export function readsAllowed(state: SessionSnapshotLike, enabled: boolean): boolean {
-  if (!enabled || state.session === null) return false
-  return state.session.user.mustChangePassword !== true
+  // The shopkeeper's account with no distributor yet reads its own things (its requests to join) at auth-service.
+  const who = state.session ?? state.account ?? null
+  if (!enabled || who === null) return false
+  return who.user.mustChangePassword !== true
 }
 
 export interface UseQueryResult<T> {

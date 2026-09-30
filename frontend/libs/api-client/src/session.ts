@@ -18,6 +18,7 @@ import type {
   PlatformAdminLevel,
   PlatformRole,
   PlatformTokenPair,
+  SignInPair,
   TokenPair,
 } from '@dos/contracts'
 
@@ -44,10 +45,35 @@ export interface PlatformSession {
   readonly level: PlatformAdminLevel | null
 }
 
+/**
+ * THE SHOPKEEPER'S OWN ACCOUNT BEFORE ANY DISTRIBUTOR HAS JOINED IT (founder, 2026-09-29, docs/22 §8). Signed in —
+ * a user, an access token, a refresh token — and nothing tenant-shaped: its token carries no distributor, so every
+ * distributor's service answers 403 and the app shows "Add a distributor" instead of any group. Kept apart from
+ * `Session` for the reason the console's session is: the six groups can never see a null tenant. `account: true`
+ * marks it in the stored snapshot. The next refresh after a distributor approves returns a `Session`.
+ */
+export interface AccountSession {
+  readonly user: AuthUser
+  readonly memberships: readonly MembershipSummary[]
+  readonly account: true
+}
+
+/** What a sign-in, a sign-up or a refresh leaves on the device: a member of a distributor, or the account alone. */
+export type SignedIn = Session | AccountSession
+
+export function isAccountSession(value: SignedIn | null | undefined): value is AccountSession {
+  return value !== null && value !== undefined && 'account' in value && value.account === true
+}
+
 export interface SessionState {
   readonly session: Session | null
   /** True while the boot-time refresh is in flight; only ever true when a session was persisted. */
   readonly hydrating: boolean
+  /**
+   * Signed in with an account no distributor has joined yet (`session` is null then). Absent or null otherwise.
+   * The app's root sends such a person to "Add a distributor" (`/join`).
+   */
+  readonly account?: AccountSession | null
 }
 
 export interface PlatformSessionState {
@@ -63,6 +89,8 @@ export interface PlatformSessionState {
 export interface SessionSnapshotLike {
   readonly session: { readonly user: AuthUser } | null
   readonly hydrating: boolean
+  /** The shopkeeper's account with no distributor yet: signed in, reads its own things at auth-service. */
+  readonly account?: { readonly user: AuthUser } | null
 }
 
 export interface SessionStoreLike {
@@ -103,6 +131,12 @@ function toSession(pair: TokenPair | Session): Session {
     role: pair.role,
     memberships: pair.memberships,
   }
+}
+
+function isAccountSnapshot(value: unknown): value is AccountSession {
+  if (typeof value !== 'object' || value === null) return false
+  const v = value as Partial<AccountSession>
+  return v.account === true && v.user !== undefined && Array.isArray(v.memberships)
 }
 
 function isSession(value: unknown): value is Session {
@@ -269,23 +303,56 @@ abstract class BaseSessionStore<S extends { readonly user: AuthUser }> {
   }
 }
 
-export class SessionStore extends BaseSessionStore<Session> {
+export class SessionStore extends BaseSessionStore<SignedIn> {
   constructor(storage: TokenStorage) {
-    super(storage, (value) => (isSession(value) ? value : null))
+    super(storage, (value) =>
+      isAccountSnapshot(value)
+        ? { user: value.user, memberships: value.memberships, account: true as const }
+        : isSession(value)
+          ? value
+          : null,
+    )
   }
 
-  /** login, refresh and switch-tenant all resolve a fresh pair; they all land here. */
-  applyTokens(pair: TokenPair): void {
-    this.settle(toSession(pair), pair.accessToken, pair.refreshToken, pair.accessExpiresIn)
+  #seen: { readonly session: SignedIn | null; readonly hydrating: boolean } | null = null
+  #derived: SessionState = { session: null, hydrating: false, account: null }
+
+  /**
+   * The snapshot every screen reads: `session` is a member of a distributor, or null; `account` is the shopkeeper's
+   * account with no distributor yet, or null. Derived once per change, so `useSyncExternalStore` sees one object
+   * until the next one.
+   */
+  override getSnapshot = (): SessionState => {
+    const base = this.state
+    if (base !== this.#seen) {
+      this.#seen = base
+      const current = base.session
+      this.#derived = isAccountSession(current)
+        ? { session: null, hydrating: base.hydrating, account: current }
+        : { session: current, hydrating: base.hydrating, account: null }
+    }
+    return this.#derived
   }
 
-  /** After changePassword: the same session, with `mustChangePassword` cleared. */
+  /**
+   * Login, sign-up, refresh and switch-tenant all resolve a fresh pair; they all land here. A pair with no
+   * distributor (`tenant` and `role` null) is the shopkeeper's account on its own.
+   */
+  applyTokens(pair: TokenPair | SignInPair): void {
+    const next: SignedIn =
+      pair.tenant === null || pair.role === null
+        ? { user: pair.user, memberships: pair.memberships, account: true }
+        : toSession({ ...pair, tenant: pair.tenant, role: pair.role })
+    this.settle(next, pair.accessToken, pair.refreshToken, pair.accessExpiresIn)
+  }
+
+  /** After changePassword: the same session (or account), with `mustChangePassword` cleared. */
   updateUser(user: AuthUser): void {
     const current = this.state.session
     if (!current) return
-    const session: Session = { ...current, user }
-    this.storage.setItem(SNAPSHOT_KEY, JSON.stringify(session))
-    this.emit({ session, hydrating: false })
+    const next: SignedIn = { ...current, user }
+    this.storage.setItem(SNAPSHOT_KEY, JSON.stringify(next))
+    this.emit({ session: next, hydrating: false })
   }
 }
 

@@ -107,6 +107,9 @@ export async function boot(): Promise<ApiClient> {
     authUrl: AUTH_URL,
     storage: tokens,
     platform: os,
+    // The shopkeeper's own account (founder, 2026-09-29): this app shows "Add a distributor" to an account that no
+    // distributor has joined yet, so every sign-in says it can open one.
+    accountWithoutDistributor: true,
     apiUrlFor: () => {
       const role = client?.session.getSnapshot().session?.role
       return role === undefined ? undefined : serviceFor(role, API_BASE)

@@ -103,7 +103,7 @@ describe('sign-in', () => {
     const session = await c.signIn({ username: 'sunil.tarsun', password: 'Dos@1234' })
     expect(calls[0]?.path).toBe('/auth/login')
     expect(session.user.username).toBe('sunil.tarsun')
-    expect(session.role).toBe('owner')
+    expect('role' in session ? session.role : null).toBe('owner')
     expect(c.session.accessToken).toBe('access-1')
     expect(c.session.refreshToken).toBe('refresh-1')
   })

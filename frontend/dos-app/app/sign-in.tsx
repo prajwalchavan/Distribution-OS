@@ -19,12 +19,13 @@
  * the wrong-role screen is gone.
  */
 import { useSession } from '@dos/api-client/react'
-import { ApiError, type Session } from '@dos/api-client'
+import { ApiError, isAccountSession, type Session, type SignedIn } from '@dos/api-client'
 import type { MembershipRole } from '@dos/contracts'
 import {
   Button,
   ErrorState,
   Group,
+  Link,
   ListRow,
   Screen,
   Stack,
@@ -75,7 +76,7 @@ export default function SignIn(): React.JSX.Element {
    * password is a 401 and is never retried; a second attempt would spend one of the five tries the
    * lockout counts.
    */
-  async function attempt(): Promise<Session> {
+  async function attempt(): Promise<SignedIn> {
     const credentials = { username: username.trim(), password }
     // THIS person's last choice, never the previous person's on a shared desk (DOS-210).
     const remembered = lastRole(credentials.username)
@@ -106,6 +107,11 @@ export default function SignIn(): React.JSX.Element {
          * A password somebody else chose comes first (docs/23 §0 X2): the ladder is already taking
          * them to `/change-password`, and the election waits for the sign-in after it.
          */
+        // The shopkeeper's own account with no distributor yet: the ladder takes it to "Add a distributor".
+        if (isAccountSession(next)) {
+          endChoosing()
+          return
+        }
         if (!next.user.mustChangePassword && needsChooser(next)) {
           setChoosing(true)
           return
@@ -131,7 +137,7 @@ export default function SignIn(): React.JSX.Element {
      * `role` is a constant: `<Welcome>` reads it only to tell the console's tagline from the
      * product's, and `APP.role` went with the six configs (ruling B3). This app is never the console.
      */
-    <Welcome appTitle={APP.title} role="member">
+    <Welcome appTitle={APP.title} role="member" createAccountHref="/sign-up">
       {/*
        * In the MIDDLE of the window, with no header band (founder, 2026-09-28: "placed in middle,
        * not boxy"): the product's name, one friendly line, the two fields, a large Sign in, the one
@@ -167,6 +173,10 @@ export default function SignIn(): React.JSX.Element {
           <Txt field="label" desk="meta" color={colors.text.secondary} align="center">
             {t('app.signInHelp')}
           </Txt>
+          {/* The shopkeeper's own account (founder, 2026-09-29): a shop signs up by itself. */}
+          <Link href="/sign-up" testID="sign-in-new-here">
+            {t('app.newHere')}
+          </Link>
         </Stack>
       </Screen>
     </Welcome>

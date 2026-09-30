@@ -13,7 +13,12 @@
  * 2. The shop is not staff. There is no "retailer", no "tenant", no "SKU", no "ATP" and no "GRN" in
  *    any sentence below: the words are the ones used across a counter — bill, dues, order, offer.
  */
+import { JOIN_STRINGS } from '../../join/strings'
+
 export const strings = {
+  /* The shopkeeper is independent (founder, 2026-09-29): adding another distributor, and leaving one. */
+  ...JOIN_STRINGS,
+
   // --- chrome and the frame screens (docs/23 §0) ---------------------------------------------
   'app.home': 'Home',
   'app.signIn': 'Sign in',

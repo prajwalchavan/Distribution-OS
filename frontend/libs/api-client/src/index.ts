@@ -19,6 +19,7 @@ export {
   type CreateApiClientOptions,
   type MutationMeta,
   type SignInOptions,
+  type SignUpOptions,
 } from './client.js'
 
 export {
@@ -54,9 +55,11 @@ export { SERVICE_OF, serviceFor, type ServiceOf } from './services.js'
 
 export {
   identityKey,
+  isAccountSession,
   PlatformSessionStore,
   sessionIdentity,
   SessionStore,
+  type AccountSession,
   type PlatformSession,
   type PlatformSessionState,
   type Session,
@@ -64,6 +67,7 @@ export {
   type SessionSnapshotLike,
   type SessionState,
   type SessionStoreLike,
+  type SignedIn,
 } from './session.js'
 
 export {

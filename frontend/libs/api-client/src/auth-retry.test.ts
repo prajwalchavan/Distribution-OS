@@ -190,6 +190,8 @@ describe('the auth contract, procedure by procedure', () => {
         'platformRefresh',
         'refresh',
         'resetPassword',
+        // The shopkeeper's own account (founder, 2026-09-29): public, like sign-in, and it hands tokens out.
+        'signUp',
         'switchTenant',
       ].sort(),
     )

@@ -45,6 +45,7 @@ import { instantWithClock, longDate, today, shiftDays } from '../../../src/group
 import { useHotkeys, useRegisterKeys } from '../../../src/groups/owner/lib/keys'
 import { useWord } from '../../../src/groups/owner/lib/words'
 import { CreditDialog, useMayWrite } from '../../../src/pricing/editors'
+import { JoinRequestsPanel, ShopCodeLine } from '../../../src/shops/joins'
 import { ShopSignInRow } from '../../../src/shops/sign-in'
 import { appSignInCell } from '../../../src/shops/sign-in-forms'
 
@@ -205,6 +206,8 @@ export default function Shops(): React.JSX.Element {
       }
     >
       <Stack gap={4}>
+        {/* The shopkeeper is independent (founder, 2026-09-29): shops asking to join, waiting on this desk. */}
+        <JoinRequestsPanel onToast={setToast} />
         {/* The beats are data, not a fixed list: one chip per beat this distributor actually runs. */}
         <Chips
           testID="shops-beat"
@@ -274,6 +277,7 @@ export default function Shops(): React.JSX.Element {
               <Field label={t('o6.phone')}>{current.phone ?? '—'}</Field>
               <Field label={t('o6.beat')}>{names.beat(current.beatId)}</Field>
               <Field label={t('o6.gstin')}>{current.gstin ?? '—'}</Field>
+              <ShopCodeLine shop={current} />
               <ShopSignInRow shop={current} when={instantWithClock} onToast={setToast} />
 
               <Panel title={t('o10.dues')}>

@@ -16,6 +16,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { View } from 'react-native'
 
 import { storage } from '../platform/storage.native.js'
+import { getRouterNavigate } from '../router-bridge.js'
 import { appShortName } from '../strings.js'
 import { useTheme } from '../theme.js'
 import { space } from '../tokens.js'
@@ -52,6 +53,7 @@ export function Welcome({
   appTitle,
   role,
   children,
+  createAccountHref,
   testID,
 }: WelcomeProps): React.JSX.Element | null {
   const theme = useTheme()
@@ -105,6 +107,18 @@ export function Welcome({
           fullWidth
           testID="welcome-sign-in"
         />
+        {createAccountHref === undefined ? null : (
+          <Button
+            label={theme.t('welcome.createAccount')}
+            onPress={() => {
+              markWelcomeSeen()
+              getRouterNavigate()?.(createAccountHref, false)
+            }}
+            variant="ghost"
+            fullWidth
+            testID="welcome-create-account"
+          />
+        )}
       </Stack>
     </Screen>
   )

@@ -29,14 +29,15 @@ export default function ChangePassword(): React.JSX.Element {
   const t = useStrings()
   const colors = useColors()
   const router = useRouter()
-  const { session, changePassword } = useSession()
+  const { session, account, changePassword } = useSession()
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
   const [again, setAgain] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const forced = session?.user.mustChangePassword === true
+  // The shopkeeper's own account with no distributor yet has no session, only an account (founder, 2026-09-29).
+  const forced = (session ?? account)?.user.mustChangePassword === true
   const mismatch = again !== '' && next !== again
   const same = next !== '' && next === current
   const blocked = busy || current === '' || weak(next) || next !== again || same

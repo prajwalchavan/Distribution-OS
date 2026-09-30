@@ -925,6 +925,11 @@ export interface WelcomeProps extends Testable {
   role: string
   /** The app's own sign-in form, rendered in place of the welcome once this device is past it. */
   children: ReactNode
+  /**
+   * THE SHOPKEEPER'S OWN ACCOUNT (founder, 2026-09-29): "New here? Create your account" under Sign in, for an app
+   * where a shop signs up by itself. Omitted, the welcome offers Sign in alone (the console, a staff-only app).
+   */
+  createAccountHref?: string | undefined
 }
 
 /**

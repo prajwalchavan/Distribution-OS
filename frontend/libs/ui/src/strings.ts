@@ -171,6 +171,7 @@ export const en = {
   /* The console is not one of the six: its reader is our own staff, not a distributor's. */
   'welcome.console': 'Platform console',
   'welcome.signIn': 'Sign in',
+  'welcome.createAccount': 'New here? Create your account',
   'landing.app': '{name} app',
 
   /*

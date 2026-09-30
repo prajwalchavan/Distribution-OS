@@ -141,7 +141,11 @@ describe('strings are SWAPPED per group, never merged (docs/31 §3)', () => {
     // carry those words and must NOT have grown into a seventh app's namespace.
     expect(rootStrings['app.signInTitle']).toBe('Sign in')
     expect(rootStrings['elect.title']).toBe('Continue as')
-    expect(Object.keys(rootStrings).every((key) => /^(app|elect|role)\./.test(key))).toBe(true)
+    // `su.*` (sign up) and `join.*` ("Add a distributor") are pre-election screens too: the shopkeeper's own account
+    // stands before any group until a distributor approves it (founder, 2026-09-29, docs/22 §8).
+    expect(Object.keys(rootStrings).every((key) => /^(app|elect|role|su|join)\./.test(key))).toBe(
+      true,
+    )
   })
 
   it('names every role in the trade s own word, so no chooser row shows a database value', () => {

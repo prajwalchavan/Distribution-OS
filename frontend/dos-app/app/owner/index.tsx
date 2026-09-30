@@ -63,6 +63,7 @@ import { monthCompare, monthCompareWindow } from '../../src/groups/owner/lib/mon
 import { pendingDecisions } from '../../src/groups/owner/lib/pending-decisions'
 import { useWord } from '../../src/groups/owner/lib/words'
 import { tripName, tripOf } from '../../src/groups/owner/lib/trip-settlement'
+import { useWaitingJoins } from '../../src/shops/joins'
 
 /** What the strip needs of a read to say that it failed and to try it again. */
 interface AsyncRead {
@@ -108,6 +109,9 @@ export default function Today(): React.JSX.Element {
   const bargains = useQuery(['bargains', 'requested', 'top'], () =>
     api.api.pricing.bargains.list({ status: 'requested', limit: 5 }),
   )
+  // The shopkeeper is independent (founder, 2026-09-29): shops asking to join, the owner's to decide.
+  const joins = useWaitingJoins()
+  const joinRows = joins.data?.items ?? []
 
   /*
    * UX-O-1: today's flow. Every read is a procedure the owner already holds and each is the SAME read its
@@ -732,6 +736,41 @@ export default function Today(): React.JSX.Element {
             </Panel>
           </Half>
         </Columns>
+
+        {joinRows.length === 0 ? null : (
+          <Panel
+            title={t('sj.title')}
+            meta={t('sj.count', { count: joinRows.length })}
+            actions={
+              <Button
+                label={t('sj.open')}
+                variant="secondary"
+                onPress={() => {
+                  go.push('/shops')
+                }}
+              />
+            }
+            testID="today-joins"
+          >
+            <Stack gap={2}>
+              {joinRows.slice(0, 5).map((row) => (
+                <ListRow
+                  key={row.id}
+                  primary={t('sj.homeRow', {
+                    person: row.personName,
+                    shop: row.shop?.name ?? row.shopName,
+                  })}
+                  secondary={row.personPhone}
+                  trailing={<StatusChip label={t('sj.waiting')} family="ochre" />}
+                  onPress={() => {
+                    go.push('/shops')
+                  }}
+                  testID={`today-join-${row.id}`}
+                />
+              ))}
+            </Stack>
+          </Panel>
+        )}
 
         <Panel
           /*
