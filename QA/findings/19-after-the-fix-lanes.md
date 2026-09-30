@@ -270,3 +270,17 @@ What happens:
 What it should do: the architect says whether the manager's two-act road is acceptable; an order held on a batch that has
   since expired is shown to the desk; the supplier claim may name expired goods as expired.
 ```
+
+### DOS-430 — Android app: "scroll etc. is not working well" (founder, 30 Sep, on the 27 Sep build)
+Category: ux | Priority: P2 | Role: all | Platform: Android | Found by: the founder on his phone, 2026-09-30 00:05 IST
+
+```
+What happens: the founder reports that scrolling (and more, "etc.") does not work well in the Android app. The screen
+  and the gesture are not named yet. The build on his phone is the APK of 27 Sep, before the home screens of round 1,
+  the shop sign-in and everything since.
+How it was seen: reported, NOT reproduced by the main session (no device run tonight; weekly budget at its end).
+What it should do: every list and sheet scrolls under a normal swipe on a phone; nothing sits behind the tab bar.
+Status: OPEN. A new APK from main is built and published by the founder with `publish-apk.sh`; if the report holds on
+  it, the founder names the screen and it is reproduced on the Pixel 7 emulator after 3 Oct. Related: DOS-152.
+```
+
