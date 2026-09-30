@@ -398,7 +398,8 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     // One active login per tester, whatever crews came before.
     const roles = await pool.query<{ role: string; n: number }>(
       `select role::text as role, count(*)::int as n from memberships
-        where tenant_id = $1 and user_id like $2 and status = 'active' group by 1 order by 1`,
+        where tenant_id = $1 and user_id like $2 and status = 'active' and role <> 'retailer'
+        group by 1 order by 1`,
       [tenantId, DEMO_ID_LIKE],
     )
     expect(roles.rows).toEqual([
@@ -409,9 +410,16 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
       { role: 'warehouse', n: 1 },
     ])
     expect(await duplicates()).toEqual([])
-    // The logins file lists the new crew and nobody else, each with the demo password.
+    // The logins file lists the new crew and nobody else, each with the demo password — the testers, and the three
+    // shopkeepers of the crew, who sign up by themselves (founder, 2026-09-29).
     const lines = readLogins(loginsFile)
-    expect([...lines.keys()].sort()).toEqual(TESTERS.map((t) => crew(t.key)).sort())
+    expect(
+      [...lines.values()]
+        .filter((l) => l.role !== 'retailer')
+        .map((l) => l.username)
+        .sort(),
+    ).toEqual(TESTERS.map((t) => crew(t.key)).sort())
+    expect([...lines.values()].filter((l) => l.role === 'retailer')).toHaveLength(3)
     for (const l of lines.values()) expect(l.password === DEMO_PASSWORD, l.username).toBe(true)
     expect(statSync(loginsFile).mode & 0o777).toBe(0o600)
   }
@@ -582,7 +590,19 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     expect(first.summary.totals().refused).toBe(0)
     expect(statSync(loginsFile).mode & 0o777).toBe(0o600)
     const lines = readLogins(loginsFile)
-    expect([...lines.keys()].sort()).toEqual(TESTERS.map((t) => `${t.key}.${oldSuffix}`).sort())
+    expect(
+      [...lines.values()]
+        .filter((l) => l.role !== 'retailer')
+        .map((l) => l.username)
+        .sort(),
+    ).toEqual(TESTERS.map((t) => `${t.key}.${oldSuffix}`).sort())
+    // shop1…3 of the crew: signed up by themselves and joined to their stand-in shops (founder, 2026-09-29).
+    expect(
+      [...lines.values()]
+        .filter((l) => l.role === 'retailer')
+        .map((l) => l.username)
+        .sort(),
+    ).toEqual(['shop1', 'shop2', 'shop3'].map((k) => `${k}.${oldSuffix}`))
     for (const [username, line] of lines) {
       expect(line.password === DEMO_PASSWORD, username).toBe(true)
       const s = await client.signIn(username, DEMO_PASSWORD, slug)
@@ -978,7 +998,8 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     expect(earlierUpi.length).toBeGreaterThan(4)
     expect(earlierUpi.filter((r) => r.status !== 'deposited')).toEqual([])
     expect(statSync(loginsFile).mode & 0o777).toBe(0o600)
-    expect(readLogins(loginsFile).size).toBe(7)
+    // Seven testers and the three shopkeepers.
+    expect(readLogins(loginsFile).size).toBe(10)
   }, 600_000)
 
   it('writes nothing when the same date is run again', async () => {
