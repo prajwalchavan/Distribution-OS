@@ -9082,7 +9082,10 @@ describeDb(
         bills: (await tx.select({ id: invoices.id }).from(invoices)).length,
       }))
       expect(seen).toEqual({ shops: 0, bills: 0 })
-      // Even a context naming the distributor reads nothing: no link carries the account yet.
+      // A context naming the distributor reads none of the SHOP-LINKED rows (the bills here): no link carries the
+      // account yet. It is not "nothing" (m8, blind check 1): the any-member tables (price lists, stock, schemes) are
+      // readable by any context naming a tenant with a member's role. That context is not reachable through the API —
+      // the guard enters a tenant only from a signed token, and a token names a tenant only for an active membership.
       const forged = await withTenant(
         db,
         { tenantId: here, actorId: people.account, actorRole: 'retailer' },
