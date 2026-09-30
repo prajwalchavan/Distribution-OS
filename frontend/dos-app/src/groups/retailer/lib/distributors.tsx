@@ -38,6 +38,7 @@ import { useState } from 'react'
 import { absoluteUrl } from '../../../config'
 import { acrossTotal } from './across'
 import { instantWithClock, shortDate } from './dates'
+import { joinedDistributors } from './joined'
 import { rememberDistributor } from './last-distributor'
 import { useMyShop } from './shop'
 import { duesFamily } from './ui'
@@ -75,7 +76,8 @@ export function DistributorChip({
       withName
     />
   )
-  if ((session?.memberships.length ?? 0) <= 1) return <Box testID="r2-chip">{logo}</Box>
+  if (joinedDistributors(session?.memberships ?? []).length <= 1)
+    return <Box testID="r2-chip">{logo}</Box>
   const face = (
     <Row gap={3} justify="between" align="center">
       <Box grow>{logo}</Box>
@@ -176,7 +178,8 @@ export function DistributorList({
   const officePhone = branding.data?.phone ?? null
 
   const [switching, setSwitching] = useState<string | null>(null)
-  const memberships = session?.memberships ?? []
+  /* m3: a distributor the shop left (or whose desk stopped it) is not listed, counted or offered here. */
+  const memberships = joinedDistributors(session?.memberships ?? [])
   const openTenantId = session?.tenant.id ?? ''
 
   return (

@@ -40,6 +40,7 @@ import { useCallback, useMemo } from 'react'
 
 import { GROUPS, absoluteUrl } from '../../src/config'
 import { DistributorChip } from '../../src/groups/retailer/lib/distributors'
+import { joinedDistributors } from '../../src/groups/retailer/lib/joined'
 import { useLeaveConfirm } from '../../src/groups/retailer/lib/leave-confirm'
 import { SECTIONS, tabOf } from '../../src/groups/retailer/nav'
 import { strings } from '../../src/groups/retailer/strings'
@@ -90,14 +91,12 @@ export default function RetailerLayout(): React.JSX.Element | null {
    */
   const choices = useMemo<readonly TenantChoice[]>(
     () =>
-      (session?.memberships ?? [])
-        // A distributor the shop left, or that stopped its sign-in, is not one to switch to (founder, 2026-09-29).
-        .filter((membership) => membership.status === 'active')
-        .map((membership) => ({
-          id: membership.tenantId,
-          name: membership.displayName,
-          roleLabel: '',
-        })),
+      // A distributor the shop left, or that stopped its sign-in, is not one to switch to (founder, 2026-09-29).
+      joinedDistributors(session?.memberships ?? []).map((membership) => ({
+        id: membership.tenantId,
+        name: membership.displayName,
+        roleLabel: '',
+      })),
     [session],
   )
 
