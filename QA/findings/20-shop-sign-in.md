@@ -160,7 +160,7 @@ What happens: a POST /auth/login whose body is not valid (here: no deviceId) ans
 How it was seen: local all-in-one API (NODE_ENV=development) over a test database; three malformed sign-ins by the main
   session's own probe left three such lines. Whether NODE_ENV=production logs the same was NOT checked.
 What it should do: a rejected request is logged without the values of password, token and key fields, in every mode.
-Status: OPEN. Not fixed. The dummy activity tool and its checks wrote no password anywhere but the logins file.
+Status: FIXED on main 30 Sep (merge of `feat/shopkeeper-signup`): a refused request is logged with field names only; spec `error-log.spec.ts`. Left: a 5xx from a failed query still logs the query's parameters (names and numbers, never a password).
 ```
 
 Also seen, same class (blind check of the plain tester logins, 2026-09-29): when a cheque number is refused because it
