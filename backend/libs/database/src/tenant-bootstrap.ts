@@ -146,6 +146,13 @@ export const TENANT_SETTING_KEYS = {
   inventoryMinShelfLifeDays: 'inventory.min_shelf_life_days',
   notificationsDefaultLocale: 'notifications.default_locale',
   whatsappPhoneNumberId: 'whatsapp.phone_number_id',
+  /**
+   * The shopkeeper's own account (founder, 2026-09-29, docs/22 §8): may a shopkeeper who signed up alone find this
+   * distributor BY NAME in "Add a distributor" and ask to be joined to one of its shops? ABSENT or `true` = listed;
+   * `false` = only a shop code printed on this distributor's own bill finds it. Either way the owner or the manager
+   * approves every request. Not seeded: absent is the default.
+   */
+  shopsListedForJoining: 'shops.listed_for_joining',
 } as const
 
 /**

@@ -146,6 +146,16 @@ export const users = pgTable(
     failedLoginCount: integer('failed_login_count').notNull().default(0),
     lockedUntil: tz('locked_until'),
     status: userStatus('status').notNull().default('active'),
+    /**
+     * THE SHOPKEEPER'S OWN ACCOUNT (founder, 2026-09-29, docs/22 §8 "The shopkeeper is independent"):
+     * when the person made this login themselves (`auth.signUp`), with a password nobody else ever
+     * knew. Null for every login a desk made. Such a login is never a desk's to set a password on,
+     * rename, re-number or hire (`usedElsewhere` in @dos/core counts it as "not this desk's alone"),
+     * and it belongs to no distributor until one approves its request to join a shop.
+     */
+    signedUpAt: tz('signed_up_at'),
+    /** The shop's name as the shopkeeper calls it, given at sign-up; the default of a join request. */
+    shopName: text('shop_name'),
     ...timestamps,
   },
   (t) => [

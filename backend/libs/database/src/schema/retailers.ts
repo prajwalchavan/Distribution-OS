@@ -154,10 +154,24 @@ export const retailers = pgTable(
     mergedInto: text('merged_into'),
     pan: text('pan'),
     active: boolean('active').notNull().default(true),
+    /**
+     * THE SHOP CODE (founder, 2026-09-29: the shopkeeper asks to be joined to a distributor's shop "by
+     * the shop's code printed on the bill"). Eight letters and digits a person can read out, shown as
+     * `K7MQ-4P2X`, from an alphabet without 0/O, 1/I/L. UNIQUE ACROSS THE PLATFORM, not only inside one
+     * distributor, because the code alone must find the distributor as well as the shop. Made by the
+     * database (`dos_new_shop_code()`, migration 0085) for every shop, the existing ones included, so
+     * no path that adds a shop can forget it. Never a secret: it only lets a person ASK to be joined,
+     * and the distributor's owner or manager decides. Not the distributor's own `code` (R-0001), which
+     * repeats from one distributor to the next.
+     */
+    shopCode: text('shop_code')
+      .notNull()
+      .default(sql`dos_new_shop_code()`),
     ...timestamps,
   },
   (t) => [
     uniqueIndex('retailers_tenant_code_idx').on(t.tenantId, t.code),
+    uniqueIndex('retailers_shop_code_idx').on(t.shopCode),
     index('retailers_tenant_beat_idx').on(t.tenantId, t.beatId),
     index('retailers_tenant_phone_idx').on(t.tenantId, t.phone),
     /** Delta download for the offline rep (docs/23 §8.11): shops changed since the last open. */
@@ -393,5 +407,95 @@ export const retailerPurchaseHistory = pgTable(
   (t) => [
     index('retailer_purchase_history_idx').on(t.tenantId, t.retailerId, t.invoiceDate),
     tenantPolicy('retailer_purchase_history_tenant'),
+  ],
+).enableRLS()
+
+/**
+ * THE SHOPKEEPER ASKS TO BE JOINED to a distributor's shop (founder, 2026-09-29, docs/22 §8 "The
+ * shopkeeper is independent"). A shopkeeper who signed up alone owns an account that belongs to no
+ * distributor; a distributor is ADDED to it only when that distributor's owner or manager approves a
+ * request, after seeing who asks. Until a message channel can prove who holds a phone (OTP), that
+ * approval IS the proof, so nothing of a distributor is readable by the account before it.
+ *
+ * `via = 'code'`: the shop code printed on the distributor's bill named the shop (`retailer_id` set
+ * from the start). `via = 'name'`: the shopkeeper picked the distributor from the list and typed the
+ * shop's name; the desk says which of its shops it is when it approves (`retailer_id` set then).
+ * `person_name` / `person_phone` are copied from the account when it asks, because the desk reads
+ * nothing else of a person who is not (yet) one of its members.
+ *
+ * WHO READS AND WRITES (policies below, FORCE RLS in 0085):
+ *  - the distributor's owner and manager (and the worker) read and decide their own distributor's
+ *    requests — the accountant onboards nobody (ONBOARDERS), so it is not among them;
+ *  - the account reads its own requests, files one for itself (waiting, and only as the shopkeeper
+ *    role), and withdraws one of its own that still waits;
+ *  - nobody else: another distributor, a salesperson, a shop that is not the asker.
+ * The same person asking twice for the same shop of the same distributor is ONE waiting request
+ * (`shop_join_requests_waiting_idx`); after a refusal or a withdrawal they may ask again.
+ */
+export const shopJoinVia = pgEnum('shop_join_via', ['code', 'name'])
+export const shopJoinState = pgEnum('shop_join_state', [
+  'waiting',
+  'approved',
+  'refused',
+  'withdrawn',
+])
+
+export const shopJoinRequests = pgTable(
+  'shop_join_requests',
+  {
+    id: id(),
+    /** The distributor asked. */
+    tenantId: tenantRef(),
+    /** The account that asks (a login the shopkeeper made, or one a desk made and the person now owns). */
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id),
+    via: shopJoinVia('via').notNull(),
+    /** The shop: from the code at once, or chosen by the desk at approval for a request by name. */
+    retailerId: text('retailer_id').references(() => retailers.id),
+    /** The shop's name as the shopkeeper typed it (or gave it at sign-up). */
+    shopName: text('shop_name').notNull(),
+    personName: text('person_name').notNull(),
+    personPhone: text('person_phone').notNull(),
+    state: shopJoinState('state').notNull().default('waiting'),
+    /** The one line the shopkeeper reads when the desk refuses. */
+    reason: text('reason'),
+    decidedBy: text('decided_by').references(() => users.id),
+    decidedAt: tz('decided_at'),
+    ...timestamps,
+  },
+  (t) => [
+    index('shop_join_requests_tenant_state_idx').on(t.tenantId, t.state, t.createdAt),
+    index('shop_join_requests_user_idx').on(t.userId, t.createdAt),
+    uniqueIndex('shop_join_requests_waiting_idx')
+      .on(t.tenantId, t.userId, sql`coalesce(${t.retailerId}, '')`)
+      .where(sql`state = 'waiting'`),
+    pgPolicy('shop_join_requests_desk_read', {
+      for: 'select',
+      to: appRw,
+      using: sql`tenant_id = (SELECT current_setting('app.tenant_id', true)) AND (SELECT current_setting('app.actor_role', true)) IN ('owner', 'manager', 'system')`,
+    }),
+    pgPolicy('shop_join_requests_desk_update', {
+      for: 'update',
+      to: appRw,
+      using: sql`tenant_id = (SELECT current_setting('app.tenant_id', true)) AND (SELECT current_setting('app.actor_role', true)) IN ('owner', 'manager', 'system')`,
+      withCheck: sql`tenant_id = (SELECT current_setting('app.tenant_id', true)) AND (SELECT current_setting('app.actor_role', true)) IN ('owner', 'manager', 'system')`,
+    }),
+    pgPolicy('shop_join_requests_own_read', {
+      for: 'select',
+      to: appRw,
+      using: sql`user_id = (SELECT current_setting('app.actor_id', true))`,
+    }),
+    pgPolicy('shop_join_requests_own_insert', {
+      for: 'insert',
+      to: appRw,
+      withCheck: sql`user_id = (SELECT current_setting('app.actor_id', true)) AND (SELECT current_setting('app.actor_role', true)) = 'retailer' AND state = 'waiting' AND decided_by IS NULL AND decided_at IS NULL`,
+    }),
+    pgPolicy('shop_join_requests_own_withdraw', {
+      for: 'update',
+      to: appRw,
+      using: sql`user_id = (SELECT current_setting('app.actor_id', true)) AND (SELECT current_setting('app.actor_role', true)) = 'retailer' AND state = 'waiting'`,
+      withCheck: sql`user_id = (SELECT current_setting('app.actor_id', true)) AND (SELECT current_setting('app.actor_role', true)) = 'retailer' AND state = 'withdrawn' AND decided_by IS NULL`,
+    }),
   ],
 ).enableRLS()
