@@ -302,6 +302,12 @@ export const InvoiceDetailSchema = InvoiceSchema.extend({
    * a bill with no order behind it.
    */
   paymentTerms: PaymentTermsSchema.optional(),
+  /**
+   * Expand-only (the shopkeeper is independent, founder 2026-09-29): the buyer shop's SHOP CODE, printed on the bill
+   * beside its name as "Shop code", which the shopkeeper types in the app to ask to be joined to this shop. Absent
+   * from a server older than it.
+   */
+  buyerShopCode: z.string().optional(),
 })
 export type InvoiceDetail = z.infer<typeof InvoiceDetailSchema>
 

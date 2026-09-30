@@ -155,7 +155,7 @@ export function describePermissionMatrix(
           const headers = await bearer(actor(opts, anyServed), { withoutTenant: true })
           const res = await request(app, probe.method, url, headers)
           expect(res.statusCode).toBe(403)
-          expect(res.json<{ message: string }>().message).toMatch(/no active tenant/)
+          expect(res.json<{ message: string }>().message).toMatch(/not joined to a distributor yet/)
         })
       }
     }

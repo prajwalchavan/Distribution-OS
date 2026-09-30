@@ -19,6 +19,7 @@ import {
   invoiceLines as ilTable,
 } from '@dos/db'
 import type { Db } from '@dos/db'
+import { shopCodesOf } from '../retailers/index.js'
 
 /**
  * Drizzle rows in, contract shapes out (docs/16 §2): no Drizzle row ever leaves this module, and no
@@ -178,12 +179,16 @@ export async function loadInvoiceDetail(
     .from(cnTable)
     .where(eq(cnTable.invoiceId, row.id))
     .orderBy(asc(cnTable.id))
+  // The shopkeeper is independent (founder, 2026-09-29): the bill carries the shop code a shopkeeper types to ask to
+  // be joined to this shop. Read under the caller's own role: whoever may read the bill may read its shop's code.
+  const shopCode = (await shopCodesOf(tx, [row.retailerId])).get(row.retailerId)
   return {
     ...toInvoice(row),
     lines: lines.map(toInvoiceLine),
     creditNotes: notes.map(toInvoiceCreditNoteRef),
     amountDuePaise,
     seller,
+    ...(shopCode === undefined ? {} : { buyerShopCode: shopCode }),
   }
 }
 

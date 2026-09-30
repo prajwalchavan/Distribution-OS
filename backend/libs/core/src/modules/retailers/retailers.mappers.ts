@@ -59,6 +59,7 @@ export function toRetailer(row: typeof retailers.$inferSelect): Retailer {
     code: row.code,
     identityId: row.identityId,
     onboardedBy: row.onboardedBy,
+    shopCode: row.shopCode,
   }
 }
 

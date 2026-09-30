@@ -401,6 +401,9 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   // Auth. Sign-in obviously cannot require a token; refresh and switch-tenant authenticate with the
   // refresh token in the body, and logout must work even when the access token has already expired.
   'auth.login': 'public',
+  // The shopkeeper's own account (founder, 2026-09-29): anybody may make one; it belongs to no distributor, so it
+  // opens nothing of any distributor until one approves its request to join a shop.
+  'auth.signUp': 'public',
   'auth.refresh': 'public',
   'auth.logout': 'public',
   'auth.switchTenant': 'public',
@@ -431,6 +434,15 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   // stranger — the approval the owner already gave is what makes it legal, and the handler refuses a
   // grant that is not approved, is revoked, has lapsed, or belongs to another administrator.
   'auth.supportPass': PLATFORM,
+  // The shopkeeper's half of joining a distributor's shop (founder, 2026-09-29). 'authenticated', not a role list:
+  // the account asking has no distributor yet, so its token carries no role at all. The handler admits only a
+  // shopkeeper's account (one it made itself, or one whose every membership is a shop) and refuses a work login.
+  'auth.joins.lookup': 'authenticated',
+  'auth.joins.distributors': 'authenticated',
+  'auth.joins.ask': 'authenticated',
+  'auth.joins.mine': 'authenticated',
+  'auth.joins.withdraw': 'authenticated',
+  'auth.joins.leave': 'authenticated',
 
   // Tenancy. Staff administration is the owner's desk; the accountant may look but not hire. The
   // branding block and the feature flags are read by EVERY member including the shop (the app chrome and
@@ -515,6 +527,12 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'retailers.signIn.give': ONBOARDERS,
   'retailers.signIn.setPassword': ONBOARDERS,
   'retailers.signIn.stop': ONBOARDERS,
+  // The desk's half (founder, 2026-09-29: "that distributor's owner or manager approves it after seeing who
+  // asks"): the same two people who give a shop its sign-in. Not the accountant (it onboards nobody), not the
+  // field (a rep must not read who asks to join which shop), not the godown, the crew or a shop.
+  'retailers.joins.list': ONBOARDERS,
+  'retailers.joins.approve': ONBOARDERS,
+  'retailers.joins.refuse': ONBOARDERS,
   // Beats are the desk's to create and assign (docs/23 §8.14: a rep, a loader or a driver could
   // otherwise create beats and assign anyone); everyone in the field reads them, and a salesperson
   // reads its own assignment to learn today's beat.

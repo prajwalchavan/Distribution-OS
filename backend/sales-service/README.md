@@ -71,6 +71,9 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | POST | `/retailers/{id}/sign-in` | Give the shop an app sign-in (a username and a first password, shown once) | owner, manager |
 | POST | `/retailers/{id}/sign-in/password` | Give the shop a new first password; it must choose its own at the next sign-in | owner, manager |
 | POST | `/retailers/{id}/sign-in/stop` | Stop the shop signing in to this distributor (orders, bills and dues stay) | owner, manager |
+| GET | `/shop-joins` | Shopkeepers asking to be joined to one of your shops (waiting first) | owner, manager |
+| POST | `/shop-joins/{id}/approve` | Join the shopkeeper to the shop: they see its bills, dues and rates in their app | owner, manager |
+| POST | `/shop-joins/{id}/refuse` | Refuse the request, with the one line the shopkeeper reads | owner, manager |
 | GET | `/beats` | Beats of this distributor | owner, manager, accountant, salesperson, warehouse, delivery |
 | POST | `/beats` | Create or update a beat | owner, manager |
 | POST | `/beats/{id}/assign` | Assign a salesperson to a beat for a date range | owner, manager |
@@ -3808,7 +3811,8 @@ curl "http://localhost:3003/retailers?q=campa&beatId=01a06d3e-cfdb-7635-85cb-ee4
       "appSignIn": {
         "username": "sunil.tarsun",
         "since": "2026-09-04T10:30:00.000Z"
-      }
+      },
+      "shopCode": "R-0001"
     }
   ],
   "nextCursor": null
@@ -3923,7 +3927,8 @@ curl "http://localhost:3003/retailers/01a06d17-0be7-794a-8dab-9b14cf78673b" \
     "appSignIn": {
       "username": "sunil.tarsun",
       "since": "2026-09-04T10:30:00.000Z"
-    }
+    },
+    "shopCode": "R-0001"
   }
 }
 ```
@@ -4104,7 +4109,8 @@ request.json
     "appSignIn": {
       "username": "sunil.tarsun",
       "since": "2026-09-04T10:30:00.000Z"
-    }
+    },
+    "shopCode": "R-0001"
   }
 }
 ```
@@ -4250,7 +4256,8 @@ request.json
     "appSignIn": {
       "username": "sunil.tarsun",
       "since": "2026-09-04T10:30:00.000Z"
-    }
+    },
+    "shopCode": "R-0001"
   }
 }
 ```
@@ -4877,6 +4884,357 @@ request.json
 {
   "statusCode": 403,
   "message": "the salesperson role may not call POST /retailers/{id}/sign-in/stop",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/shop-joins`
+
+Shopkeepers asking to be joined to one of your shops (waiting first) · contract `retailers.joins.list`
+
+**Roles:** owner, manager
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `state` | waiting | approved | refused | withdrawn | no |
+| `limit` | integer | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/shop-joins?state=waiting&limit=100" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "personName": "text",
+      "personPhone": "+919876543210",
+      "shopName": "Campa Cola 750 ml",
+      "via": "code",
+      "shop": {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "name": "Sharma Kirana Store",
+        "code": "R-0001",
+        "shopCode": "R-0001"
+      },
+      "state": "waiting",
+      "reason": null,
+      "askedAt": "2026-09-04T10:30:00.000Z",
+      "decidedAt": null
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the salesperson role may not call GET /shop-joins",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/shop-joins/{id}/approve`
+
+Join the shopkeeper to the shop: they see its bills, dues and rates in their app · contract `retailers.joins.approve`
+
+**Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `retailerId` | uuid | no |
+| `membershipId` | uuid | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3003/shop-joins/01a06d17-0be7-794a-8dab-9b14cf78673b/approve" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+  "membershipId": "01a06d14-9c5c-7346-8aeb-8114bed5ae60"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "personName": "text",
+    "personPhone": "+919876543210",
+    "shopName": "Campa Cola 750 ml",
+    "via": "code",
+    "shop": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "name": "Sharma Kirana Store",
+      "code": "R-0001",
+      "shopCode": "R-0001"
+    },
+    "state": "waiting",
+    "reason": null,
+    "askedAt": "2026-09-04T10:30:00.000Z",
+    "decidedAt": null
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the salesperson role may not call POST /shop-joins/{id}/approve",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/shop-joins/{id}/refuse`
+
+Refuse the request, with the one line the shopkeeper reads · contract `retailers.joins.refuse`
+
+**Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `reason` | string | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3003/shop-joins/01a06d17-0be7-794a-8dab-9b14cf78673b/refuse" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "reason": "Confirmed on phone with the shopkeeper"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "personName": "text",
+    "personPhone": "+919876543210",
+    "shopName": "Campa Cola 750 ml",
+    "via": "code",
+    "shop": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "name": "Sharma Kirana Store",
+      "code": "R-0001",
+      "shopCode": "R-0001"
+    },
+    "state": "waiting",
+    "reason": null,
+    "askedAt": "2026-09-04T10:30:00.000Z",
+    "decidedAt": null
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the salesperson role may not call POST /shop-joins/{id}/refuse",
   "error": "Forbidden"
 }
 ```
@@ -14573,7 +14931,8 @@ request.json
     "creditedPaise": 4000,
     "recoveredPaise": 4000,
     "stateShown": "draft",
-    "paymentTerms": "PRE"
+    "paymentTerms": "PRE",
+    "buyerShopCode": "R-0001"
   }
 }
 ```
@@ -14824,7 +15183,8 @@ request.json
     "creditedPaise": 4000,
     "recoveredPaise": 4000,
     "stateShown": "draft",
-    "paymentTerms": "PRE"
+    "paymentTerms": "PRE",
+    "buyerShopCode": "R-0001"
   }
 }
 ```
@@ -15094,7 +15454,8 @@ request.json
     "creditedPaise": 4000,
     "recoveredPaise": 4000,
     "stateShown": "draft",
-    "paymentTerms": "PRE"
+    "paymentTerms": "PRE",
+    "buyerShopCode": "R-0001"
   }
 }
 ```
@@ -15333,7 +15694,8 @@ request.json
     "creditedPaise": 4000,
     "recoveredPaise": 4000,
     "stateShown": "draft",
-    "paymentTerms": "PRE"
+    "paymentTerms": "PRE",
+    "buyerShopCode": "R-0001"
   }
 }
 ```
@@ -15565,7 +15927,8 @@ curl "http://localhost:3003/invoices/01a06d17-0be7-794a-8dab-9b14cf78673b" \
     "creditedPaise": 4000,
     "recoveredPaise": 4000,
     "stateShown": "draft",
-    "paymentTerms": "PRE"
+    "paymentTerms": "PRE",
+    "buyerShopCode": "R-0001"
   }
 }
 ```
@@ -16107,7 +16470,8 @@ request.json
     "creditedPaise": 4000,
     "recoveredPaise": 4000,
     "stateShown": "draft",
-    "paymentTerms": "PRE"
+    "paymentTerms": "PRE",
+    "buyerShopCode": "R-0001"
   }
 }
 ```
@@ -26373,6 +26737,9 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `retailers.signIn.give` | – | – | – | – | – | – | – |
 | `retailers.signIn.setPassword` | – | – | – | – | – | – | – |
 | `retailers.signIn.stop` | – | – | – | – | – | – | – |
+| `retailers.joins.list` | – | – | – | – | – | – | – |
+| `retailers.joins.approve` | – | – | – | – | – | – | – |
+| `retailers.joins.refuse` | – | – | – | – | – | – | – |
 | `retailers.beats.list` | – | – | – | ✓ | – | – | – |
 | `retailers.beats.upsert` | – | – | – | – | – | – | – |
 | `retailers.beats.assign` | – | – | – | – | – | – | – |

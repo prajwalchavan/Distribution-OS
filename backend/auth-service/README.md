@@ -34,6 +34,7 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 |---|---|---|---|
 | GET | `/health/ping` | Liveness + database reachability | public |
 | POST | `/auth/login` | Sign in with username and password | public |
+| POST | `/auth/sign-up` | A shopkeeper makes their own account (no distributor yet) and is signed in | public |
 | POST | `/auth/refresh` | Exchange a refresh token for a new pair (rotates the refresh token) | public |
 | POST | `/auth/logout` | Revoke this device session | public |
 | POST | `/auth/switch-tenant` | Open a session on another membership of the same user | public |
@@ -49,6 +50,12 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | POST | `/auth/forgot-password` | Ask for a password reset; always answers ok, the token travels by a later channel | public |
 | POST | `/auth/reset-password` | Set a new password with a single-use reset token; every session is revoked | public |
 | GET | `/.well-known/jwks.json` | Public keys that verify access tokens | public |
+| GET | `/auth/joins/code` | Which distributor and shop a shop code names, shown back before asking | any signed-in role |
+| GET | `/auth/joins/distributors` | Distributors a shopkeeper may find by name and ask to join | any signed-in role |
+| POST | `/auth/joins` | Ask a distributor to join you to its shop (by shop code, or by name) | any signed-in role |
+| GET | `/auth/joins` | Your requests to be joined to a shop, newest first | any signed-in role |
+| POST | `/auth/joins/{id}/withdraw` | Withdraw one of your requests that still waits | any signed-in role |
+| POST | `/auth/joins/leave` | Leave a distributor: stop seeing its shops (your other distributors stay) | any signed-in role |
 
 ### GET `/health/ping`
 
@@ -102,6 +109,7 @@ Sign in with username and password · contract `auth.login`
 | `platform` | web | android | ios | no |
 | `tenantId` | uuid | no |
 | `actAs` | owner | manager | accountant | salesperson | warehouse | delivery | retailer | no |
+| `accountWithoutDistributor` | boolean | no |
 
 **Example request**
 
@@ -120,7 +128,8 @@ request.json
   "deviceName": "text",
   "platform": "web",
   "tenantId": "01a06d03-67ed-7c68-87e3-25e2fff74cc3",
-  "actAs": "owner"
+  "actAs": "owner",
+  "accountWithoutDistributor": true
 }
 ```
 
@@ -148,6 +157,126 @@ request.json
     "logoUrl": "docs/2026/09/invoice-0042.jpg"
   },
   "role": "owner",
+  "memberships": [
+    {
+      "tenantId": "01a06d03-67ed-7c68-87e3-25e2fff74cc3",
+      "tenantSlug": "text",
+      "tenantName": "text",
+      "displayName": "text",
+      "logoUrl": "docs/2026/09/invoice-0042.jpg",
+      "role": "owner",
+      "extraRoles": [
+        "delivery"
+      ],
+      "status": "invited"
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/auth/sign-up`
+
+A shopkeeper makes their own account (no distributor yet) and is signed in · contract `auth.signUp`
+
+**Roles:** public
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+| `phone` | string | yes |
+| `username` | string | yes |
+| `password` | string | yes |
+| `name` | string | yes |
+| `shopName` | string | yes |
+| `deviceId` | uuid | yes |
+| `deviceName` | string | no |
+| `platform` | web | android | ios | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3000/auth/sign-up" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "phone": "+919876543210",
+  "username": "sunil.tarsun",
+  "password": "Dos@1234",
+  "name": "Sharma Kirana Store",
+  "shopName": "Campa Cola 750 ml",
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",
+  "deviceName": "text",
+  "platform": "web"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "accessToken": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…",
+  "tokenType": "Bearer",
+  "accessExpiresIn": 1,
+  "refreshToken": "dvRVefW6iYMCcmo4hNcsaPfXvmANyxisdZd75S-F7Gk",
+  "refreshExpiresAt": "2026-09-04T10:30:00.000Z",
+  "user": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "username": "sunil.tarsun",
+    "name": "Sharma Kirana Store",
+    "locale": "en-IN",
+    "mustChangePassword": true
+  },
+  "tenant": null,
+  "role": null,
   "memberships": [
     {
       "tenantId": "01a06d03-67ed-7c68-87e3-25e2fff74cc3",
@@ -1443,6 +1572,508 @@ curl "http://localhost:3000/.well-known/jwks.json"
 }
 ```
 
+### GET `/auth/joins/code`
+
+Which distributor and shop a shop code names, shown back before asking · contract `auth.joins.lookup`
+
+**Roles:** any signed-in role
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `code` | string | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3000/auth/joins/code?code=R-0001" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "distributor": "text",
+  "shop": "text"
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/auth/joins/distributors`
+
+Distributors a shopkeeper may find by name and ask to join · contract `auth.joins.distributors`
+
+**Roles:** any signed-in role
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `q` | string | no |
+| `limit` | integer | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3000/auth/joins/distributors?q=campa&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "tenantId": "01a06d03-67ed-7c68-87e3-25e2fff74cc3",
+      "name": "Sharma Kirana Store"
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/auth/joins`
+
+Ask a distributor to join you to its shop (by shop code, or by name) · contract `auth.joins.ask`
+
+**Roles:** any signed-in role
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `by` | code | name | yes |
+| `code` | string | no |
+| `tenantId` | uuid | no |
+| `shopName` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3000/auth/joins" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "by": "code",
+  "code": "R-0001",
+  "tenantId": "01a06d03-67ed-7c68-87e3-25e2fff74cc3",
+  "shopName": "Campa Cola 750 ml"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "tenantId": "01a06d03-67ed-7c68-87e3-25e2fff74cc3",
+    "distributor": "text",
+    "shop": "text",
+    "via": "code",
+    "state": "waiting",
+    "reason": null,
+    "askedAt": "2026-09-04T10:30:00.000Z",
+    "decidedAt": null
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/auth/joins`
+
+Your requests to be joined to a shop, newest first · contract `auth.joins.mine`
+
+**Roles:** any signed-in role
+
+**Example request**
+
+```bash
+curl "http://localhost:3000/auth/joins" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "tenantId": "01a06d03-67ed-7c68-87e3-25e2fff74cc3",
+      "distributor": "text",
+      "shop": "text",
+      "via": "code",
+      "state": "waiting",
+      "reason": null,
+      "askedAt": "2026-09-04T10:30:00.000Z",
+      "decidedAt": null
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/auth/joins/{id}/withdraw`
+
+Withdraw one of your requests that still waits · contract `auth.joins.withdraw`
+
+**Roles:** any signed-in role
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3000/auth/joins/01a06d17-0be7-794a-8dab-9b14cf78673b/withdraw" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "tenantId": "01a06d03-67ed-7c68-87e3-25e2fff74cc3",
+    "distributor": "text",
+    "shop": "text",
+    "via": "code",
+    "state": "waiting",
+    "reason": null,
+    "askedAt": "2026-09-04T10:30:00.000Z",
+    "decidedAt": null
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/auth/joins/leave`
+
+Leave a distributor: stop seeing its shops (your other distributors stay) · contract `auth.joins.leave`
+
+**Roles:** any signed-in role
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `tenantId` | uuid | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3000/auth/joins/leave" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "tenantId": "01a06d03-67ed-7c68-87e3-25e2fff74cc3"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "ok": true
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
 ## Permission matrix
 
 Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to the roles this service serves — ✓ = allowed, – = refused (either the matrix excludes the role, or this service does not serve it). O owner · M manager · A accountant · S salesperson · W warehouse · D delivery · R retailer.
@@ -1451,6 +2082,7 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 |---|---|---|---|---|---|---|---|
 | `health.ping` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `auth.login` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `auth.signUp` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `auth.refresh` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `auth.logout` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `auth.switchTenant` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -1466,3 +2098,9 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `auth.forgotPassword` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `auth.resetPassword` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `auth.jwks` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `auth.joins.lookup` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `auth.joins.distributors` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `auth.joins.ask` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `auth.joins.mine` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `auth.joins.withdraw` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `auth.joins.leave` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |

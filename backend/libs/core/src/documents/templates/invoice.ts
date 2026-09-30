@@ -82,6 +82,12 @@ function renderSheet(inv: InvoiceDetail, o: InvoiceRenderOptions): Buffer {
   sheet.y += bsize * 1.35
   pdf.text(bx, sheet.y + bsize, inv.buyerName, { size: bsize + 1, font: 'bold' })
   sheet.y += bsize * 1.45
+  // The shopkeeper is independent (founder, 2026-09-29): the code a shopkeeper types in the app to ask to be joined
+  // to this shop, beside its name.
+  if (inv.buyerShopCode) {
+    pdf.text(bx, sheet.y + bsize, `Shop code ${inv.buyerShopCode}`, { size: bsize })
+    sheet.y += bsize * 1.3
+  }
   for (const line of addressLines(inv.buyerAddress)) {
     pdf.text(bx, sheet.y + bsize, line, { size: bsize })
     sheet.y += bsize * 1.3
@@ -280,6 +286,7 @@ function renderThermal(inv: InvoiceDetail, o: InvoiceRenderOptions): Buffer {
   )
   sheet.space(2)
   sheet.text(inv.buyerName, { font: 'bold', size: 8.5 })
+  if (inv.buyerShopCode) sheet.text(`Shop code ${inv.buyerShopCode}`, { size: 7 })
   for (const line of addressLines(inv.buyerAddress)) sheet.text(line, { size: 7 })
   if (inv.buyerGstin) sheet.text(`GSTIN ${inv.buyerGstin}`, { size: 7 })
   sheet.hr()

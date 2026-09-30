@@ -63,6 +63,27 @@ export class RetailersController {
     )
   }
 
+  @Implement(contract.retailers.joins.list)
+  listJoins(@OwnsReply() _reply: unknown) {
+    return implement(contract.retailers.joins.list).handler(({ input }) =>
+      this.svc.listJoinRequests(input),
+    )
+  }
+
+  @Implement(contract.retailers.joins.approve)
+  approveJoin(@OwnsReply() _reply: unknown) {
+    return implement(contract.retailers.joins.approve).handler(({ input }) =>
+      this.svc.approveJoin(input),
+    )
+  }
+
+  @Implement(contract.retailers.joins.refuse)
+  refuseJoin(@OwnsReply() _reply: unknown) {
+    return implement(contract.retailers.joins.refuse).handler(({ input }) =>
+      this.svc.refuseJoin(input),
+    )
+  }
+
   @Implement(contract.retailers.beats.list)
   listBeats(@OwnsReply() _reply: unknown) {
     return implement(contract.retailers.beats.list).handler(({ input }) =>

@@ -931,6 +931,12 @@ describe('permission matrix', () => {
       'auth.resetPassword',
       'auth.revokeSession',
       'auth.switchTenant',
+      // the shopkeeper's own account (founder, 2026-09-29): public sign-up and the 'authenticated' join doors,
+      // which the handler refuses to a work login in words ("A shop needs its own account")
+      'auth.signUp',
+      'auth.joins.ask',
+      'auth.joins.leave',
+      'auth.joins.withdraw',
       // every member or every staff member: a quote, a proposed product, a shop and its visit, an upload
       // slot, the offline queue (a rate request is no longer hers: QA DOS-336, ruling 5)
       'catalog.propose',
@@ -1615,6 +1621,9 @@ describe('permission matrix', () => {
         // The platform console's sign-in and its refresh: public for the same reason every sign-in is.
         'auth.platformLogin',
         'auth.platformRefresh',
+        // The shopkeeper's own account (founder, 2026-09-29): anybody may make one; it opens nothing of any
+        // distributor until one approves its request to join a shop.
+        'auth.signUp',
         'health.ping',
       ].sort(),
     )
@@ -1662,6 +1671,16 @@ describe('permission matrix', () => {
       'auth.sessions',
       'auth.revokeSession',
       'auth.changePassword',
+      // The shopkeeper's own account (founder, 2026-09-29): sign-up is public, and the join doors are
+      // 'authenticated' — their handler admits only a shopkeeper's account and refuses a console account, which
+      // is no shop, in words.
+      'auth.signUp',
+      'auth.joins.lookup',
+      'auth.joins.distributors',
+      'auth.joins.ask',
+      'auth.joins.mine',
+      'auth.joins.withdraw',
+      'auth.joins.leave',
       'health.ping',
     ])
     for (const path of paths) {
@@ -1957,6 +1976,7 @@ describe('listProcedures', () => {
     const rows = listProcedures({ auth: contract.auth })
     expect(rows.map((r) => r.path)).toEqual([
       'auth.login',
+      'auth.signUp',
       'auth.refresh',
       'auth.logout',
       'auth.switchTenant',
@@ -1972,6 +1992,12 @@ describe('listProcedures', () => {
       'auth.forgotPassword',
       'auth.resetPassword',
       'auth.jwks',
+      'auth.joins.lookup',
+      'auth.joins.distributors',
+      'auth.joins.ask',
+      'auth.joins.mine',
+      'auth.joins.withdraw',
+      'auth.joins.leave',
     ])
     expect(rows.find((r) => r.path === 'auth.jwks')?.httpPath).toBe('/.well-known/jwks.json')
     expect(rows.find((r) => r.path === 'auth.me')?.method).toBe('GET')

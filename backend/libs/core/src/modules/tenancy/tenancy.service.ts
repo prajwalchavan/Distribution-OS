@@ -43,6 +43,7 @@ import {
   usedElsewhere,
   isUniqueViolation,
   isUsable,
+  madeByThemselves,
   noteFirstPassword,
   refuseIfShared,
   revokeTenantSessions,
@@ -112,6 +113,19 @@ const TRY_AGAIN = 'Could not make a sign-in for this shop just now. Try again.'
  */
 const NOT_YOURS_ALONE =
   'This sign-in is not yours alone to reset: the shopkeeper also uses it with another business. Only the shopkeeper can change its password.'
+/**
+ * The shopkeeper's own account (founder, 2026-09-29): the person made this sign-in themselves, and its password is
+ * nobody else's. The desk approved this person's request to join, so it already knows this much and learns nothing.
+ */
+const THEIR_OWN_SIGN_IN =
+  'This shopkeeper made their own sign-in, so only they can change its password. They can reset it from the sign-in screen.'
+/**
+ * The desk gives a shop's sign-in on a number whose account the shopkeeper made themselves and joined to another of
+ * this distributor's shops: a distributor is added to a shopkeeper's account by the shopkeeper's request, never by a
+ * desk. Said only when the person is already this distributor's shopkeeper, so it tells the desk nothing new.
+ */
+const ASK_FROM_THEIR_APP =
+  'This mobile number is a shopkeeper’s own sign-in. They can ask to join this shop from their app, with the shop code printed on its bill.'
 /** The same refusal on the staff screen, for anybody who is not one of this distributor's shops. */
 const NOT_YOURS_ALONE_STAFF =
   'This sign-in is not yours alone to reset: this person also uses it with another business. Only they can change its password.'
@@ -585,6 +599,15 @@ export class TenancyService {
       const known = input.knownUserId === null ? null : await signInById(sys, input.knownUserId)
       const person = known ?? (await signInByPhone(sys, input.phone))
       if (person) {
+        if (
+          (await madeByThemselves(sys, person.id)) &&
+          (await shopHere(sys, input.tenantId, person.id))
+        ) {
+          throw new ORPCError('CONFLICT', {
+            message: ASK_FROM_THEIR_APP,
+            data: { code: SHOP_SIGN_IN_CODES.numberHasSignIn },
+          })
+        }
         await refuseForeignSeat(sys, input.tenantId, person.id, shared)
         if (isUsable(person)) {
           // An earlier attempt of the SAME request made the user and failed before its reply.
@@ -710,6 +733,9 @@ export class TenancyService {
   }): Promise<void> {
     const db = requireDb(this.db)
     await withSystem(db, async (sys) => {
+      if (await madeByThemselves(sys, input.userId)) {
+        throw new ORPCError('CONFLICT', { message: THEIR_OWN_SIGN_IN })
+      }
       await refuseIfShared(sys, input, NOT_YOURS_ALONE)
       await setFirstPassword(sys, input)
     })

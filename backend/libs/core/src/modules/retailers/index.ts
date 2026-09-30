@@ -48,3 +48,20 @@ export {
  * achievement. A plain function, so the incentives sweep in the worker imports it without Nest DI.
  */
 export { visitCount, type VisitCountFilter, type VisitCountRow } from './visit-reads.js'
+/**
+ * The shopkeeper's half of joining a distributor's shop (founder, 2026-09-29): plain functions auth composes, as it
+ * composes the shop's dues — auth-service is where an account with no distributor calls. And the shop code of a
+ * shop, which billing prints on the bill beside the shop's name.
+ */
+export {
+  accountContext,
+  cutShopLinks,
+  fileJoinRequest,
+  myJoinRequests,
+  noSuchCode,
+  shopByCode,
+  shopCodesOf,
+  shopNamesOf,
+  withdrawJoin,
+  type FileJoinRequest,
+} from './joins.js'

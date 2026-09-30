@@ -2,8 +2,21 @@ import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
 import { and, asc, desc, eq, gt, inArray, isNull, ne, or, sql } from 'drizzle-orm'
 import type {
+  AccountTokenPair,
+  AskToJoinIn,
   AuthMe,
   AuthOk,
+  JoinableDistributorsIn,
+  JoinableDistributorsOut,
+  LeaveDistributorIn,
+  MyJoinRequest,
+  MyJoinRequestOut,
+  MyJoinRequestsOut,
+  ShopCodeLookupIn,
+  ShopCodeLookupOut,
+  SignInPair,
+  SignUpIn,
+  WithdrawJoinIn,
   PlatformAdminLevel,
   PlatformLoginIn,
   PlatformMe,
@@ -29,6 +42,7 @@ import type {
   TokenPair,
 } from '@dos/contracts'
 import {
+  auditLog,
   authEvents,
   authSessions,
   devices,
@@ -37,12 +51,14 @@ import {
   normalizeUsername,
   otpRateLimits,
   platformAdmins,
+  type shopJoinRequests,
   supportGrants,
   tenants,
   tenantSettings,
   TENANT_SETTING_KEYS,
   users,
   validatePassword,
+  validateUsername,
   verifyPassword,
   withSystem,
   type authEventKind,
@@ -51,6 +67,7 @@ import {
 import { uuidv7 } from '@dos/domain'
 import {
   DB,
+  isUniqueViolation,
   loadAuthKeys,
   requireDb,
   SAME_PASSWORD,
@@ -58,11 +75,22 @@ import {
   type AuthKeys,
 } from '../../platform/index.js'
 import { createObjectStorage, ObjectStorageError } from '../../platform/object-storage.js'
+import {
+  cutShopLinks,
+  fileJoinRequest,
+  myJoinRequests,
+  noSuchCode,
+  shopByCode,
+  shopNamesOf,
+  withdrawJoin,
+} from '../retailers/index.js'
+import { leaveShopHere } from '../tenancy/index.js'
 import { SIGN_IN_REQUIRED, type AuthClaims } from './auth-context.js'
 import { electionRefused, electRole } from './election.js'
 import { membershipsSummary, type SummaryMembership } from './memberships-summary.js'
 import {
   authTtl,
+  hashRateKey,
   hashRefreshToken,
   newRefreshToken,
   passwordFingerprint,
@@ -83,6 +111,23 @@ const NO_MEMBERSHIP_ANYWHERE =
 const notAMember = (tenantId: string) =>
   `You are not an active member of the distributor ${tenantId}. Omit tenantId to sign in to your own, or send one of the tenantId values from your memberships.`
 const SESSION_EXPIRED = 'Session expired. Sign in again.'
+/**
+ * THE SHOPKEEPER'S OWN ACCOUNT (founder, 2026-09-29, docs/22 §8). A taken username and a number that already has an
+ * account get this ONE sentence, with the same work behind both, so the door does not say which of the two it was.
+ */
+const IN_USE = 'That username or number is already in use. Sign in, or use another.'
+const TOO_MANY_SIGN_UPS = 'Too many sign-ups from here. Try again in an hour.'
+const TOO_MANY_CODES = 'Too many shop codes tried. Try again in an hour.'
+const TOO_MANY_ASKS = 'Too many requests to join a shop. Try again in an hour.'
+/** A work login (staff of a distributor) asking to be joined to a shop as a shopkeeper. */
+const WORK_LOGIN =
+  'This sign-in is for work at a distributor. A shop needs its own account: sign up as a shopkeeper.'
+const CODE_NEEDED = 'Type the shop code printed on your bill.'
+const DISTRIBUTOR_NEEDED = 'Choose the distributor, and type your shop’s name.'
+const NOT_LISTED = 'This distributor is not taking requests by name. Use the shop code on its bill.'
+const WORKS_THERE =
+  'You work for this distributor, so you cannot also be one of its shops with this sign-in.'
+const NOT_JOINED_THERE = 'You are not joined to this distributor.'
 /** Module 13: a console account has no membership, so the tenant sign-in has nothing to give it. */
 const NOT_A_CONSOLE_USER =
   'This account is not a Distribution OS console account. Sign in at your distributor app instead.'
@@ -108,6 +153,7 @@ export interface ClientInfo {
 }
 
 type AuthEventKind = (typeof authEventKind.enumValues)[number]
+type JoinRow = typeof shopJoinRequests.$inferSelect
 type UserRow = typeof users.$inferSelect
 type SessionRow = typeof authSessions.$inferSelect
 type MembershipRow = {
@@ -160,11 +206,11 @@ export class AuthService {
 
   // ---------------------------------------------------------------- sign-in
 
-  async login(input: LoginIn, client: ClientInfo): Promise<TokenPair> {
+  async login(input: LoginIn, client: ClientInfo): Promise<SignInPair> {
     const db = requireDb(this.db)
     const keys = await loadAuthKeys()
     const username = normalizeUsername(input.username)
-    const outcome = await withSystem(db, async (tx): Promise<Outcome<TokenPair>> => {
+    const outcome = await withSystem(db, async (tx): Promise<Outcome<SignInPair>> => {
       const now = new Date()
       const user = await findUserByUsername(tx, username)
       if (!user?.passwordHash) {
@@ -206,6 +252,31 @@ export class AuthService {
       if (!chosen && (await platformAdminLevel(tx, user.id)) !== null) {
         await logEvent(tx, { userId: user.id, username, kind: 'login_failed', client })
         return fail(noAccess(USE_CONSOLE_SIGN_IN))
+      }
+      // The shopkeeper's own account that no distributor has joined yet (founder, 2026-09-29): signed in, with
+      // no distributor, for an app that asked for it. An app that did not ask is refused below, as before.
+      if (
+        !chosen &&
+        !input.tenantId &&
+        input.accountWithoutDistributor === true &&
+        isShopkeeperAccount(user, rows)
+      ) {
+        if (user.failedLoginCount > 0 || user.lockedUntil) {
+          await tx
+            .update(users)
+            .set({ failedLoginCount: 0, lockedUntil: null, updatedAt: now })
+            .where(eq(users.id, user.id))
+        }
+        const session = await openAccountSession(tx, {
+          user,
+          deviceId: input.deviceId,
+          deviceName: input.deviceName ?? null,
+          platform: input.platform ?? 'web',
+          client,
+          now,
+        })
+        await logEvent(tx, { userId: user.id, username, kind: 'login_ok', client })
+        return ok(await issueAccountPair(keys, user, rows, session, now))
       }
       if (!chosen) {
         await logEvent(tx, { userId: user.id, username, kind: 'login_failed', client })
@@ -300,17 +371,22 @@ export class AuthService {
     return unwrap(outcome)
   }
 
-  async refresh(input: RefreshIn, client: ClientInfo): Promise<TokenPair> {
+  async refresh(input: RefreshIn, client: ClientInfo): Promise<SignInPair> {
     const db = requireDb(this.db)
     const keys = await loadAuthKeys()
-    const outcome = await withSystem(db, async (tx): Promise<Outcome<TokenPair>> => {
+    const outcome = await withSystem(db, async (tx): Promise<Outcome<SignInPair>> => {
       const now = new Date()
       const valid = await validateRefresh(tx, input.refreshToken, input.deviceId, client, now)
       if (!valid.ok) return valid
       const { session, user, rows, presentedHash } = valid.value
-      // A console session has no tenant: it refreshes at /auth/platform/refresh, which re-reads
-      // `platform_admins`. Answering it here would hand back a pair with a null tenant.
-      if (session.tenantId === null) return fail(noAccess(CONSOLE_ONLY))
+      if (session.tenantId === null) {
+        // A console session has no tenant: it refreshes at /auth/platform/refresh, which re-reads
+        // `platform_admins`. Answering it here would hand back a pair with a null tenant.
+        if ((await platformAdminLevel(tx, user.id)) !== null) return fail(noAccess(CONSOLE_ONLY))
+        // THE SHOPKEEPER'S OWN ACCOUNT (founder, 2026-09-29): the next refresh after a distributor approved lands
+        // on that distributor's shop; until then the account's own pair again.
+        return refreshAccount(tx, keys, { session, user, rows, presentedHash, client, now })
+      }
       const current = rows.find((r) => r.membership.tenantId === session.tenantId)
       if (!current || current.membership.status !== 'active') {
         await revokeSession(tx, session.id, 'membership_disabled', now)
@@ -411,8 +487,10 @@ export class AuthService {
       if (!valid.ok) return valid
       const { session, user, rows } = valid.value
       // Module 13: a console session is not a membership and has nothing to switch between. Refusing
-      // it here is the mirror of `TenantGuard` refusing a `platform_admin` token on the six services.
-      if (session.tenantId === null) return fail(noAccess(CONSOLE_ONLY))
+      // it here is the mirror of `TenantGuard` refusing a `platform_admin` token on the six services. A
+      // shopkeeper's account with no distributor yet (tenant null, no console seat) switches like any session.
+      if (session.tenantId === null && (await platformAdminLevel(tx, user.id)) !== null)
+        return fail(noAccess(CONSOLE_ONLY))
       const target = rows.find((r) => r.membership.tenantId === input.tenantId)
       if (!target || target.membership.status !== 'active')
         return fail(noAccess(notAMember(input.tenantId)))
@@ -448,6 +526,341 @@ export class AuthService {
       return ok(await issuePair(keys, user, target, rows, next, now, elected.value.role))
     })
     return unwrap(outcome)
+  }
+
+  // ---------------------------------------------------------------- the shopkeeper's own account
+
+  /**
+   * SIGN UP AS A SHOPKEEPER (founder, 2026-09-29, docs/22 §8 "The shopkeeper is independent"): a person with no
+   * distributor, a password they chose (so no first-password wall, and no desk may ever set one for it), signed in
+   * at once. Limited per client address and per number, the counters committed on their own so a refusal still
+   * counts. A taken username and a number that already has an account get one sentence (`IN_USE`), with both
+   * questions always asked, so the answer does not say which.
+   */
+  async signUp(input: SignUpIn, client: ClientInfo): Promise<AccountTokenPair> {
+    const db = requireDb(this.db)
+    const keys = await loadAuthKeys()
+    const username = normalizeUsername(input.username)
+    const usernameProblem = validateUsername(username)
+    if (usernameProblem) throw new ORPCError('BAD_REQUEST', { message: usernameProblem })
+    const passwordProblem = validatePassword(input.password)
+    if (passwordProblem) throw new ORPCError('BAD_REQUEST', { message: passwordProblem })
+    const allowed = await withSystem(db, async (tx) => {
+      const now = new Date()
+      const byAddress = await underHourlyLimit(
+        tx,
+        `signup:ip:${client.ip ?? 'unknown'}`,
+        SIGN_UPS_PER_ADDRESS_PER_HOUR,
+        now,
+      )
+      const byNumber = await underHourlyLimit(
+        tx,
+        `signup:phone:${hashRateKey(input.phone)}`,
+        SIGN_UPS_PER_NUMBER_PER_HOUR,
+        now,
+      )
+      return byAddress && byNumber
+    })
+    if (!allowed) {
+      throw new ORPCError('TOO_MANY_REQUESTS', { status: 429, message: TOO_MANY_SIGN_UPS })
+    }
+    // Hashed before the transaction, as every desk that sets a password does: argon2id is slow on purpose.
+    const passwordHash = await hashPassword(input.password)
+    const outcome = await withSystem(db, async (tx): Promise<Outcome<AccountTokenPair>> => {
+      const now = new Date()
+      const inUse = () => fail<AccountTokenPair>(new ORPCError('CONFLICT', { message: IN_USE }))
+      // Both questions, always, before either answer is used.
+      const byId = await findUserById(tx, input.id)
+      const byName = await findUserByUsername(tx, username)
+      const [byPhone] = await tx
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.phone, input.phone))
+        .limit(1)
+      let user: UserRow | undefined
+      if (byId) {
+        // The same sign-up sent again after a reply that never arrived: the same person, the same password.
+        const same =
+          byId.signedUpAt !== null &&
+          byId.username === username &&
+          byId.phone === input.phone &&
+          byId.passwordHash !== null &&
+          (await verifyPassword(byId.passwordHash, input.password))
+        if (!same) return inUse()
+        user = byId
+      } else {
+        if (byName || byPhone) return inUse()
+        try {
+          // Savepoint: somebody signing the same username or number up at this moment must not abort the rest.
+          await tx.transaction(async (sp) => {
+            await sp.insert(users).values({
+              id: input.id,
+              phone: input.phone,
+              name: input.name,
+              locale: 'hi-IN',
+              username,
+              passwordHash,
+              passwordChangedAt: now,
+              mustChangePassword: false,
+              status: 'active',
+              signedUpAt: now,
+              shopName: input.shopName,
+            })
+          })
+        } catch (err) {
+          if (isUniqueViolation(err)) return inUse()
+          throw err
+        }
+        user = await findUserById(tx, input.id)
+      }
+      if (!user) return inUse()
+      const rows = await loadMemberships(tx, user.id)
+      const session = await openAccountSession(tx, {
+        user,
+        deviceId: input.deviceId,
+        deviceName: input.deviceName ?? null,
+        platform: input.platform ?? 'web',
+        client,
+        now,
+      })
+      await logEvent(tx, { userId: user.id, username, kind: 'login_ok', client })
+      return ok(await issueAccountPair(keys, user, rows, session, now))
+    })
+    return unwrap(outcome)
+  }
+
+  /** `auth.joins.lookup`: which distributor and shop a shop code names, shown back before the account asks. */
+  async joinLookup(auth: AuthClaims, input: ShopCodeLookupIn): Promise<ShopCodeLookupOut> {
+    const db = requireDb(this.db)
+    await withSystem(db, (tx) => this.shopkeeper(tx, auth, new Date()))
+    // Counted in its own transaction, so a code that names no shop — the guess this limit is for — still counts.
+    await this.withinLimit(`joincode:user:${auth.userId}`, CODES_PER_HOUR, TOO_MANY_CODES)
+    return withSystem(db, async (tx) => {
+      const shop = await shopByCode(tx, input.code)
+      if (!shop) throw noSuchCode()
+      const [tenant] = await tx.select().from(tenants).where(eq(tenants.id, shop.tenantId)).limit(1)
+      if (!tenant || tenant.status !== 'active') throw noSuchCode()
+      const names = await loadBranding(tx, [tenant])
+      return {
+        distributor: names.get(tenant.id)?.displayName ?? tenant.legalName,
+        shop: shop.shopName,
+      }
+    })
+  }
+
+  /** `auth.joins.distributors`: the distributors a shopkeeper may find by name (those that did not opt out). */
+  async joinDistributors(
+    auth: AuthClaims,
+    input: JoinableDistributorsIn,
+  ): Promise<JoinableDistributorsOut> {
+    const db = requireDb(this.db)
+    return withSystem(db, async (tx) => {
+      await this.shopkeeper(tx, auth, new Date())
+      return { items: await listedDistributors(tx, input.q ?? '', input.limit) }
+    })
+  }
+
+  /**
+   * `auth.joins.ask`: file the account's request. By code, the shop code names the distributor and the shop; by
+   * name, the distributor must be one that takes requests by name. The person must not work for it.
+   */
+  async joinAsk(auth: AuthClaims, input: AskToJoinIn): Promise<MyJoinRequestOut> {
+    const db = requireDb(this.db)
+    await withSystem(db, (tx) => this.shopkeeper(tx, auth, new Date()))
+    await this.withinLimit(`joinask:user:${auth.userId}`, ASKS_PER_HOUR, TOO_MANY_ASKS)
+    if (input.by === 'code') {
+      await this.withinLimit(`joincode:user:${auth.userId}`, CODES_PER_HOUR, TOO_MANY_CODES)
+    }
+    const target = await withSystem(db, async (tx) => {
+      const user = await this.shopkeeper(tx, auth, new Date())
+      let tenantId: string
+      let retailerId: string | null = null
+      if (input.by === 'code') {
+        if (!input.code) throw new ORPCError('BAD_REQUEST', { message: CODE_NEEDED })
+        const shop = await shopByCode(tx, input.code)
+        if (!shop) throw noSuchCode()
+        tenantId = shop.tenantId
+        retailerId = shop.retailerId
+      } else {
+        if (!input.tenantId || !input.shopName) {
+          throw new ORPCError('BAD_REQUEST', { message: DISTRIBUTOR_NEEDED })
+        }
+        tenantId = input.tenantId
+        if (!(await isListed(tx, tenantId))) {
+          throw new ORPCError('NOT_FOUND', { message: NOT_LISTED })
+        }
+      }
+      const [tenant] = await tx.select().from(tenants).where(eq(tenants.id, tenantId)).limit(1)
+      if (!tenant || tenant.status !== 'active') {
+        throw input.by === 'code'
+          ? noSuchCode()
+          : new ORPCError('NOT_FOUND', { message: NOT_LISTED })
+      }
+      const [staff] = await tx
+        .select({ id: memberships.id })
+        .from(memberships)
+        .where(
+          and(
+            eq(memberships.tenantId, tenantId),
+            eq(memberships.userId, user.id),
+            ne(memberships.role, 'retailer'),
+          ),
+        )
+        .limit(1)
+      if (staff) throw new ORPCError('CONFLICT', { message: WORKS_THERE })
+      return { user, tenantId, retailerId }
+    })
+    const shopName = input.shopName ?? target.user.shopName ?? target.user.name
+    const row = await fileJoinRequest(db, {
+      id: input.id,
+      userId: target.user.id,
+      tenantId: target.tenantId,
+      via: input.by,
+      retailerId: target.retailerId,
+      shopName,
+      personName: target.user.name,
+      personPhone: target.user.phone,
+    })
+    const [item] = await this.myViews([row])
+    if (!item) throw new ORPCError('INTERNAL_SERVER_ERROR', { message: 'the request vanished' })
+    return { item }
+  }
+
+  /** `auth.joins.mine`: the account's own requests, newest first. */
+  async joinMine(auth: AuthClaims): Promise<MyJoinRequestsOut> {
+    const db = requireDb(this.db)
+    const user = await withSystem(db, (tx) => this.shopkeeper(tx, auth, new Date()))
+    return { items: await this.myViews(await myJoinRequests(db, user.id)) }
+  }
+
+  /** `auth.joins.withdraw`: one of the account's own requests that still waits. */
+  async joinWithdraw(auth: AuthClaims, input: WithdrawJoinIn): Promise<MyJoinRequestOut> {
+    const db = requireDb(this.db)
+    const user = await withSystem(db, (tx) => this.shopkeeper(tx, auth, new Date()))
+    const row = await withdrawJoin(db, user.id, input.id)
+    const [item] = await this.myViews([row])
+    if (!item) throw new ORPCError('INTERNAL_SERVER_ERROR', { message: 'the request vanished' })
+    return { item }
+  }
+
+  /**
+   * `auth.joins.leave`: the account stops seeing every shop of that distributor, at once (the links that every
+   * row-level rule of the shop role reads are cut), its shopkeeper membership there is switched off and its other
+   * sessions there are signed out. The session that asked is MOVED — to another active distributor of the account,
+   * or to "no distributor yet" — so the app's next `refresh` opens it. The distributor's books stay as they were.
+   * Leaving a distributor the account has already left answers ok again.
+   */
+  async joinLeave(
+    auth: AuthClaims,
+    input: LeaveDistributorIn,
+    client: ClientInfo,
+  ): Promise<AuthOk> {
+    const db = requireDb(this.db)
+    await withSystem(db, async (tx) => {
+      const now = new Date()
+      const session = await liveSession(tx, auth, now)
+      const user = await this.shopkeeper(tx, auth, now)
+      const rows = await loadMemberships(tx, user.id)
+      const there = rows.find((r) => r.membership.tenantId === input.tenantId)
+      if (!there) throw new ORPCError('NOT_FOUND', { message: NOT_JOINED_THERE })
+      if (there.membership.role !== 'retailer') {
+        throw new ORPCError('CONFLICT', { message: WORKS_THERE })
+      }
+      const cut = await cutShopLinks(tx, { tenantId: input.tenantId, userId: user.id })
+      const left = await leaveShopHere(tx, {
+        tenantId: input.tenantId,
+        userId: user.id,
+        keepSessionId: session.id,
+      })
+      if (session.tenantId === input.tenantId) {
+        const next = rows.find(
+          (r) =>
+            r.membership.tenantId !== input.tenantId &&
+            r.membership.status === 'active' &&
+            r.tenant.status === 'active',
+        )
+        await tx
+          .update(authSessions)
+          .set({
+            tenantId: next ? next.membership.tenantId : null,
+            role: next ? next.membership.role : null,
+          })
+          .where(eq(authSessions.id, session.id))
+      }
+      if (cut > 0 || there.membership.status === 'active') {
+        await tx.insert(auditLog).values({
+          id: uuidv7(),
+          tenantId: input.tenantId,
+          actorId: user.id,
+          actorRole: 'retailer',
+          action: 'retailer.shop_join.leave',
+          entityType: 'user',
+          entityId: user.id,
+          before: { links: cut, membership: there.membership.status },
+          after: { membership: left ? 'disabled' : there.membership.status },
+        })
+        await logEvent(tx, {
+          userId: user.id,
+          tenantId: input.tenantId,
+          kind: 'session_revoked',
+          client,
+        })
+      }
+    })
+    return { ok: true }
+  }
+
+  /**
+   * The signed-in person, when this is a shopkeeper's account — one they made themselves, or one whose every
+   * membership is a shop — with a live session. A work login is refused in words.
+   */
+  private async shopkeeper(tx: Db, auth: AuthClaims, now: Date): Promise<UserRow> {
+    await liveSession(tx, auth, now)
+    const user = await findUserById(tx, auth.userId)
+    if (!user) throw signInRequired()
+    if (user.status !== 'active') throw noAccess()
+    const rows = await loadMemberships(tx, user.id)
+    if (!isShopkeeperAccount(user, rows)) throw noAccess(WORK_LOGIN)
+    return user
+  }
+
+  /**
+   * One more try against an hourly limit, counted in its OWN transaction — committed whatever the call it guards
+   * then answers — and a 429 in words past the limit.
+   */
+  private async withinLimit(key: string, limit: number, message: string): Promise<void> {
+    const db = requireDb(this.db)
+    const allowed = await withSystem(db, (tx) => underHourlyLimit(tx, key, limit, new Date()))
+    if (!allowed) throw new ORPCError('TOO_MANY_REQUESTS', { status: 429, message })
+  }
+
+  /** The account's own view of its requests: nothing of a distributor but its name and, by code, the shop's. */
+  private async myViews(rows: readonly JoinRow[]): Promise<MyJoinRequest[]> {
+    if (rows.length === 0) return []
+    const db = requireDb(this.db)
+    return withSystem(db, async (tx) => {
+      const ids = [...new Set(rows.map((r) => r.tenantId))]
+      const found = await tx.select().from(tenants).where(inArray(tenants.id, ids))
+      const names = await loadBranding(tx, found)
+      const shops = await shopNamesOf(tx, rows)
+      return rows.map((r) => ({
+        id: r.id,
+        tenantId: r.tenantId,
+        distributor:
+          names.get(r.tenantId)?.displayName ??
+          found.find((t) => t.id === r.tenantId)?.legalName ??
+          '',
+        shop:
+          r.via === 'code' && r.retailerId !== null
+            ? (shops.get(r.retailerId) ?? r.shopName)
+            : r.shopName,
+        via: r.via,
+        state: r.state,
+        reason: r.reason,
+        askedAt: r.createdAt.toISOString(),
+        decidedAt: r.decidedAt ? r.decidedAt.toISOString() : null,
+      }))
+    })
   }
 
   // ---------------------------------------------------------------- the platform console (module 13)
@@ -976,6 +1389,220 @@ function deliverResetToken(i: {
   console.warn(
     `[auth] password reset for ${i.username} (${i.phone}), valid until ${i.expiresAt.toISOString()} — no delivery channel yet; token: ${i.token}`,
   )
+}
+
+// ------------------------------------------------------------------ the shopkeeper's own account
+
+/**
+ * Sign-ups per client address and per number, per hour. The address limit is loose on purpose: Indian mobile
+ * networks put many phones behind one address (carrier NAT), and a market's shops sign up from the same few.
+ */
+export const SIGN_UPS_PER_ADDRESS_PER_HOUR = 20
+export const SIGN_UPS_PER_NUMBER_PER_HOUR = 5
+/** Shop codes one account may try per hour: a code only asks, but a guess must not walk the platform's shops. */
+export const CODES_PER_HOUR = 30
+/** Requests to join one account may file per hour. */
+export const ASKS_PER_HOUR = 20
+
+/**
+ * One more try under `key` this clock hour (`otp_rate_limits`, the abuse table the reset already uses); true while
+ * the count is within `limit`. The caller commits it in a transaction of its own.
+ */
+async function underHourlyLimit(tx: Db, key: string, limit: number, now: Date): Promise<boolean> {
+  const windowStart = new Date(Math.floor(now.getTime() / 3_600_000) * 3_600_000)
+  const [row] = await tx
+    .insert(otpRateLimits)
+    .values({ key, windowStart, attempts: 1 })
+    .onConflictDoUpdate({
+      target: [otpRateLimits.key, otpRateLimits.windowStart],
+      set: { attempts: sql`${otpRateLimits.attempts} + 1` },
+    })
+    .returning({ attempts: otpRateLimits.attempts })
+  return (row?.attempts ?? 1) <= limit
+}
+
+/**
+ * A SHOPKEEPER'S ACCOUNT: one the person made themselves (`signUp`), or one whose every membership is a shop's (a
+ * desk-given shopkeeper sign-in, which the person now owns). Such an account may sign in with no distributor, ask to
+ * be joined to shops and leave distributors; a work login may not.
+ */
+function isShopkeeperAccount(user: UserRow, rows: readonly MembershipRow[]): boolean {
+  if (rows.some((r) => r.membership.role !== 'retailer')) return false
+  return user.signedUpAt !== null || rows.length > 0
+}
+
+/** Is this distributor one a shopkeeper may find by name (`shops.listed_for_joining` not switched off)? */
+async function isListed(tx: Db, tenantId: string): Promise<boolean> {
+  const [off] = await tx
+    .select({ value: tenantSettings.value })
+    .from(tenantSettings)
+    .where(
+      and(
+        eq(tenantSettings.tenantId, tenantId),
+        eq(tenantSettings.key, TENANT_SETTING_KEYS.shopsListedForJoining),
+      ),
+    )
+    .limit(1)
+  return off?.value !== false
+}
+
+/**
+ * The distributors a shopkeeper may find by name: active, and not switched off from the list; by the name the
+ * distributor shows (`branding.display_name`, else its legal name), filtered by `q`, bounded by `limit`.
+ */
+async function listedDistributors(
+  tx: Db,
+  q: string,
+  limit: number,
+): Promise<{ tenantId: string; name: string }[]> {
+  const pattern = `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`
+  const result = await tx.execute(
+    sql`SELECT t.id AS "tenantId",
+               COALESCE(NULLIF(btrim(d.value #>> '{}'), ''), t.legal_name) AS "name"
+          FROM tenants t
+          LEFT JOIN tenant_settings d
+            ON d.tenant_id = t.id AND d.key = ${TENANT_SETTING_KEYS.brandingDisplayName}
+          LEFT JOIN tenant_settings l
+            ON l.tenant_id = t.id AND l.key = ${TENANT_SETTING_KEYS.shopsListedForJoining}
+         WHERE t.status = 'active'
+           AND (l.value IS NULL OR l.value <> 'false'::jsonb)
+           AND COALESCE(NULLIF(btrim(d.value #>> '{}'), ''), t.legal_name) ILIKE ${pattern}
+         ORDER BY 2, 1
+         LIMIT ${limit}`,
+  )
+  return (result.rows as { tenantId: string; name: string }[]).map((r) => ({
+    tenantId: r.tenantId,
+    name: r.name,
+  }))
+}
+
+interface NewAccountSession {
+  user: UserRow
+  deviceId: string
+  deviceName: string | null
+  platform: 'web' | 'android' | 'ios'
+  client: ClientInfo
+  now: Date
+}
+
+/**
+ * A session of the shopkeeper's account with no distributor: `tenant_id` and `role` null, as a console session's
+ * are — what tells the two apart is the `platform_admins` row a console account has and a shopkeeper does not. One
+ * live session per device and person, as at every sign-in.
+ */
+async function openAccountSession(tx: Db, s: NewAccountSession): Promise<CreatedSession> {
+  await tx
+    .insert(devices)
+    .values({ id: s.deviceId, userId: s.user.id, platform: s.platform, lastSeenAt: s.now })
+    .onConflictDoUpdate({
+      target: devices.id,
+      set: { userId: s.user.id, platform: s.platform, lastSeenAt: s.now, updatedAt: s.now },
+    })
+  await tx
+    .update(authSessions)
+    .set({ revokedAt: s.now, revokedReason: 'replaced' })
+    .where(
+      and(
+        eq(authSessions.userId, s.user.id),
+        eq(authSessions.deviceId, s.deviceId),
+        isNull(authSessions.revokedAt),
+      ),
+    )
+  return createPlatformSession(tx, s)
+}
+
+/** The account's own pair: no `tid` and no `role` in the token, `tenant` and `role` null on the reply. */
+async function issueAccountPair(
+  keys: AuthKeys,
+  user: UserRow,
+  rows: readonly MembershipRow[],
+  session: CreatedSession,
+  now: Date,
+): Promise<AccountTokenPair> {
+  const { accessTtlSeconds } = authTtl()
+  const access = await signAccessToken(
+    {
+      userId: user.id,
+      tenantId: null,
+      role: null,
+      sessionId: session.row.id,
+      deviceId: session.row.deviceId,
+      mustChangePassword: user.mustChangePassword,
+    },
+    keys,
+    accessTtlSeconds,
+    now,
+  )
+  return {
+    accessToken: access.token,
+    tokenType: 'Bearer',
+    accessExpiresIn: accessTtlSeconds,
+    refreshToken: session.refresh.token,
+    refreshExpiresAt: session.row.refreshExpiresAt.toISOString(),
+    user: toAuthUser(user),
+    tenant: null,
+    role: null,
+    memberships: rows.map(toMembershipSummary),
+  }
+}
+
+/**
+ * Refresh a session of the shopkeeper's account with no distributor. When a distributor has approved since, the
+ * session MOVES onto it (the first active one, in the order the memberships were made) and the answer is a pair on
+ * that distributor's shop — "the next sign-in or refresh lands on the shop front". Otherwise the account's own pair,
+ * rotated like every refresh. A person who is no longer a shopkeeper's account is signed out.
+ */
+async function refreshAccount(
+  tx: Db,
+  keys: AuthKeys,
+  a: {
+    session: SessionRow
+    user: UserRow
+    rows: MembershipRow[]
+    presentedHash: string
+    client: ClientInfo
+    now: Date
+  },
+): Promise<Outcome<SignInPair>> {
+  const { session, user, rows, now } = a
+  if (!isShopkeeperAccount(user, rows)) {
+    await revokeSession(tx, session.id, 'membership_disabled', now)
+    return fail(noAccess())
+  }
+  const next = rows.find((r) => r.membership.status === 'active' && r.tenant.status === 'active')
+  const refresh = newRefreshToken()
+  const rotated = {
+    ...session,
+    tenantId: next ? next.membership.tenantId : null,
+    role: next ? next.membership.role : null,
+    refreshExpiresAt: refreshExpiry(now),
+    lastUsedAt: now,
+  }
+  await tx
+    .update(authSessions)
+    .set({
+      tenantId: rotated.tenantId,
+      role: rotated.role,
+      refreshTokenHash: refresh.hash,
+      previousRefreshTokenHash: a.presentedHash,
+      refreshExpiresAt: rotated.refreshExpiresAt,
+      lastUsedAt: now,
+      ip: a.client.ip,
+      userAgent: a.client.userAgent,
+    })
+    .where(eq(authSessions.id, session.id))
+  await logEvent(tx, {
+    userId: user.id,
+    tenantId: rotated.tenantId,
+    kind: 'refresh',
+    client: a.client,
+  })
+  if (next) {
+    return ok(
+      await issuePair(keys, user, next, rows, { row: rotated, refresh }, now, next.membership.role),
+    )
+  }
+  return ok(await issueAccountPair(keys, user, rows, { row: rotated, refresh }, now))
 }
 
 // ------------------------------------------------------------------ transaction helpers

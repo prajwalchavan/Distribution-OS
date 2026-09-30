@@ -1,10 +1,11 @@
-import { and, eq, isNull, sql } from 'drizzle-orm'
+import { and, eq, isNull, ne, sql } from 'drizzle-orm'
 import { ORPCError } from '@orpc/server'
 import { uuidv7 } from '@dos/domain'
 import {
   authEvents,
   authSessions,
   hashPassword,
+  memberships,
   normalizeUsername,
   users,
   validatePassword,
@@ -170,8 +171,9 @@ export async function setFirstPassword(
 
 /**
  * Is this sign-in used anywhere but this distributor — a membership of ANOTHER distributor (in any
- * role, in any state, since a switched-off one can be switched back on) or a platform console seat
- * (enabled or not)? A password, a name and a phone are the PERSON's, global, so a desk may change them
+ * role, in any state, since a switched-off one can be switched back on), a platform console seat
+ * (enabled or not), or an account the person made themselves (`auth.signUp`, whose password nobody
+ * else ever knows)? A password, a name and a phone are the PERSON's, global, so a desk may change them
  * only for a sign-in that is its alone: one set here would open, or rename, the person at that other
  * business too — as its shopkeeper, its staff or its owner — and a shop's sign-in is never shared on
  * the strength of a phone number (architect's ruling of 2026-09-29, docs/22 §8).
@@ -184,10 +186,15 @@ export async function usedElsewhere(
   sys: Db,
   input: { userId: string; tenantId: string },
 ): Promise<boolean> {
+  // THE SHOPKEEPER'S OWN ACCOUNT (founder, 2026-09-29, docs/22 §8): a login the person made themselves
+  // (`users.signed_up_at`) is never a desk's — not to set a password on, rename, re-number, hire or give a shop's
+  // sign-in on — whichever distributors it has joined. Asked in the same statement, so the answer for it takes the
+  // same work as for another distributor's person and the desk cannot tell the two apart.
   const result = await sys.execute(
     sql`SELECT (
           EXISTS (SELECT 1 FROM memberships WHERE user_id = ${input.userId} AND tenant_id <> ${input.tenantId})
           OR EXISTS (SELECT 1 FROM platform_admins WHERE user_id = ${input.userId})
+          OR EXISTS (SELECT 1 FROM users WHERE id = ${input.userId} AND signed_up_at IS NOT NULL)
         ) AS shared`,
   )
   const row = result.rows[0] as { shared?: unknown } | undefined
@@ -237,6 +244,63 @@ export async function revokeTenantSessions(
       kind: 'session_revoked',
     })
   }
+}
+
+/** Did the person make this login themselves (`auth.signUp`)? Read as the system role. */
+export async function madeByThemselves(sys: Db, userId: string): Promise<boolean> {
+  const [row] = await sys
+    .select({ at: users.signedUpAt })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1)
+  return row?.at != null
+}
+
+/**
+ * THE SHOPKEEPER LEAVES A DISTRIBUTOR (founder, 2026-09-29: "each joined and left separately"): its shopkeeper
+ * membership there is switched off and every live session of the person AT THAT DISTRIBUTOR is revoked — but the one
+ * the person is using (`keepSessionId`), which auth moves to another of their distributors, or to "no distributor
+ * yet". A staff membership is never touched here: a person who works for a distributor does not "leave" it from the
+ * shop's app. Their other distributors, their password and their account stay. Answers whether a shopkeeper
+ * membership was there to switch off.
+ */
+export async function leaveShopHere(
+  sys: Db,
+  input: { tenantId: string; userId: string; keepSessionId: string },
+): Promise<boolean> {
+  const now = new Date()
+  const left = await sys
+    .update(memberships)
+    .set({ status: 'disabled', updatedAt: now })
+    .where(
+      and(
+        eq(memberships.tenantId, input.tenantId),
+        eq(memberships.userId, input.userId),
+        eq(memberships.role, 'retailer'),
+      ),
+    )
+    .returning({ id: memberships.id })
+  const revoked = await sys
+    .update(authSessions)
+    .set({ revokedAt: now, revokedReason: 'membership_disabled' })
+    .where(
+      and(
+        eq(authSessions.userId, input.userId),
+        eq(authSessions.tenantId, input.tenantId),
+        ne(authSessions.id, input.keepSessionId),
+        isNull(authSessions.revokedAt),
+      ),
+    )
+    .returning({ id: authSessions.id })
+  if (revoked.length > 0) {
+    await sys.insert(authEvents).values({
+      id: uuidv7(),
+      userId: input.userId,
+      tenantId: input.tenantId,
+      kind: 'session_revoked',
+    })
+  }
+  return left.length > 0
 }
 
 export function isUniqueViolation(err: unknown): boolean {

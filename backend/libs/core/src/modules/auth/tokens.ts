@@ -124,6 +124,14 @@ export function hashRefreshToken(token: string): string {
   return createHash('sha256').update(token, 'utf8').digest('hex')
 }
 
+/**
+ * The key a rate limit is counted under when it would otherwise hold a person's phone number (`otp_rate_limits`):
+ * the first 32 hex characters of its sha256, so the abuse table never stores a number in clear.
+ */
+export function hashRateKey(value: string): string {
+  return createHash('sha256').update(value, 'utf8').digest('hex').slice(0, 32)
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // password reset — a signed, self-invalidating token; no table (docs/23 §8.12)
 

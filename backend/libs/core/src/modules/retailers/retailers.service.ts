@@ -3,6 +3,11 @@ import { and, asc, desc, eq, gt, gte, ilike, isNull, lte, or, type SQL } from 'd
 import { ORPCError } from '@orpc/server'
 import type { z } from 'zod'
 import type {
+  ApproveJoinIn,
+  JoinRequestOut,
+  JoinRequestsListIn,
+  JoinRequestsListOut,
+  RefuseJoinIn,
   AssignBeatInput,
   AssignBeatOutput,
   GiveShopSignInIn,
@@ -89,6 +94,7 @@ import {
 import { contactPreferences, contactPreferencesFor, type ContactPreferences } from './contact.js'
 import { findOrCreateIdentity, nextRetailerCode } from './retailers.helpers.js'
 import { giveNewFirstPassword, giveSignIn, signInsFor, stopSignIn } from './sign-in.js'
+import { approveJoin, listJoinRequests, refuseJoin } from './joins.js'
 import {
   pickCredit,
   toAssignment,
@@ -313,6 +319,25 @@ export class RetailersService {
   async stopSignIn(input: ShopSignInStopIn): Promise<ShopSignInOut> {
     requireRole(ONBOARDERS)
     return stopSignIn(requireDb(this.db), this.tenancy, input)
+  }
+
+  /**
+   * The shopkeeper is independent (founder, 2026-09-29): shopkeepers who signed up alone ask to be joined to one of
+   * this distributor's shops; the owner or the manager reads who asks and decides (`joins.ts`).
+   */
+  async listJoinRequests(input: JoinRequestsListIn): Promise<JoinRequestsListOut> {
+    requireRole(ONBOARDERS)
+    return listJoinRequests(requireDb(this.db), input)
+  }
+
+  async approveJoin(input: ApproveJoinIn): Promise<JoinRequestOut> {
+    requireRole(ONBOARDERS)
+    return approveJoin(requireDb(this.db), this.tenancy, input)
+  }
+
+  async refuseJoin(input: RefuseJoinIn): Promise<JoinRequestOut> {
+    requireRole(ONBOARDERS)
+    return refuseJoin(requireDb(this.db), input)
   }
 
   /**

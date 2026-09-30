@@ -13,6 +13,13 @@ import {
   StateCodeSchema,
   UsernameSchema,
 } from './common.js'
+import {
+  ApproveJoinInput,
+  JoinRequestOutput,
+  JoinRequestsListInput,
+  JoinRequestsListOutput,
+  RefuseJoinInput,
+} from './shop-joins.js'
 
 /**
  * Retailers (ADR 0006): the distributor's private record of a shop, its beats, PJP visits and the link to the
@@ -109,6 +116,12 @@ export const RetailerSchema = RetailerPublicSchema.extend({
    * known to the platform (docs/17 item 27).
    */
   appSignIn: ShopSignInSchema.nullable().optional(),
+  /**
+   * Expand-only (the shopkeeper is independent, founder 2026-09-29): the SHOP CODE printed on this shop's bills,
+   * `K7MQ-4P2X`, which a shopkeeper who signed up alone types to ask to be joined to this shop. Unique across the
+   * platform and made by the database for every shop. Absent from a server older than it.
+   */
+  shopCode: z.string().optional(),
 })
 export type Retailer = z.infer<typeof RetailerSchema>
 
@@ -417,7 +430,7 @@ export const VisitsListInput = z.object({
 export const VisitsListOutput = z.object({ items: z.array(VisitSchema) })
 
 /** Mounted in contract.ts as `retailers: retailersContract`. */
-export const retailersContract = {
+const retailersContractBody = {
   list: oc
     .route({
       method: 'GET',
@@ -494,6 +507,36 @@ export const retailersContract = {
       .input(ShopSignInStopInput)
       .output(ShopSignInOutput),
   },
+  /**
+   * The desk's half of a shopkeeper's request to be joined to a shop (founder, 2026-09-29; `shop-joins.ts`): the
+   * owner or the manager reads who asks, and approves or refuses. Never the accountant, the field or a shop.
+   */
+  joins: {
+    list: oc
+      .route({
+        method: 'GET',
+        path: '/shop-joins',
+        summary: 'Shopkeepers asking to be joined to one of your shops (waiting first)',
+      })
+      .input(JoinRequestsListInput)
+      .output(JoinRequestsListOutput),
+    approve: oc
+      .route({
+        method: 'POST',
+        path: '/shop-joins/{id}/approve',
+        summary: 'Join the shopkeeper to the shop: they see its bills, dues and rates in their app',
+      })
+      .input(ApproveJoinInput)
+      .output(JoinRequestOutput),
+    refuse: oc
+      .route({
+        method: 'POST',
+        path: '/shop-joins/{id}/refuse',
+        summary: 'Refuse the request, with the one line the shopkeeper reads',
+      })
+      .input(RefuseJoinInput)
+      .output(JoinRequestOutput),
+  },
   beats: {
     list: oc
       .route({ method: 'GET', path: '/beats', summary: 'Beats of this distributor' })
@@ -533,3 +576,13 @@ export const retailersContract = {
       .output(VisitsListOutput),
   },
 }
+
+/**
+ * A NAMED type for this contract, so that the whole contract's declaration (`contract.d.ts`) refers to it instead of
+ * writing it out again. The whole contract's inferred type is at the length the compiler will serialize (TS7056:
+ * "exceeds the maximum length the compiler will serialize"), and a module written out inline pushes it over with
+ * every procedure it gains. The wire and every type a caller reads are unchanged.
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- a name for an inferred type, nothing more
+export interface RetailersContract extends Readonly<typeof retailersContractBody> {}
+export const retailersContract: RetailersContract = retailersContractBody

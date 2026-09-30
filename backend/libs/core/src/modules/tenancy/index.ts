@@ -29,3 +29,9 @@ export { userLabels, memberLabels } from './user-labels.js'
  * coordination §4). Plain function.
  */
 export { activeMembersWithRole } from './user-labels.js'
+/**
+ * The shopkeeper's own account (founder, 2026-09-29): auth switches a shopkeeper's membership off when the person
+ * leaves a distributor from the app, and asks whether a login is one the person made themselves. Plain functions,
+ * run in auth's own system transaction.
+ */
+export { leaveShopHere, madeByThemselves } from './credentials.js'

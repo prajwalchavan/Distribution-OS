@@ -125,7 +125,7 @@ async function currentSignIn(
 }
 
 /** The shop, locked for the length of the write so two desks giving it a sign-in queue up. */
-async function lockShop(tx: Db, id: string): Promise<ShopRow> {
+export async function lockShop(tx: Db, id: string): Promise<ShopRow> {
   const [shop] = await tx.select().from(retailers).where(eq(retailers.id, id)).for('update')
   if (!shop) throw new ORPCError('NOT_FOUND', { message: 'This shop is not on your books.' })
   return shop
@@ -176,7 +176,7 @@ function personName(shop: ShopRow): string {
 }
 
 /** The shop's platform identity by phone, wherever it was made (system: another distributor's is hidden). */
-async function identityByPhone(
+export async function identityByPhone(
   sys: Db,
   phone: string,
 ): Promise<{ id: string; userId: string | null } | null> {
@@ -193,7 +193,7 @@ async function identityByPhone(
  * nobody yet. An identity that already names a login keeps it — that login IS the shopkeeper, and
  * `TenancyService.shopLogin` was handed it first.
  */
-async function claimIdentity(
+export async function claimIdentity(
   sys: Db,
   input: { phone: string; shopName: string; gstin: string | null; userId: string },
 ): Promise<string> {

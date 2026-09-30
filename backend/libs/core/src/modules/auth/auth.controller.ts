@@ -46,6 +46,65 @@ export class AuthController {
     )
   }
 
+  /** The shopkeeper's own account (founder, 2026-09-29): public, like sign-in. */
+  @Implement(contract.auth.signUp)
+  signUp(@OwnsReply() _reply: unknown, @Req() req: FastifyRequest) {
+    const client = clientInfo(req)
+    return implement(contract.auth.signUp).handler(({ input }) => this.auth.signUp(input, client))
+  }
+
+  // The shopkeeper's half of joining a distributor's shop: the account's Bearer token, with or without a
+  // distributor. Never while a desk's first password is still in use (`@WhileChoosingPassword()` is not set).
+
+  @UseGuards(AccessTokenGuard)
+  @Implement(contract.auth.joins.lookup)
+  joinLookup(@OwnsReply() _reply: unknown, @CurrentAuth() auth: AuthClaims) {
+    return implement(contract.auth.joins.lookup).handler(({ input }) =>
+      this.auth.joinLookup(auth, input),
+    )
+  }
+
+  @UseGuards(AccessTokenGuard)
+  @Implement(contract.auth.joins.distributors)
+  joinDistributors(@OwnsReply() _reply: unknown, @CurrentAuth() auth: AuthClaims) {
+    return implement(contract.auth.joins.distributors).handler(({ input }) =>
+      this.auth.joinDistributors(auth, input),
+    )
+  }
+
+  @UseGuards(AccessTokenGuard)
+  @Implement(contract.auth.joins.ask)
+  joinAsk(@OwnsReply() _reply: unknown, @CurrentAuth() auth: AuthClaims) {
+    return implement(contract.auth.joins.ask).handler(({ input }) => this.auth.joinAsk(auth, input))
+  }
+
+  @UseGuards(AccessTokenGuard)
+  @Implement(contract.auth.joins.mine)
+  joinMine(@OwnsReply() _reply: unknown, @CurrentAuth() auth: AuthClaims) {
+    return implement(contract.auth.joins.mine).handler(() => this.auth.joinMine(auth))
+  }
+
+  @UseGuards(AccessTokenGuard)
+  @Implement(contract.auth.joins.withdraw)
+  joinWithdraw(@OwnsReply() _reply: unknown, @CurrentAuth() auth: AuthClaims) {
+    return implement(contract.auth.joins.withdraw).handler(({ input }) =>
+      this.auth.joinWithdraw(auth, input),
+    )
+  }
+
+  @UseGuards(AccessTokenGuard)
+  @Implement(contract.auth.joins.leave)
+  joinLeave(
+    @OwnsReply() _reply: unknown,
+    @CurrentAuth() auth: AuthClaims,
+    @Req() req: FastifyRequest,
+  ) {
+    const client = clientInfo(req)
+    return implement(contract.auth.joins.leave).handler(({ input }) =>
+      this.auth.joinLeave(auth, input, client),
+    )
+  }
+
   // ------------------------------------------------------------ the platform console (module 13)
 
   @Implement(contract.auth.platformLogin)

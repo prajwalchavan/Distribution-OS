@@ -192,6 +192,20 @@ describe('document renderer', () => {
     }
   })
 
+  it('prints the shop code beside the shop’s name, on the A4, A5 and thermal bill (the shopkeeper is independent)', () => {
+    for (const format of ['a4', 'a5', 'thermal80'] as const) {
+      const withCode = pdfText(
+        renderInvoice(
+          { ...invoice, buyerShopCode: 'K7MQ-4P2X' },
+          { format, copy: 'original', logo: null },
+        ),
+      )
+      expect(withCode, format).toContain('(Shop code K7MQ-4P2X)')
+      const without = pdfText(renderInvoice(invoice, { format, copy: 'original', logo: null }))
+      expect(without, format).not.toContain('Shop code')
+    }
+  })
+
   it('renders the 80 mm thermal slip with a growing page and the UPI id', () => {
     const pdf = renderInvoice(invoice, { format: 'thermal80', copy: 'duplicate', logo: null })
     const text = pdfText(pdf)

@@ -43,6 +43,13 @@ import {
 } from '../../platform/index.js'
 import { SERVICE_INFO, type ServiceDefinition } from '../../service/define.js'
 
+/**
+ * What every distributor's service answers a token with no distributor in it: the shopkeeper's own account before
+ * any distributor has approved its request to join a shop (founder, 2026-09-29). In words, and it says what to do.
+ */
+export const NOT_JOINED_YET =
+  'This account is not joined to a distributor yet. Ask to join a distributor’s shop from the app; you can use this once they approve.'
+
 /** Seconds of clock skew tolerated on exp/nbf, the same value auth-service documents for its clients. */
 export const AUTH_CLOCK_TOLERANCE_SECONDS = 30
 
@@ -202,9 +209,9 @@ export class TenantGuard implements CanActivate, OnModuleInit {
     }
 
     if (claims.tid === null || claims.role === null) {
-      throw new ForbiddenException(
-        'this token has no active tenant; sign in to a distributor first',
-      )
+      // The shopkeeper's own account before any distributor has joined it (founder, 2026-09-29, docs/22 §8): its
+      // token carries no distributor, so nothing of any distributor's service is its to call yet.
+      throw new ForbiddenException(NOT_JOINED_YET)
     }
     this.requireServed(claims.role)
     if (!isAllowed(permission, claims.role)) {

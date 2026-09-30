@@ -144,6 +144,9 @@ Full request/response samples are in `backend/owner-service/README.md`.
 | POST | `/retailers/{id}/sign-in` | Give the shop an app sign-in (a username and a first password, shown once) | owner, manager |
 | POST | `/retailers/{id}/sign-in/password` | Give the shop a new first password; it must choose its own at the next sign-in | owner, manager |
 | POST | `/retailers/{id}/sign-in/stop` | Stop the shop signing in to this distributor (orders, bills and dues stay) | owner, manager |
+| GET | `/shop-joins` | Shopkeepers asking to be joined to one of your shops (waiting first) | owner, manager |
+| POST | `/shop-joins/{id}/approve` | Join the shopkeeper to the shop: they see its bills, dues and rates in their app | owner, manager |
+| POST | `/shop-joins/{id}/refuse` | Refuse the request, with the one line the shopkeeper reads | owner, manager |
 | GET | `/beats` | Beats of this distributor | owner, manager, accountant, salesperson, warehouse, delivery |
 | POST | `/beats` | Create or update a beat | owner, manager |
 | POST | `/beats/{id}/assign` | Assign a salesperson to a beat for a date range | owner, manager |
@@ -507,6 +510,9 @@ Full request/response samples are in `backend/manager-service/README.md`.
 | POST | `/retailers/{id}/sign-in` | Give the shop an app sign-in (a username and a first password, shown once) | owner, manager |
 | POST | `/retailers/{id}/sign-in/password` | Give the shop a new first password; it must choose its own at the next sign-in | owner, manager |
 | POST | `/retailers/{id}/sign-in/stop` | Stop the shop signing in to this distributor (orders, bills and dues stay) | owner, manager |
+| GET | `/shop-joins` | Shopkeepers asking to be joined to one of your shops (waiting first) | owner, manager |
+| POST | `/shop-joins/{id}/approve` | Join the shopkeeper to the shop: they see its bills, dues and rates in their app | owner, manager |
+| POST | `/shop-joins/{id}/refuse` | Refuse the request, with the one line the shopkeeper reads | owner, manager |
 | GET | `/beats` | Beats of this distributor | owner, manager, accountant, salesperson, warehouse, delivery |
 | POST | `/beats` | Create or update a beat | owner, manager |
 | POST | `/beats/{id}/assign` | Assign a salesperson to a beat for a date range | owner, manager |
@@ -870,6 +876,9 @@ Full request/response samples are in `backend/sales-service/README.md`.
 | POST | `/retailers/{id}/sign-in` | Give the shop an app sign-in (a username and a first password, shown once) | owner, manager |
 | POST | `/retailers/{id}/sign-in/password` | Give the shop a new first password; it must choose its own at the next sign-in | owner, manager |
 | POST | `/retailers/{id}/sign-in/stop` | Stop the shop signing in to this distributor (orders, bills and dues stay) | owner, manager |
+| GET | `/shop-joins` | Shopkeepers asking to be joined to one of your shops (waiting first) | owner, manager |
+| POST | `/shop-joins/{id}/approve` | Join the shopkeeper to the shop: they see its bills, dues and rates in their app | owner, manager |
+| POST | `/shop-joins/{id}/refuse` | Refuse the request, with the one line the shopkeeper reads | owner, manager |
 | GET | `/beats` | Beats of this distributor | owner, manager, accountant, salesperson, warehouse, delivery |
 | POST | `/beats` | Create or update a beat | owner, manager |
 | POST | `/beats/{id}/assign` | Assign a salesperson to a beat for a date range | owner, manager |
@@ -1084,6 +1093,9 @@ Full request/response samples are in `backend/warehouse-service/README.md`.
 | POST | `/retailers/{id}/sign-in` | Give the shop an app sign-in (a username and a first password, shown once) | owner, manager |
 | POST | `/retailers/{id}/sign-in/password` | Give the shop a new first password; it must choose its own at the next sign-in | owner, manager |
 | POST | `/retailers/{id}/sign-in/stop` | Stop the shop signing in to this distributor (orders, bills and dues stay) | owner, manager |
+| GET | `/shop-joins` | Shopkeepers asking to be joined to one of your shops (waiting first) | owner, manager |
+| POST | `/shop-joins/{id}/approve` | Join the shopkeeper to the shop: they see its bills, dues and rates in their app | owner, manager |
+| POST | `/shop-joins/{id}/refuse` | Refuse the request, with the one line the shopkeeper reads | owner, manager |
 | GET | `/beats` | Beats of this distributor | owner, manager, accountant, salesperson, warehouse, delivery |
 | POST | `/beats` | Create or update a beat | owner, manager |
 | POST | `/beats/{id}/assign` | Assign a salesperson to a beat for a date range | owner, manager |
@@ -1353,6 +1365,9 @@ Full request/response samples are in `backend/delivery-service/README.md`.
 | POST | `/retailers/{id}/sign-in` | Give the shop an app sign-in (a username and a first password, shown once) | owner, manager |
 | POST | `/retailers/{id}/sign-in/password` | Give the shop a new first password; it must choose its own at the next sign-in | owner, manager |
 | POST | `/retailers/{id}/sign-in/stop` | Stop the shop signing in to this distributor (orders, bills and dues stay) | owner, manager |
+| GET | `/shop-joins` | Shopkeepers asking to be joined to one of your shops (waiting first) | owner, manager |
+| POST | `/shop-joins/{id}/approve` | Join the shopkeeper to the shop: they see its bills, dues and rates in their app | owner, manager |
+| POST | `/shop-joins/{id}/refuse` | Refuse the request, with the one line the shopkeeper reads | owner, manager |
 | GET | `/beats` | Beats of this distributor | owner, manager, accountant, salesperson, warehouse, delivery |
 | POST | `/beats` | Create or update a beat | owner, manager |
 | POST | `/beats/{id}/assign` | Assign a salesperson to a beat for a date range | owner, manager |
@@ -1631,6 +1646,9 @@ Full request/response samples are in `backend/retailer-service/README.md`.
 | POST | `/retailers/{id}/sign-in` | Give the shop an app sign-in (a username and a first password, shown once) | owner, manager |
 | POST | `/retailers/{id}/sign-in/password` | Give the shop a new first password; it must choose its own at the next sign-in | owner, manager |
 | POST | `/retailers/{id}/sign-in/stop` | Stop the shop signing in to this distributor (orders, bills and dues stay) | owner, manager |
+| GET | `/shop-joins` | Shopkeepers asking to be joined to one of your shops (waiting first) | owner, manager |
+| POST | `/shop-joins/{id}/approve` | Join the shopkeeper to the shop: they see its bills, dues and rates in their app | owner, manager |
+| POST | `/shop-joins/{id}/refuse` | Refuse the request, with the one line the shopkeeper reads | owner, manager |
 | GET | `/beats` | Beats of this distributor | owner, manager, accountant, salesperson, warehouse, delivery |
 | POST | `/beats` | Create or update a beat | owner, manager |
 | POST | `/beats/{id}/assign` | Assign a salesperson to a beat for a date range | owner, manager |

@@ -683,6 +683,11 @@ describeDb('billing (DATABASE_URL)', () => {
     expect(bill.seller.upiVpa).toBe(`bill${run}@okhdfcbank`)
     expect(bill.upiQrPayload).toContain('upi://pay?pa=')
     expect(bill.upiQrPayload).toContain('tr=TST-0501')
+    // The shopkeeper is independent (founder, 2026-09-29): the bill carries the shop code the shopkeeper types in the
+    // app to ask to be joined to this shop — the code the database made for this shop.
+    expect((bill as { buyerShopCode?: string }).buyerShopCode).toMatch(
+      /^[2-9A-HJKMNP-Z]{4}-[2-9A-HJKMNP-Z]{4}$/,
+    )
 
     expect(bill.lines).toHaveLength(1)
     const line = bill.lines[0]

@@ -78,6 +78,7 @@ import {
   reviewSessions,
   salesOrderLines,
   salesOrders,
+  shopJoinRequests,
   skuMatchCandidates,
   stockBalances,
   stockLedger,
@@ -8952,3 +8953,384 @@ describeDb('a shopkeeper the desk gave a sign-in (DOS-400)', () => {
     expect(kept).toEqual({ orders: 2, bills: 2 })
   })
 })
+
+describeDb(
+  'the shopkeeper’s own account and its requests to join a shop (founder, 2026-09-29)',
+  () => {
+    const pool = createPool(url ?? '')
+    const db: Db = createDb(pool)
+    const run = uuidv7()
+      .slice(-7)
+      .replace(/[^0-9]/g, '6')
+      .padStart(7, '6')
+    const mobile = (n: number) => `+917${run}${String(n)}`
+    const here = uuidv7()
+    const there = uuidv7()
+    const people = {
+      owner: uuidv7(),
+      manager: uuidv7(),
+      accountant: uuidv7(),
+      rep: uuidv7(),
+      ownerThere: uuidv7(),
+      account: uuidv7(),
+      stranger: uuidv7(),
+    }
+    const shop = uuidv7()
+    const shopThere = uuidv7()
+    const bill = uuidv7()
+    const request = uuidv7()
+    const byName = uuidv7()
+    const strangersRequest = uuidv7()
+
+    /** The account as auth-service runs it: its own id, the shopkeeper role, and no distributor at all. */
+    function asAccount<T>(userId: string, fn: (tx: Db) => Promise<T>): Promise<T> {
+      return withTenant(db, { tenantId: '', actorId: userId, actorRole: 'retailer' }, fn)
+    }
+    const asDesk = <T>(
+      actorId: string,
+      actorRole: 'owner' | 'manager' | 'accountant' | 'salesperson',
+      fn: (tx: Db) => Promise<T>,
+      tenantId = here,
+    ) => withTenant(db, { tenantId, actorId, actorRole }, fn)
+
+    const requestsSeen = async (tx: Db): Promise<string[]> =>
+      (await tx.select({ id: shopJoinRequests.id }).from(shopJoinRequests)).map((r) => r.id).sort()
+
+    const mine = () => ({
+      id: request,
+      tenantId: here,
+      userId: people.account,
+      via: 'code' as const,
+      retailerId: shop as string | null,
+      shopName: 'My shop',
+      personName: 'Own account',
+      personPhone: mobile(21),
+    })
+
+    beforeAll(async () => {
+      await db.insert(tenants).values([
+        { id: here, slug: `join-h-${run}`, legalName: 'Joins here', stateCode: '27' },
+        { id: there, slug: `join-t-${run}`, legalName: 'Joins there', stateCode: '27' },
+      ])
+      await db.insert(users).values([
+        { id: people.owner, phone: mobile(11), name: 'Owner' },
+        { id: people.manager, phone: mobile(12), name: 'Manager' },
+        { id: people.accountant, phone: mobile(13), name: 'Accountant' },
+        { id: people.rep, phone: mobile(14), name: 'Rep' },
+        { id: people.ownerThere, phone: mobile(15), name: 'Owner there' },
+        { id: people.account, phone: mobile(21), name: 'Own account', signedUpAt: new Date() },
+        { id: people.stranger, phone: mobile(22), name: 'Stranger', signedUpAt: new Date() },
+      ])
+      await db.insert(memberships).values([
+        { id: uuidv7(), tenantId: here, userId: people.owner, role: 'owner' },
+        { id: uuidv7(), tenantId: here, userId: people.manager, role: 'manager' },
+        { id: uuidv7(), tenantId: here, userId: people.accountant, role: 'accountant' },
+        { id: uuidv7(), tenantId: here, userId: people.rep, role: 'salesperson' },
+        { id: uuidv7(), tenantId: there, userId: people.ownerThere, role: 'owner' },
+      ])
+      await db.insert(retailers).values([
+        {
+          id: shop,
+          tenantId: here,
+          code: `J${run}`,
+          name: 'Asked shop',
+          phone: mobile(31),
+          stateCode: '27',
+        },
+        {
+          id: shopThere,
+          tenantId: there,
+          code: `K${run}`,
+          name: 'Other books',
+          phone: mobile(32),
+          stateCode: '27',
+        },
+      ])
+      await db.insert(invoices).values({
+        id: bill,
+        tenantId: here,
+        invoiceNo: `J${run}/1`,
+        fy: '2026-27',
+        invoiceDate: '2026-09-30',
+        retailerId: shop,
+        state: 'issued',
+        buyerName: 'Asked shop',
+        placeOfSupplyState: '27',
+        totalPaise: 12_300,
+      })
+      // The stranger's own request to the same distributor, filed as the stranger.
+      await asAccount(people.stranger, (tx) =>
+        tx.insert(shopJoinRequests).values({
+          id: strangersRequest,
+          tenantId: here,
+          userId: people.stranger,
+          via: 'name',
+          shopName: 'Stranger stores',
+          personName: 'Stranger',
+          personPhone: mobile(22),
+        }),
+      )
+    })
+
+    afterAll(async () => {
+      await pool.end()
+    })
+
+    it('reads nothing of any distributor before a distributor approves', async () => {
+      const seen = await asAccount(people.account, async (tx) => ({
+        shops: (await tx.select({ id: retailers.id }).from(retailers)).length,
+        bills: (await tx.select({ id: invoices.id }).from(invoices)).length,
+      }))
+      expect(seen).toEqual({ shops: 0, bills: 0 })
+      // Even a context naming the distributor reads nothing: no link carries the account yet.
+      const forged = await withTenant(
+        db,
+        { tenantId: here, actorId: people.account, actorRole: 'retailer' },
+        async (tx) => (await tx.select({ id: invoices.id }).from(invoices)).length,
+      )
+      expect(forged).toBe(0)
+    })
+
+    it('files a request only in its own name and number, waiting and undecided', async () => {
+      await asAccount(people.account, (tx) => tx.insert(shopJoinRequests).values(mine()))
+      // for somebody else: no policy admits it
+      await rejectsWith(
+        asAccount(people.account, (tx) =>
+          tx.insert(shopJoinRequests).values({
+            ...mine(),
+            id: uuidv7(),
+            via: 'name',
+            retailerId: null,
+            userId: people.stranger,
+          }),
+        ),
+        /row-level security|its own name and number/,
+      )
+      // in somebody else's number
+      await rejectsWith(
+        asAccount(people.account, (tx) =>
+          tx.insert(shopJoinRequests).values({
+            ...mine(),
+            id: uuidv7(),
+            retailerId: null,
+            via: 'name',
+            personPhone: mobile(22),
+          }),
+        ),
+        /its own name and number/,
+      )
+      // already approved
+      await rejectsWith(
+        asAccount(people.account, (tx) =>
+          tx.insert(shopJoinRequests).values({
+            ...mine(),
+            id: uuidv7(),
+            retailerId: null,
+            via: 'name',
+            state: 'approved',
+          }),
+        ),
+        /row-level security|filed waiting/,
+      )
+      // by code, naming a shop of another distributor
+      await rejectsWith(
+        asAccount(people.account, (tx) =>
+          tx.insert(shopJoinRequests).values({ ...mine(), id: uuidv7(), retailerId: shopThere }),
+        ),
+        /a shop of the distributor asked/,
+      )
+      // twice for the same shop while it waits
+      await rejectsWith(
+        asAccount(people.account, (tx) =>
+          tx.insert(shopJoinRequests).values({ ...mine(), id: uuidv7() }),
+        ),
+        /shop_join_requests_waiting_idx/,
+      )
+      await asAccount(people.account, (tx) =>
+        tx.insert(shopJoinRequests).values({
+          ...mine(),
+          id: byName,
+          via: 'name',
+          retailerId: null,
+          shopName: 'By name',
+        }),
+      )
+    })
+
+    it('shows an account its own requests and nobody else’s', async () => {
+      expect(await asAccount(people.account, requestsSeen)).toEqual([request, byName].sort())
+      expect(await asAccount(people.stranger, requestsSeen)).toEqual([strangersRequest])
+    })
+
+    it('shows the distributor’s owner and manager its requests; the accountant, the rep and another distributor nothing', async () => {
+      const all = [request, byName, strangersRequest].sort()
+      expect(await asDesk(people.owner, 'owner', requestsSeen)).toEqual(all)
+      expect(await asDesk(people.manager, 'manager', requestsSeen)).toEqual(all)
+      expect(await asDesk(people.accountant, 'accountant', requestsSeen)).toEqual([])
+      expect(await asDesk(people.rep, 'salesperson', requestsSeen)).toEqual([])
+      expect(await asDesk(people.ownerThere, 'owner', requestsSeen, there)).toEqual([])
+      // Nor can they decide one: their UPDATE reaches no row.
+      const decide = (tx: Db, by: string) =>
+        tx
+          .update(shopJoinRequests)
+          .set({ state: 'refused', reason: 'no', decidedBy: by, decidedAt: new Date() })
+          .where(eq(shopJoinRequests.id, request))
+      await asDesk(people.accountant, 'accountant', (tx) => decide(tx, people.accountant))
+      await asDesk(people.ownerThere, 'owner', (tx) => decide(tx, people.ownerThere), there)
+      const [still] = await db
+        .select()
+        .from(shopJoinRequests)
+        .where(eq(shopJoinRequests.id, request))
+      expect(still?.state).toBe('waiting')
+    })
+
+    it('lets the shopkeeper withdraw only its own waiting request, touching nothing else', async () => {
+      await asAccount(people.account, (tx) =>
+        tx
+          .update(shopJoinRequests)
+          .set({ state: 'withdrawn', updatedAt: new Date() })
+          .where(eq(shopJoinRequests.id, strangersRequest)),
+      )
+      const [theirs] = await db
+        .select()
+        .from(shopJoinRequests)
+        .where(eq(shopJoinRequests.id, strangersRequest))
+      expect(theirs?.state).toBe('waiting')
+      await rejectsWith(
+        asAccount(people.account, (tx) =>
+          tx
+            .update(shopJoinRequests)
+            .set({ state: 'approved', decidedBy: people.account, decidedAt: new Date() })
+            .where(eq(shopJoinRequests.id, request)),
+        ),
+        /row-level security|only withdraw/,
+      )
+      await rejectsWith(
+        asAccount(people.account, (tx) =>
+          tx
+            .update(shopJoinRequests)
+            .set({ state: 'withdrawn', shopName: 'Renamed' })
+            .where(eq(shopJoinRequests.id, byName)),
+        ),
+        /never change/,
+      )
+      await asAccount(people.account, (tx) =>
+        tx
+          .update(shopJoinRequests)
+          .set({ state: 'withdrawn', updatedAt: new Date() })
+          .where(eq(shopJoinRequests.id, byName)),
+      )
+      const [withdrawn] = await db
+        .select()
+        .from(shopJoinRequests)
+        .where(eq(shopJoinRequests.id, byName))
+      expect(withdrawn?.state).toBe('withdrawn')
+    })
+
+    it('decides a request once, with who, when and — for a refusal — why; nobody erases one', async () => {
+      await rejectsWith(
+        asDesk(people.owner, 'owner', (tx) =>
+          tx
+            .update(shopJoinRequests)
+            .set({ state: 'refused', decidedBy: people.owner, decidedAt: new Date() })
+            .where(eq(shopJoinRequests.id, request)),
+        ),
+        /says why/,
+      )
+      await asDesk(people.manager, 'manager', (tx) =>
+        tx
+          .update(shopJoinRequests)
+          .set({ state: 'approved', decidedBy: people.manager, decidedAt: new Date() })
+          .where(eq(shopJoinRequests.id, request)),
+      )
+      await rejectsWith(
+        asDesk(people.owner, 'owner', (tx) =>
+          tx
+            .update(shopJoinRequests)
+            .set({
+              state: 'refused',
+              reason: 'Changed my mind',
+              decidedBy: people.owner,
+              decidedAt: new Date(),
+            })
+            .where(eq(shopJoinRequests.id, request)),
+        ),
+        /stays so/,
+      )
+      await rejectsWith(
+        withSystem(db, (sys) =>
+          sys.delete(shopJoinRequests).where(eq(shopJoinRequests.id, request)),
+        ),
+        /append-only/,
+      )
+      await rejectsWith(
+        db.delete(shopJoinRequests).where(eq(shopJoinRequests.id, byName)),
+        /append-only/,
+      )
+    })
+
+    it('reads that shop’s bills once joined, and still nothing of another distributor', async () => {
+      const identity = uuidv7()
+      await withSystem(db, (sys) =>
+        sys
+          .insert(retailerIdentities)
+          .values({ id: identity, phone: mobile(21), userId: people.account, shopName: 'My shop' }),
+      )
+      await asDesk(people.manager, 'manager', async (tx) => {
+        await tx
+          .insert(memberships)
+          .values({ id: uuidv7(), tenantId: here, userId: people.account, role: 'retailer' })
+        await tx.insert(retailerLinks).values({
+          id: uuidv7(),
+          tenantId: here,
+          identityId: identity,
+          retailerId: shop,
+          userId: people.account,
+          role: 'owner',
+          linkedBy: 'directory_optin',
+          status: 'active',
+        })
+      })
+      const readsAt = (tenantId: string) =>
+        withTenant(db, { tenantId, actorId: people.account, actorRole: 'retailer' }, async (tx) =>
+          (await tx.select({ id: invoices.id }).from(invoices)).map((r) => r.id),
+        )
+      expect(await readsAt(here)).toEqual([bill])
+      expect(await readsAt(there)).toEqual([])
+    })
+
+    it('gives every shop a code from the reading alphabet, unique across the platform, that no actor changes', async () => {
+      const codes = await db
+        .select({ id: retailers.id, code: retailers.shopCode })
+        .from(retailers)
+        .where(inArray(retailers.id, [shop, shopThere]))
+      expect(codes).toHaveLength(2)
+      for (const row of codes) expect(row.code).toMatch(/^[2-9A-HJKMNP-Z]{4}-[2-9A-HJKMNP-Z]{4}$/)
+      await rejectsWith(
+        asDesk(people.owner, 'owner', (tx) =>
+          tx.update(retailers).set({ shopCode: 'AAAA-2222' }).where(eq(retailers.id, shop)),
+        ),
+        /never changed by the app/,
+      )
+      await rejectsWith(
+        withSystem(db, (sys) =>
+          sys.update(retailers).set({ shopCode: 'AAAA-2222' }).where(eq(retailers.id, shop)),
+        ),
+        /never changed by the app/,
+      )
+      const taken = codes.find((c) => c.id === shopThere)?.code ?? ''
+      await rejectsWith(
+        db.insert(retailers).values({
+          id: uuidv7(),
+          tenantId: here,
+          code: `L${run}`,
+          name: 'Copycat',
+          phone: mobile(33),
+          stateCode: '27',
+          shopCode: taken,
+        }),
+        /retailers_shop_code_idx/,
+      )
+    })
+  },
+)

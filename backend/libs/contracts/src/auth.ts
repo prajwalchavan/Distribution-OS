@@ -6,10 +6,22 @@ import {
   MembershipRoleSchema,
   PaiseSchema,
   PasswordSchema,
+  PhoneSchema,
   PlatformAdminLevelSchema,
   PlatformRoleSchema,
   UsernameSchema,
 } from './common.js'
+import {
+  AskToJoinInput,
+  JoinableDistributorsInput,
+  JoinableDistributorsOutput,
+  LeaveDistributorInput,
+  MyJoinRequestOutput,
+  MyJoinRequestsOutput,
+  ShopCodeLookupInput,
+  ShopCodeLookupOutput,
+  WithdrawJoinInput,
+} from './shop-joins.js'
 import { SupportScopeSchema } from './tenancy.js'
 
 /**
@@ -236,6 +248,19 @@ export const LoginInput = z.object({
   actAs: MembershipRoleSchema.optional().describe(
     'Optional. The role this app needs (docs/29 §2). Granted only downward from your membership role, or from the extra roles the owner put on it.',
   ),
+  /**
+   * EXPAND-ONLY (founder, 2026-09-29: the shopkeeper is independent). Send `true` when this app can open an account
+   * that no distributor has joined yet — a shopkeeper who signed up alone (`signUp`), or one whose every distributor
+   * has let it go. Such a sign-in then answers `AccountTokenPairOutput` (`tenant: null`, `role: null`), and the app
+   * shows "Add a distributor". Omitted, that account is refused as before (403, no active membership), so an app
+   * built before the sign-up never receives a pair it cannot read.
+   */
+  accountWithoutDistributor: z
+    .boolean()
+    .optional()
+    .describe(
+      'Optional. true when this app can open an account no distributor has joined yet (a shopkeeper who signed up alone).',
+    ),
 })
 export type LoginIn = z.infer<typeof LoginInput>
 
@@ -271,6 +296,64 @@ export const SwitchTenantInput = z.object({
   ),
 })
 export type SwitchTenantIn = z.infer<typeof SwitchTenantInput>
+
+/**
+ * THE SHOPKEEPER'S OWN ACCOUNT BEFORE ANY DISTRIBUTOR HAS JOINED IT (founder, 2026-09-29, docs/22 §8). The same pair
+ * as `TokenPairOutput`, with `tenant` and `role` null: the access token carries no `tid` and no `role`, so every
+ * procedure of every distributor's service answers 403 in words ("not joined to a distributor yet"), and auth-service
+ * answers the account's own things — `me`, `changePassword`, sessions, sign-out and the join requests (`joins.*`).
+ * `memberships` lists what the account had (a distributor it left, switched off). Answered by `signUp`, by `login`
+ * when it sends `accountWithoutDistributor`, and by `refresh` for such a session; once a distributor approves, the
+ * next `refresh` answers a `TokenPairOutput` on that distributor's shop.
+ */
+export const AccountTokenPairOutput = TokenPairOutput.extend({
+  tenant: z.null(),
+  role: z.null(),
+})
+export type AccountTokenPair = z.infer<typeof AccountTokenPairOutput>
+
+/**
+ * What `login` and `refresh` answer: a pair on a distributor (`TokenPairOutput`), or — `tenant` and `role` both null —
+ * the account's own pair (`AccountTokenPairOutput`, above). One object with two nullable fields rather than a union
+ * of the two: the same wire, and a contract type small enough for the compiler to write out.
+ */
+export const SignInPairOutput = TokenPairOutput.extend({
+  tenant: AuthTenantSchema.nullable(),
+  role: MembershipRoleSchema.nullable(),
+})
+export type SignInPair = z.infer<typeof SignInPairOutput>
+
+/** The account's own pair, narrowed from a `SignInPair`: no distributor yet. */
+export function isAccountPair(pair: SignInPair): pair is AccountTokenPair {
+  return pair.tenant === null || pair.role === null
+}
+
+/**
+ * SIGN UP AS A SHOPKEEPER (founder, 2026-09-29): public, no token. Makes a person that belongs to no distributor,
+ * with the password THEY chose — so no "choose your own password" wall, and no desk may ever set one for it — and
+ * answers a signed-in `AccountTokenPairOutput` at once.
+ *
+ * A username that is taken and a mobile number that already has an account get ONE sentence that does not say which
+ * ("That username or number is already in use. Sign in, or use another."). The password rules are the same as
+ * everywhere. Sign-ups are limited per client address and per number (429 in words past the limit).
+ *
+ * `id` is the client-generated UUIDv7 of the new person: a retry of the same sign-up (the same id, username, number
+ * and password) after a reply that never arrived signs in instead of being refused.
+ */
+export const SignUpInput = z.object({
+  id: IdSchema,
+  phone: PhoneSchema,
+  username: UsernameSchema,
+  password: PasswordSchema,
+  /** The person's name, as the distributor's desk will read it on the request. */
+  name: z.string().trim().min(2).max(120),
+  /** The shop's name as the shopkeeper calls it: the default name on a request to join. */
+  shopName: z.string().trim().min(2).max(120),
+  deviceId: IdSchema,
+  deviceName: z.string().min(1).max(120).optional(),
+  platform: AuthPlatformSchema.optional(),
+})
+export type SignUpIn = z.infer<typeof SignUpInput>
 
 export const AuthMeOutput = z.object({
   user: AuthUserSchema,
@@ -427,6 +510,18 @@ const SIGN_IN_ERRORS = {
   LOCKED: { status: 423, message: 'Too many failed attempts. Try again in a few minutes.' },
 }
 
+/** Sign-up: one sentence for a taken username or number; too many tries from one address or for one number. */
+const SIGN_UP_ERRORS = {
+  CONFLICT: { message: 'That username or number is already in use. Sign in, or use another.' },
+  TOO_MANY_REQUESTS: { status: 429, message: 'Too many sign-ups from here. Try again in an hour.' },
+}
+
+/** The account's own requests to be joined to a shop. */
+const JOIN_ERRORS = {
+  UNAUTHORIZED: { message: 'Sign in to continue' },
+  NOT_FOUND: { message: 'No shop has this code. Check the code on your bill.' },
+}
+
 /** Refresh/switch: the token is unknown, expired, or was already rotated (reuse revokes the session). */
 const SESSION_ERRORS = {
   UNAUTHORIZED: { message: 'Session expired. Sign in again.' },
@@ -442,12 +537,21 @@ const RESET_ERRORS = {
   UNAUTHORIZED: { message: 'This reset link is invalid or has expired. Ask for a new one.' },
 }
 
-export const authContract = {
+const authContractBody = {
   login: oc
     .route({ method: 'POST', path: '/auth/login', summary: 'Sign in with username and password' })
     .input(LoginInput)
-    .output(TokenPairOutput)
+    .output(SignInPairOutput)
     .errors(SIGN_IN_ERRORS),
+  signUp: oc
+    .route({
+      method: 'POST',
+      path: '/auth/sign-up',
+      summary: 'A shopkeeper makes their own account (no distributor yet) and is signed in',
+    })
+    .input(SignUpInput)
+    .output(AccountTokenPairOutput)
+    .errors(SIGN_UP_ERRORS),
   refresh: oc
     .route({
       method: 'POST',
@@ -455,7 +559,7 @@ export const authContract = {
       summary: 'Exchange a refresh token for a new pair (rotates the refresh token)',
     })
     .input(RefreshInput)
-    .output(TokenPairOutput)
+    .output(SignInPairOutput)
     .errors(SESSION_ERRORS),
   logout: oc
     .route({ method: 'POST', path: '/auth/logout', summary: 'Revoke this device session' })
@@ -575,4 +679,73 @@ export const authContract = {
       summary: 'Public keys that verify access tokens',
     })
     .output(JwksOutput),
+  /**
+   * The shopkeeper's half of joining a distributor's shop (founder, 2026-09-29; `shop-joins.ts` says the whole flow).
+   * Every one takes the account's Bearer token, with or without a distributor; a work login (staff) is refused.
+   */
+  joins: {
+    lookup: oc
+      .route({
+        method: 'GET',
+        path: '/auth/joins/code',
+        summary: 'Which distributor and shop a shop code names, shown back before asking',
+      })
+      .input(ShopCodeLookupInput)
+      .output(ShopCodeLookupOutput)
+      .errors(JOIN_ERRORS),
+    distributors: oc
+      .route({
+        method: 'GET',
+        path: '/auth/joins/distributors',
+        summary: 'Distributors a shopkeeper may find by name and ask to join',
+      })
+      .input(JoinableDistributorsInput)
+      .output(JoinableDistributorsOutput)
+      .errors(TOKEN_ERRORS),
+    ask: oc
+      .route({
+        method: 'POST',
+        path: '/auth/joins',
+        summary: 'Ask a distributor to join you to its shop (by shop code, or by name)',
+      })
+      .input(AskToJoinInput)
+      .output(MyJoinRequestOutput)
+      .errors(JOIN_ERRORS),
+    mine: oc
+      .route({
+        method: 'GET',
+        path: '/auth/joins',
+        summary: 'Your requests to be joined to a shop, newest first',
+      })
+      .output(MyJoinRequestsOutput)
+      .errors(TOKEN_ERRORS),
+    withdraw: oc
+      .route({
+        method: 'POST',
+        path: '/auth/joins/{id}/withdraw',
+        summary: 'Withdraw one of your requests that still waits',
+      })
+      .input(WithdrawJoinInput)
+      .output(MyJoinRequestOutput)
+      .errors(TOKEN_ERRORS),
+    leave: oc
+      .route({
+        method: 'POST',
+        path: '/auth/joins/leave',
+        summary: 'Leave a distributor: stop seeing its shops (your other distributors stay)',
+      })
+      .input(LeaveDistributorInput)
+      .output(AuthOkOutput)
+      .errors(TOKEN_ERRORS),
+  },
 }
+
+/**
+ * A NAMED type for this contract, so that the whole contract's declaration (`contract.d.ts`) refers to it instead of
+ * writing it out again. The whole contract's inferred type is at the length the compiler will serialize (TS7056:
+ * "exceeds the maximum length the compiler will serialize"), and a module written out inline pushes it over with
+ * every procedure it gains. The wire and every type a caller reads are unchanged.
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- a name for an inferred type, nothing more
+export interface AuthContract extends Readonly<typeof authContractBody> {}
+export const authContract: AuthContract = authContractBody
