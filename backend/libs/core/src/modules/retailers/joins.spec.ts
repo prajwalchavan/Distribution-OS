@@ -90,6 +90,7 @@ describeDb('the shopkeeper signs up, asks to join a shop, the desk decides (DATA
   const shopOff = uuidv7()
   const shopMatchingNumber = uuidv7()
   const shopThree = uuidv7()
+  const shopFour = uuidv7()
   const shopB = uuidv7()
   const codes = new Map<string, string>()
   let app: NestFastifyApplication
@@ -144,6 +145,7 @@ describeDb('the shopkeeper signs up, asks to join a shop, the desk decides (DATA
         shop(shopOff, tenantA, 'D', `Closed${run} Corner`, phone(73), false),
         shop(shopMatchingNumber, tenantA, 'E', `Same${run} Number Mart`, phone(3)),
         shop(shopThree, tenantA, 'G', `Third${run} Provisions`, phone(75)),
+        shop(shopFour, tenantA, 'H', `Fourth${run} Stores`, phone(76)),
         shop(shopB, tenantB, 'F', `Beta${run} Side Shop`, phone(74)),
       ])
     for (const row of await db
@@ -284,6 +286,30 @@ describeDb('the shopkeeper signs up, asks to join a shop, the desk decides (DATA
     expect(weak.status).toBe(400)
     const noDigit = await signUp(4, { password: 'onlyletters' })
     expect(noDigit.status).toBe(400)
+  })
+
+  it('answers a username or a password that breaks a rule with the rule, in a sentence (M1)', async () => {
+    // What a shopkeeper actually types: a space, a hyphen, a leading dot. The schema used to refuse these first,
+    // with "Input validation failed", before the handler's sentences could answer.
+    const chars =
+      'Username may use only lowercase letters, digits, dots and underscores, and must start with a letter or digit'
+    for (const username of ['ravi kumar', 'ravi-kumar', '.ravi']) {
+      const res = await signUp(16, { username })
+      expect(res.status, username).toBe(400)
+      expect((res.body as Refusal).message, username).toBe(chars)
+    }
+    const short = await signUp(16, { username: 'ab' })
+    expect((short.body as Refusal).message).toBe('Username must be 3–32 characters')
+    const weak = await signUp(16, { password: 'short1' })
+    expect((weak.body as Refusal).message).toBe('Password must be at least 8 characters')
+    const noDigit = await signUp(16, { password: 'onlyletters' })
+    expect((noDigit.body as Refusal).message).toBe('Password must contain at least one digit')
+    const noLetter = await signUp(16, { password: '1234567890' })
+    expect((noLetter.body as Refusal).message).toBe('Password must contain at least one letter')
+    // Upper case and spaces around it are the same username, as at sign-in; nothing was made by the refusals.
+    const fine = await signUp(16, { username: `  Ravi.Kumar${run} ` })
+    expect(fine.status, JSON.stringify(fine.body)).toBe(200)
+    expect(fine.body.user.username).toBe(`ravi.kumar${run}`)
   })
 
   it('signs in instead of refusing when the same sign-up is sent again', async () => {
@@ -594,6 +620,53 @@ describeDb('the shopkeeper signs up, asks to join a shop, the desk decides (DATA
       // Nothing of the distributor was ever readable by this account.
       const next = await refresh(third.pair, third.deviceId)
       expect(next.body.tenant).toBeNull()
+    })
+
+    it('answers a withdraw sent again with the request as it is, and an approved one with how to leave (m1)', async () => {
+      const own = await account(17)
+      const token = own.pair.accessToken
+      const withdraw = (id: string) =>
+        asAccount<{ item: Mine } & Refusal>(token, 'POST', `/auth/joins/${id}/withdraw`, {
+          idempotencyKey: uuidv7(),
+          id,
+        })
+      const asked = await ask(token, { by: 'code', code: code(shopFour) })
+      expect(asked.status, JSON.stringify(asked.body)).toBe(200)
+      const first = await withdraw(asked.body.item.id)
+      expect(first.status, JSON.stringify(first.body)).toBe(200)
+      expect(first.body.item.state).toBe('withdrawn')
+      // A retry of the same withdraw (a reply that never arrived) is not "not one of yours".
+      const retry = await withdraw(asked.body.item.id)
+      expect(retry.status, JSON.stringify(retry.body)).toBe(200)
+      expect(retry.body.item).toMatchObject({ id: asked.body.item.id, state: 'withdrawn' })
+
+      // Asking again for the same shop is a NEW request (the app sends a new id for it, M2) and it waits.
+      const again = await ask(token, { by: 'code', code: code(shopFour) })
+      expect(again.status, JSON.stringify(again.body)).toBe(200)
+      expect(again.body.item.id).not.toBe(asked.body.item.id)
+      expect(again.body.item.state).toBe('waiting')
+      // The same id sent again answers the request it made, as it is now: withdrawn, never "sent".
+      const replay = await ask(token, { by: 'code', code: code(shopFour), id: asked.body.item.id })
+      expect(replay.status, JSON.stringify(replay.body)).toBe(200)
+      expect(replay.body.item).toMatchObject({ id: asked.body.item.id, state: 'withdrawn' })
+
+      const approved = await approve(managerA, again.body.item.id)
+      expect(approved.status, JSON.stringify(approved.body)).toBe(200)
+      const late = await withdraw(again.body.item.id)
+      expect(late.status, JSON.stringify(late.body)).toBe(409)
+      expect(late.body.message).toBe(
+        'This distributor has already joined you to the shop. To stop seeing it, leave the distributor from Settings.',
+      )
+      // Another account's request is still not one of yours.
+      const stranger = await account(18)
+      const theirs = await asAccount<Refusal>(
+        stranger.pair.accessToken,
+        'POST',
+        `/auth/joins/${asked.body.item.id}/withdraw`,
+        { idempotencyKey: uuidv7(), id: asked.body.item.id },
+      )
+      expect(theirs.status).toBe(404)
+      expect(theirs.body.message).toBe('This request is not one of yours.')
     })
 
     it('by name: lists the distributors that allow it, and the desk picks the shop', async () => {

@@ -339,12 +339,27 @@ export function isAccountPair(pair: SignInPair): pair is AccountTokenPair {
  *
  * `id` is the client-generated UUIDv7 of the new person: a retry of the same sign-up (the same id, username, number
  * and password) after a reply that never arrived signs in instead of being refused.
+ *
+ * `username` and `password` are plain bounded strings HERE, on purpose (blind check of the sign-up, M1): the rules are
+ * exactly `UsernameSchema`'s and `PasswordSchema`'s, but they are applied by the handler (`validateUsername`,
+ * `validatePassword`), so a shopkeeper who types "ravi kumar" reads which rule it broke, in a sentence, instead of the
+ * schema's "Input validation failed". Accepting more at the schema is expand-only; the handler refuses the same.
  */
 export const SignUpInput = z.object({
   id: IdSchema,
   phone: PhoneSchema,
-  username: UsernameSchema,
-  password: PasswordSchema,
+  username: z
+    .string()
+    .max(200)
+    .describe(
+      '3–32 characters: lowercase letters, digits, dots and underscores, starting with a letter or digit (checked by the handler, refused in words)',
+    ),
+  password: z
+    .string()
+    .max(200)
+    .describe(
+      '8–72 characters with at least one letter and one digit (checked by the handler, refused in words)',
+    ),
   /** The person's name, as the distributor's desk will read it on the request. */
   name: z.string().trim().min(2).max(120),
   /** The shop's name as the shopkeeper calls it: the default name on a request to join. */

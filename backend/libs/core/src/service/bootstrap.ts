@@ -15,6 +15,7 @@ import {
 } from '../platform/index.js'
 import { ALLOWED_CONTENT_TYPES } from '../platform/object-storage.js'
 import { servicePort, type ServiceDefinition } from './define.js'
+import { logServiceError } from './error-log.js'
 import { ServiceModule } from './service.module.js'
 
 /** Root Nest module for a service: oRPC, database, service info + docs, health, then the business modules. */
@@ -25,7 +26,14 @@ export function serviceRootModule(def: ServiceDefinition) {
         // Order matters: the replay interceptor must sit inside `onError` (closer to the handler) so a
         // substituted reply never reaches `onError` as a logged failure (DOS-160) — `intercept()` runs
         // interceptors in array order, each wrapping the next, so the last entry is innermost.
-        interceptors: [onError((error) => console.error(error)), idempotentReplayInterceptor],
+        // `logServiceError`, never the error as thrown: a schema refusal carries the caller's whole input
+        // (a password, a number) as its cause's `data` (DOS-429; error-log.ts).
+        interceptors: [
+          onError((error) => {
+            logServiceError(error)
+          }),
+          idempotentReplayInterceptor,
+        ],
       }),
       DbModule,
       ServiceModule.forService(def),

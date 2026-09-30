@@ -234,14 +234,33 @@ export async function shopNamesOf(sys: Db, rows: readonly JoinRow[]): Promise<Ma
  * Withdraw one of the account's own waiting requests. Sent again for a request that is already withdrawn (or
  * refused) it answers the request as it is; an approved one cannot be withdrawn — the account leaves the
  * distributor instead.
+ *
+ * NO `SELECT … FOR UPDATE` (blind check, m1): under row-level security a row locked for update must also pass the
+ * UPDATE policy, and the account's (`shop_join_requests_own_withdraw`) admits only a WAITING request — so a retry of
+ * a withdraw, or a withdraw of an approved request, found no row and was told "not one of yours". The one UPDATE
+ * below is conditional on `waiting` and atomic on its own (a desk deciding at the same moment either lands first,
+ * and the update matches nothing, or waits for it); whatever it did not change is then read under the READ policy
+ * and answered as it is.
  */
 export async function withdrawJoin(db: Db, userId: string, id: string): Promise<JoinRow> {
   return withTenant(db, accountContext(userId), async (tx) => {
+    const [done] = await tx
+      .update(shopJoinRequests)
+      .set({ state: 'withdrawn', updatedAt: new Date() })
+      .where(
+        and(
+          eq(shopJoinRequests.id, id),
+          eq(shopJoinRequests.userId, userId),
+          eq(shopJoinRequests.state, 'waiting'),
+        ),
+      )
+      .returning()
+    if (done) return done
     const [row] = await tx
       .select()
       .from(shopJoinRequests)
       .where(and(eq(shopJoinRequests.id, id), eq(shopJoinRequests.userId, userId)))
-      .for('update')
+      .limit(1)
     if (!row) throw new ORPCError('NOT_FOUND', { message: 'This request is not one of yours.' })
     if (row.state === 'approved') {
       throw new ORPCError('CONFLICT', {
@@ -249,13 +268,7 @@ export async function withdrawJoin(db: Db, userId: string, id: string): Promise<
           'This distributor has already joined you to the shop. To stop seeing it, leave the distributor from Settings.',
       })
     }
-    if (row.state !== 'waiting') return row
-    const [done] = await tx
-      .update(shopJoinRequests)
-      .set({ state: 'withdrawn', updatedAt: new Date() })
-      .where(and(eq(shopJoinRequests.id, id), eq(shopJoinRequests.state, 'waiting')))
-      .returning()
-    return done ?? row
+    return row
   })
 }
 
