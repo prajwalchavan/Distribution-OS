@@ -24,8 +24,11 @@ export type ShopJoinVia = z.infer<typeof ShopJoinViaSchema>
 export const ShopJoinStateSchema = z.enum(['waiting', 'approved', 'refused', 'withdrawn'])
 export type ShopJoinState = z.infer<typeof ShopJoinStateSchema>
 
-/** A shop code as a person may type it; the server reads it (`normalizeShopCode` in @dos/domain). */
-export const ShopCodeInputSchema = z.string().trim().min(8).max(16)
+/**
+ * A shop code as a person may type it; the server reads it (`normalizeShopCode` in @dos/domain). Any length up to 16:
+ * a code that cannot be one is answered in words ("No shop has this code…"), not as a malformed request.
+ */
+export const ShopCodeInputSchema = z.string().trim().min(1).max(16)
 
 /** The shop's name as a person types it. */
 export const ShopNameInputSchema = z.string().trim().min(2).max(120)
