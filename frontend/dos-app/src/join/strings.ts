@@ -21,7 +21,7 @@ export const JOIN_STRINGS = {
   'join.codeBad': 'Type the 8 letters and digits of the shop code, like K7MQ-4P2X',
   'join.find': 'Find the shop',
   'join.foundTitle': 'Is this your shop?',
-  'join.found': '{shop}, with {distributor}',
+  'join.found': 'With {distributor}',
   'join.ask': 'Ask to join',
   'join.asked': 'Request sent',
   'join.search': 'Distributor’s name',

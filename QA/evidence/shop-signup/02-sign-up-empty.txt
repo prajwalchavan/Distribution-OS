@@ -1,0 +1,17 @@
+Create your account
+
+For a shop. Your password is yours alone: no distributor ever sees it.
+
+Mobile number
+Your own mobile number. Distributors see it when you ask to join.
+Your name
+Your shop’s name
+Username
+Letters, digits, dot or underscore. You sign in with it.
+Password
+Show
+At least 8 characters, with a letter and a digit
+Password again
+Show
+Create account
+Already have an account? Sign in

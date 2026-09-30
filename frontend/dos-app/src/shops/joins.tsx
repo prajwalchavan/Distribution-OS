@@ -39,6 +39,9 @@ import { useState, type ReactNode } from 'react'
 
 import { useMayWrite } from '../pricing/editors'
 
+/** How many of the desk's shops the approve dialog offers at once for a request by name. */
+const PICK_ROWS = 5
+
 /** The waiting requests, as both desks' shops screens and homes read them: the same key, one read. */
 export const WAITING_JOINS_KEY = ['retailers', 'joins', 'waiting'] as const
 
@@ -78,7 +81,8 @@ export function JoinRequestsPanel({ onToast }: JoinRequestsPanelProps): React.JS
     ['retailers', 'list', 'join-pick', step?.kind === 'approve' ? step.q : ''],
     () =>
       api.api.retailers.list({
-        limit: 20,
+        // A handful, so the dialog stays one screen on a phone: the search narrows it (the walk at 390 px).
+        limit: PICK_ROWS,
         activeOnly: true,
         ...(step?.kind === 'approve' && step.q.trim() !== '' ? { q: step.q.trim() } : {}),
       }),
@@ -154,9 +158,9 @@ export function JoinRequestsPanel({ onToast }: JoinRequestsPanelProps): React.JS
     )
   }
 
-  const pickList: readonly Retailer[] = (shops.data?.items ?? []).filter(
-    (row): row is Retailer => 'code' in row,
-  )
+  const pickList: readonly Retailer[] = (shops.data?.items ?? [])
+    .filter((row): row is Retailer => 'code' in row)
+    .slice(0, PICK_ROWS)
 
   return (
     <Stack gap={2} testID="shop-joins">

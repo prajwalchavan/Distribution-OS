@@ -1,0 +1,27 @@
+walk: a shop of the pilot distributor with bills, its code X2G7-5AAU
+[shot] 01-welcome  (page width 390 px)
+[shot] 02-sign-up-empty  (page width 390 px)
+[shot] 03-sign-up-filled  (page width 390 px)
+[shot] 04-add-a-distributor  (page width 390 px)
+[shot] 05-is-this-your-shop  (page width 390 px)
+[shot] 06-waiting-for-approval  (page width 390 px)
+walk: the account typed /retailer/bills before approval and stands on /join
+[shot] 07-before-approval-bills-url  (page width 390 px)
+[shot] 08-manager-home-count  (page width 390 px)
+walk: the manager's home counts shops asking to join
+[shot] 09-manager-join-requests  (page width 390 px)
+[shot] 10-approve-dialog  (page width 390 px)
+[shot] 11-approved  (page width 390 px)
+[shot] 12-shop-page-code  (page width 390 px)
+walk: the shop page shows its code
+[shot] 12b-shopkeeper-before-check  (page width 390 px)
+walk: after "Check again" the shopkeeper stands on /retailer
+[shot] 13-shop-front  (page width 390 px)
+[shot] 14-my-bills  (page width 390 px)
+[shot] 15-a-bill  (page width 390 px)
+walk: the shopkeeper's bill page shows its number
+[shot] 16-me-distributors  (page width 390 px)
+[shot] 17-leave-dialog  (page width 390 px)
+[shot] 18-approve-by-name-picker  (page width 390 px)
+[shot] 19-approve-by-name-picked  (page width 390 px)
+walk: the by-name approve button is on the screen at 390 px

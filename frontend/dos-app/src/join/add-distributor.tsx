@@ -276,10 +276,7 @@ export function AddDistributor({ mode }: AddDistributorProps): React.JSX.Element
                 <Group title={t('join.foundTitle')} testID="join-found">
                   <ListRow
                     primary={found.shop.shop}
-                    secondary={t('join.found', {
-                      shop: found.shop.shop,
-                      distributor: found.shop.distributor,
-                    })}
+                    secondary={t('join.found', { distributor: found.shop.distributor })}
                   />
                   <Stack gap={2}>
                     {ask.status === 'error' && ask.error !== undefined ? (
