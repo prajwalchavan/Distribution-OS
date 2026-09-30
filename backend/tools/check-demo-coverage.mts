@@ -10,8 +10,10 @@
  *     --owner-password-file /opt/dos/env/live-owner.pw --logins-file /opt/dos/env/tester-logins.txt \
  *     [--owner-username owner.tarsun] [--date YYYY-MM-DD] [--json <file>]
  *
- * `--date` is the business date the tool made (default today, IST). A feature no role can have through the
- * API (a shopkeeper's login, DOS-400) is printed as a known gap and does not fail the check.
+ * `--date` is the business date the tool made (default today, IST). The shopkeepers `shop1…3` are read from the
+ * logins file (role `retailer`) and signed in on their own accounts (founder, 2026-09-29: a shopkeeper signs up by
+ * itself and the desk approves). A feature no role can have through the API would print as a known gap; none is
+ * left.
  *
  * Exit: 0 every role has its work; 1 the gap list is not empty; 2 could not start (arguments, the API down,
  * a sign-in refused).
@@ -60,7 +62,10 @@ if ('refused' in args) {
   stop(args.refused)
 }
 
-const SESSION_OF: Record<TesterKey, keyof CoverageSessions> = {
+const SESSION_OF: Record<
+  TesterKey,
+  Exclude<keyof CoverageSessions, 'owner' | 'userIds' | 'shops'>
+> = {
   manager: 'manager',
   accounts: 'accountant',
   sales1: 'sales1',
@@ -139,6 +144,33 @@ try {
     }
     sessions[SESSION_OF[t.key]] = s
   }
+  // shop1…3: the shopkeepers' own accounts (founder, 2026-09-29), listed in the logins file as shops. Each signs in
+  // with the demo password on its own; which shop it reaches is read by the shopkeeper row.
+  const shopLines = [...logins.values()].filter((l) => l.role === 'retailer')
+  if (shopLines.length < 3)
+    gap(`${String(shopLines.length)} shopkeeper login(s) in the logins file, not 3`)
+  const shopSessions: Session[] = []
+  for (const line of shopLines) {
+    if (line.password !== DEMO_PASSWORD) {
+      gap(`${line.username}: the logins file does not give the demo password`)
+      continue
+    }
+    try {
+      const s = await api.signIn(line.username, DEMO_PASSWORD, args.tenant, { account: true })
+      opened.push(s)
+      if (s.mustChangePassword) gap(`${line.username}: is asked to change the password at sign-in`)
+      else if (s.account === true || s.role !== 'retailer')
+        gap(`${line.username}: signs in to no shop of a distributor`)
+      else if (s.tenantId !== owner.tenantId && !(await api.switchTo(s, owner.tenantId)))
+        gap(`${line.username}: is not joined to this distributor`)
+      else shopSessions.push(s)
+    } catch (e) {
+      gap(
+        `${line.username}: does not sign in with the demo password (${e instanceof ApiRefusal ? e.label : 'no answer'})`,
+      )
+    }
+  }
+  sessions.shops = shopSessions
   const read = await allRows(api, sessions, args.date)
   say(`distributor ${args.tenant}, business date ${args.date}: what each role opens on`)
   const rows: { row: string; feature: string; state: string; detail: string }[] = []

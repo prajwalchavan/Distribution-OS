@@ -463,8 +463,17 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
       driver1: crew.get('driver1'),
       driver2: crew.get('driver2'),
     }
+    // shop1…3: the shopkeepers' own accounts, as the logins file lists them (founder, 2026-09-29).
+    const shops: Session[] = []
+    for (const line of readLogins(loginsFile).values()) {
+      if (line.role !== 'retailer') continue
+      const s = await client.signIn(line.username, DEMO_PASSWORD, slug, { account: true })
+      if (s.tenantId !== owner.tenantId) await client.switchTo(s, owner.tenantId)
+      shops.push(s)
+    }
+    sessions.shops = shops
     const read = await allRows(client, sessions, date)
-    for (const s of [owner, ...crew.values()]) await client.signOut(s)
+    for (const s of [owner, ...crew.values(), ...shops]) await client.signOut(s)
     return read.seen
       .filter((s) => !s.ok && !KNOWN_GAPS[`${s.row}:${s.feature}`])
       .map((g) => `${g.row}/${g.feature}: ${g.detail}`)
@@ -983,6 +992,42 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
   it('refuses to make a day before one it has already made', async () => {
     await expect(fill(addDays(yesterday, -3), true)).rejects.toThrow(/already made/)
   })
+
+  it('makes shop1…3 the way a shopkeeper does: signed up alone, asked by the shop code, approved by the manager', async () => {
+    const logins = [...readLogins(loginsFile).values()].filter((l) => l.role === 'retailer')
+    expect(logins.map((l) => l.username).sort()).toEqual(
+      [`shop1.${suffix}`, `shop2.${suffix}`, `shop3.${suffix}`].sort(),
+    )
+    const manager = await userIdOf(USERNAME.manager)
+    const reached = new Set<string>()
+    for (const line of logins) {
+      expect(line.password === DEMO_PASSWORD, line.username).toBe(true)
+      const s = await client.signIn(line.username, DEMO_PASSWORD, slug, { account: true })
+      expect(s.mustChangePassword, line.username).toBe(false)
+      expect(s.account, line.username).toBeUndefined()
+      expect(s.role).toBe('retailer')
+      const mine = await client.call(s, contract.retailers.list, { limit: 50, activeOnly: false })
+      // One stand-in shop, and a second when its first was closed and replaced (the case above).
+      expect(mine.items.length, line.username).toBeGreaterThanOrEqual(1)
+      for (const shop of mine.items) reached.add(shop.id)
+      await client.signOut(s)
+      // The account is the shopkeeper's own, and it was joined by the tool's manager approving its request.
+      const person = await pool.query<{ signed_up: boolean; changes: boolean }>(
+        `select signed_up_at is not null as signed_up, must_change_password as changes from users where username = $1`,
+        [line.username],
+      )
+      expect(person.rows[0]).toEqual({ signed_up: true, changes: false })
+      const asked = await pool.query<{ via: string; state: string; decided_by: string }>(
+        `select r.via::text as via, r.state::text as state, r.decided_by from shop_join_requests r
+           join users u on u.id = r.user_id where u.username = $1 and r.tenant_id = $2 and r.state = 'approved'`,
+        [line.username, tenantId],
+      )
+      expect(asked.rows.length, line.username).toBeGreaterThan(0)
+      for (const r of asked.rows)
+        expect(r).toEqual({ via: 'code', state: 'approved', decided_by: manager })
+    }
+    expect(reached.size).toBeGreaterThanOrEqual(3)
+  }, 600_000)
 
   it('leaves every role, signed in as its tester with the demo password, on work', async () => {
     const logins = readLogins(loginsFile)

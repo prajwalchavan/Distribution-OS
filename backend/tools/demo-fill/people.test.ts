@@ -10,6 +10,11 @@ import { demoId } from './ids.js'
 import {
   DEMO_PASSWORD,
   SHOP_USERNAMES,
+  SHOPKEEPERS,
+  isShopUsername,
+  shopKeyOf,
+  shopPersonId,
+  shopUsernameCandidates,
   TESTERS,
   TESTER_KEYS,
   crewKeyOf,
@@ -282,7 +287,14 @@ describe('the summary', () => {
         if (!except.includes(`${row}:${f}`)) s.feature(row, f, 'there')
   }
 
-  it('calls the shopkeeper row "partly" for the known gap alone, and the run still exits 0', () => {
+  it('calls the shopkeeper row "made" once its logins are there too: no known gap is left', () => {
+    const s = new Summary()
+    all(s)
+    expect(s.rowState('shopkeeper').state).toBe('made')
+    expect(s.exitCode()).toBe(0)
+  })
+
+  it('calls a row "partly" for a known gap alone, and the run still exits 0', () => {
     const s = new Summary()
     all(s, ['shopkeeper:login'])
     s.feature('shopkeeper', 'login', 'gap')
@@ -343,5 +355,35 @@ describe('the marker check', () => {
       expect(q).not.toMatch(/\b(name|phone|gstin|address)\b/)
       expect(q.trim().toLowerCase()).toMatch(/^(select|with)/)
     }
+  })
+})
+
+describe('the shopkeepers shop1…3 (founder, 2026-09-29: they sign up by themselves)', () => {
+  const tenant = '01a0f000-0000-7000-8000-000000000001'
+
+  it('are three invented people, one per plain shop username', () => {
+    expect(SHOPKEEPERS.map((k) => k.key)).toEqual(['shop1', 'shop2', 'shop3'])
+    for (const k of SHOPKEEPERS) expect(k.name.split(' ')).toHaveLength(2)
+  })
+
+  it('take the next plain number no other shopkeeper would take when a name is somebody else’s', () => {
+    expect(shopUsernameCandidates('shop1', undefined, 3)).toEqual(['shop1', 'shop4', 'shop7'])
+    expect(shopUsernameCandidates('shop3', 'x1', 2)).toEqual(['shop3.x1', 'shop6.x1'])
+  })
+
+  it('knows its own usernames and nobody else’s', () => {
+    expect(isShopUsername('shop4')).toBe(true)
+    expect(isShopUsername('shop4.x1', 'x1')).toBe(true)
+    expect(isShopUsername('shop4.x2', 'x1')).toBe(false)
+    expect(isShopUsername('shop4.x2')).toBe(true)
+    expect(isShopUsername('shopkeeper')).toBe(false)
+    expect(isShopUsername(null)).toBe(false)
+  })
+
+  it('finds its own account again by the mark in the user id, whatever the date it signed up', () => {
+    const id = shopPersonId(tenant, '2026-09-30', 'shop2', 'x1')
+    expect(shopKeyOf(tenant, id, 'x1')).toBe('shop2')
+    expect(shopKeyOf(tenant, id, 'x2')).toBeNull()
+    expect(shopKeyOf(tenant, '01a0f000-0000-7000-8000-000000000009')).toBeNull()
   })
 })

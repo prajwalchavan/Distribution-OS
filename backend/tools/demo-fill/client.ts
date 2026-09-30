@@ -70,6 +70,34 @@ export interface Session {
   refreshToken: string
   deviceId: string
   mustChangePassword: boolean
+  /**
+   * The shopkeeper's own account with no distributor yet (founder, 2026-09-29): signed in, `tenantId` empty and
+   * `role` read as `retailer` only to name a service; every distributor's procedure answers it 403.
+   */
+  account?: boolean
+}
+
+/** A sign-in pair as auth-service answers it: a distributor's, or (tenant and role null) the account's own. */
+interface PairBody {
+  accessToken: string
+  refreshToken: string
+  role: MembershipRole | null
+  user: { id: string; mustChangePassword: boolean }
+  tenant: { id: string } | null
+}
+
+function sessionOf(username: string, deviceId: string, b: PairBody): Session {
+  return {
+    username,
+    role: b.role ?? 'retailer',
+    userId: b.user.id,
+    tenantId: b.tenant?.id ?? '',
+    accessToken: b.accessToken,
+    refreshToken: b.refreshToken,
+    deviceId,
+    mustChangePassword: b.user.mustChangePassword,
+    ...(b.tenant === null ? { account: true } : {}),
+  }
 }
 
 export interface CallStats {
@@ -145,8 +173,16 @@ export class Api {
     }
   }
 
-  /** `POST /auth/auth/login` with a device id that is stable per tenant and person. */
-  async signIn(username: string, password: string, tenantKey: string): Promise<Session> {
+  /**
+   * `POST /auth/auth/login` with a device id that is stable per tenant and person. `account: true` signs in a
+   * shopkeeper's own account that no distributor has joined yet, as the app does (`accountWithoutDistributor`).
+   */
+  async signIn(
+    username: string,
+    password: string,
+    tenantKey: string,
+    opts: { account?: boolean } = {},
+  ): Promise<Session> {
     const deviceId = stableUuid(`demo-fill:device:${tenantKey}:${username}`)
     const route = authContract.login['~orpc'].route
     const r = await this.http(`${this.base}/auth${route.path ?? '/auth/login'}`, {
@@ -158,27 +194,76 @@ export class Api {
         deviceId,
         deviceName: this.deviceName,
         platform: 'web',
+        ...(opts.account === true ? { accountWithoutDistributor: true } : {}),
       }),
     })
     this.stats.signIns++
     if (!r.ok) throw this.refusal(r.status, r.body)
-    const b = r.body as {
-      accessToken: string
-      refreshToken: string
-      role: MembershipRole
-      user: { id: string; mustChangePassword: boolean }
-      tenant: { id: string }
-    }
-    return {
-      username,
-      role: b.role,
-      userId: b.user.id,
-      tenantId: b.tenant.id,
-      accessToken: b.accessToken,
-      refreshToken: b.refreshToken,
-      deviceId,
-      mustChangePassword: b.user.mustChangePassword,
-    }
+    return sessionOf(username, deviceId, r.body as PairBody)
+  }
+
+  /**
+   * A shopkeeper SIGNS UP (founder, 2026-09-29): `POST /auth/auth/sign-up`, the account's own, with no distributor.
+   * The same `id` and answers sent again sign in instead of being refused.
+   */
+  async signUp(
+    input: {
+      id: string
+      phone: string
+      username: string
+      password: string
+      name: string
+      shopName: string
+    },
+    tenantKey: string,
+  ): Promise<Session> {
+    const deviceId = stableUuid(`demo-fill:device:${tenantKey}:${input.username}`)
+    const route = authContract.signUp['~orpc'].route
+    const r = await this.http(`${this.base}/auth${route.path ?? '/auth/sign-up'}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        ...input,
+        deviceId,
+        deviceName: this.deviceName,
+        platform: 'web',
+      }),
+    })
+    this.stats.signIns++
+    if (!r.ok) throw this.refusal(r.status, r.body)
+    return sessionOf(input.username, deviceId, r.body as PairBody)
+  }
+
+  /**
+   * A fresh pair for this session NOW, read back into it: after a distributor approved a shopkeeper's request, the
+   * account's session lands on that distributor's shop. False when the refresh was refused.
+   */
+  async renew(s: Session): Promise<boolean> {
+    const route = authContract.refresh['~orpc'].route
+    const r = await this.http(`${this.base}/auth${route.path ?? '/auth/refresh'}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ refreshToken: s.refreshToken, deviceId: s.deviceId }),
+    })
+    if (!r.ok) return false
+    Object.assign(s, sessionOf(s.username, s.deviceId, r.body as PairBody))
+    if (!(r.body as PairBody).tenant) s.account = true
+    else delete s.account
+    return true
+  }
+
+  /** Open this session on another distributor of the same person (`auth.switchTenant`). */
+  async switchTo(s: Session, tenantId: string): Promise<boolean> {
+    const route = authContract.switchTenant['~orpc'].route
+    const r = await this.http(`${this.base}/auth${route.path ?? '/auth/switch-tenant'}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ refreshToken: s.refreshToken, deviceId: s.deviceId, tenantId }),
+    })
+    if (!r.ok) return false
+    Object.assign(s, sessionOf(s.username, s.deviceId, r.body as PairBody))
+    delete s.account
+    return true
   }
 
   private async refresh(s: Session): Promise<boolean> {

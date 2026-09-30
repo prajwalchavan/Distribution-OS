@@ -14,6 +14,11 @@ export interface ShopInfo {
   active: boolean
   /** A shopkeeper login is linked to the shop (`identityId`). */
   hasLogin: boolean
+  /**
+   * The login the shop's page shows is one of the tool's own shopkeepers (`shop1…3`, joined by the tool's manager):
+   * the shop stays a stand-in for it, the same one every day.
+   */
+  toolLogin?: boolean
   hasPhone: boolean
   creditMode: string
   creditLimitPaise: number
@@ -285,15 +290,18 @@ export function creditLimitFor(outstandingPaise: number): number {
 }
 
 /**
- * The three shops that stand for `shop1…3`: shops with no shopkeeper login (and a phone when there
- * are enough), in a stable order of the tenant, never a credit shop. The same three every day.
+ * The three shops that stand for `shop1…3`: shops with no shopkeeper login but the tool's own (and a phone when there
+ * are enough), in a stable order of the tenant, never a credit shop. The same three every day: joining the tool's
+ * shopkeeper to a shop does not take it out of the pool.
  */
 export function chooseSlotShops(
   tenantId: string,
   shops: readonly ShopInfo[],
   exclude: ReadonlySet<string>,
 ): string[] {
-  const free = shops.filter((s) => billable(s) && !s.hasLogin && !exclude.has(s.id))
+  const free = shops.filter(
+    (s) => billable(s) && (!s.hasLogin || s.toolLogin === true) && !exclude.has(s.id),
+  )
   const withPhone = free.filter((s) => s.hasPhone)
   const pool = withPhone.length >= 3 ? withPhone : free
   return shuffled(pool, `slot-shops:${tenantId}`, (s) => s.id)

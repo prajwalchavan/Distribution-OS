@@ -27,6 +27,7 @@ import {
 } from './plan.js'
 import { takeShift } from './day.js'
 import { readTrip } from './road.js'
+import { ensureShopkeepers } from './shopkeepers.js'
 import type { World } from './world.js'
 
 /**
@@ -574,5 +575,7 @@ export async function ensureStanding(
   })
   await ensureOffer(ctx, world, date, offerShops(slotShops, onVans))
   await ensureConsents(ctx, date)
+  // shop1…3: each signs up by itself, asks by the shop code, and the tool's manager approves (founder, 2026-09-29).
+  await ensureShopkeepers(ctx, world, date, slotShops)
   return { repBeats, creditShops, slotShops, vans }
 }

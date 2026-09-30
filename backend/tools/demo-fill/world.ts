@@ -1,5 +1,6 @@
 import { contract } from '@dos/contracts'
 import type { Ctx } from './context.js'
+import { isShopUsername } from './people.js'
 import { isDemoId } from './ids.js'
 import type { ItemInfo, ShopInfo } from './plan.js'
 
@@ -135,6 +136,7 @@ export async function readWorld(ctx: Ctx): Promise<World> {
       beatId: r.beatId,
       active: r.active,
       hasLogin: staff?.identityId !== null && staff?.identityId !== undefined,
+      toolLogin: isShopUsername(staff?.appSignIn?.username),
       hasPhone: r.phone.length > 0,
       creditMode: staff?.creditMode ?? 'indicate',
       creditLimitPaise: staff?.creditLimitPaise ?? 0,

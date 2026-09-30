@@ -52,8 +52,68 @@ export function testerOf(key: TesterKey): Tester {
   return t
 }
 
-/** The shopkeeper logins the brief asks for and the API cannot give (DOS-400), under their plain names. */
+/**
+ * THE SHOPKEEPER LOGINS `shop1…3` (brief rule 4; founder, 2026-09-29: "the shopkeeper is independent"). Each is
+ * made THE WAY A SHOPKEEPER MAKES ONE: the account signs up by itself (`auth.signUp`, with the demo password),
+ * asks to be joined to its stand-in shop by the shop code printed on that shop's bills, and the tool's manager
+ * approves the request from the desk (`retailers.joins.approve`). Nothing is written to the database directly.
+ */
 export const SHOP_USERNAMES = ['shop1', 'shop2', 'shop3'] as const
+export type ShopKey = (typeof SHOP_USERNAMES)[number]
+
+export interface Shopkeeper {
+  key: ShopKey
+  /** The person's name, as the desk reads it on the request. Invented; never a real shop's. */
+  name: string
+  /** What the shopkeeper calls the shop when signing up. Invented; never printed by the tool. */
+  shopName: string
+}
+
+export const SHOPKEEPERS: readonly Shopkeeper[] = [
+  { key: 'shop1', name: 'Ramesh Gupta', shopName: 'Gupta Kirana' },
+  { key: 'shop2', name: 'Sunita Patil', shopName: 'Patil General Stores' },
+  { key: 'shop3', name: 'Anil Shetty', shopName: 'Shetty Provisions' },
+]
+
+/**
+ * The usernames the tool may give a shopkeeper, in order (D5, as for the testers): the plain one, then the next
+ * plain numbers that no other shopkeeper key would take (`shop4`, `shop7`, … for `shop1`), each with the suffix
+ * when one is given.
+ */
+export function shopUsernameCandidates(key: ShopKey, suffix?: string, count = 5): string[] {
+  checkSuffix(suffix)
+  const n = Number(key.slice(4))
+  return Array.from({ length: count }, (_, i) => withSuffix(`shop${String(n + 3 * i)}`, suffix))
+}
+
+/**
+ * Is this a username the tool gives a shopkeeper (`shop<n>`, with the crew's suffix when it has one)? Without a
+ * suffix, a shopkeeper of ANY crew of the tool is recognised (`shop4`, `shop1.x1`): a stand-in shop keeps its place
+ * whichever crew's shopkeeper its page shows.
+ */
+export function isShopUsername(username: string | null | undefined, suffix?: string): boolean {
+  if (!username) return false
+  const re = suffix ? new RegExp(`^shop\\d+\\.${suffix}$`) : /^shop\d+(\.[a-z0-9]{1,8})?$/
+  return re.test(username)
+}
+
+/** The user id of the shopkeeper `key` signed up on `date` (derived from its key, like a tester's). */
+export function shopPersonId(
+  tenantId: string,
+  date: string,
+  key: ShopKey,
+  suffix?: string,
+): string {
+  return demoId(tenantId, date, ...(suffix ? ['person', key, suffix] : ['person', key]))
+}
+
+/** Which shopkeeper of this crew a user id is (null when the tool did not sign it up for this crew). */
+export function shopKeyOf(tenantId: string, userId: string, suffix?: string): ShopKey | null {
+  if (!isDemoId(userId)) return null
+  const date = demoIdDate(userId)
+  if (!date) return null
+  return SHOP_USERNAMES.find((k) => shopPersonId(tenantId, date, k, suffix) === userId) ?? null
+}
 
 /**
  * `--login-suffix`: for a second distributor on the same database (usernames are platform-wide, so `manager` can

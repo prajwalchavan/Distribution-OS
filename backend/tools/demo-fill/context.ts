@@ -11,6 +11,7 @@ import { REFERENCE_TAKEN } from './helpers.js'
 import { demoId, demoKey, stopIdOf, tripIdOf, tripParts } from './ids.js'
 import {
   DEMO_PASSWORD,
+  SHOP_USERNAMES,
   TESTER_KEYS,
   newPassword,
   readLogins,
@@ -18,6 +19,7 @@ import {
   writeLogins,
   type FormerTester,
   type LoginLine,
+  type ShopKey,
   type StaffMemberLike,
   type TesterKey,
 } from './people.js'
@@ -57,6 +59,11 @@ export class Ctx {
   former: FormerTester<StaffMemberLike>[] = []
   /** The two vans' vehicle ids (`ensureVans`): van 1 is driver1's, van 2 driver2's. */
   readonly vanIds = new Map<VanKey, string>()
+  /**
+   * The shopkeepers `shop1…3` (`shopkeepers.ts`): each one's own account, signed up by itself and joined to its
+   * stand-in shop by the tool's manager, signed in with the demo password.
+   */
+  readonly shopSessions = new Map<ShopKey, Session>()
 
   constructor(
     readonly opts: RunOptions,
@@ -172,6 +179,35 @@ export class Ctx {
     }
     try {
       const out = await this.api.call(s, proc, input)
+      this.summary.madeOne(section, what)
+      return out
+    } catch (e) {
+      if (e instanceof ApiRefusal) {
+        this.summary.refusedOne(section, what, e.label)
+        this.log(`  refused: ${section}/${what} ${e.label}`)
+        return null
+      }
+      throw e
+    }
+  }
+
+  /**
+   * A write on AUTH-SERVICE with the session's own token (a shopkeeper's request to be joined to a shop): counted
+   * like `write`, a refusal answered as null.
+   */
+  async writeAuth<P extends ProcLike>(
+    section: Section,
+    what: string,
+    session: Session,
+    proc: P,
+    input: InputOf<P>,
+  ): Promise<OutputOf<P> | null> {
+    if (!this.commit) {
+      this.summary.wouldOne(section, what)
+      return null
+    }
+    try {
+      const out = await this.api.authCall(session, proc, input)
       this.summary.madeOne(section, what)
       return out
     } catch (e) {
@@ -345,6 +381,12 @@ export class Ctx {
       if (!this.sessions.has(key) && before.get(username)?.password !== DEMO_PASSWORD) continue
       lines.push({ username, password: DEMO_PASSWORD, role: testerOf(key).role })
     }
+    // The shopkeepers that signed in with the demo password in this run (their own accounts, joined to the shops).
+    for (const key of SHOP_USERNAMES) {
+      const s = this.shopSessions.get(key)
+      if (s && s.account !== true)
+        lines.push({ username: s.username, password: DEMO_PASSWORD, role: 'retailer' })
+    }
     writeLogins(this.opts.loginsFile, this.opts.tenant, lines)
   }
 
@@ -420,6 +462,7 @@ export class Ctx {
   /** Sign every session this run opened out again. */
   async signOutAll(): Promise<void> {
     for (const s of this.sessions.values()) await this.api.signOut(s)
+    for (const s of this.shopSessions.values()) await this.api.signOut(s)
     for (const s of this.formerSessions.values()) if (s) await this.api.signOut(s)
     if (this.owner) await this.api.signOut(this.owner)
   }

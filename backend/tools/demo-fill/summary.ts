@@ -35,9 +35,11 @@ export const ROW_FEATURES: Record<Row, readonly string[]> = {
 }
 
 /** Features no role can produce through the API, with the finding that records why. */
-export const KNOWN_GAPS: Record<string, string> = {
-  'shopkeeper:login': 'DOS-400',
-}
+/**
+ * Features no procedure of the API can produce, printed as known gaps. Empty since the shopkeeper signs up by
+ * itself and the desk approves its request to join a shop (founder, 2026-09-29): `shop1…3` are made through the API.
+ */
+export const KNOWN_GAPS: Record<string, string> = {}
 
 export type FeatureState = 'there' | 'missing' | 'would' | 'gap'
 const FEATURE_RANK: Record<FeatureState, number> = { there: 0, would: 1, gap: 2, missing: 3 }

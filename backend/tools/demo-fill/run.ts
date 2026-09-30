@@ -164,7 +164,11 @@ export async function runFill(opts: RunOptions): Promise<RunResult> {
 
     const read = await allRows(
       ctx.api,
-      { owner: ctx.owner, userIds: Object.fromEntries(ctx.userIds) },
+      {
+        owner: ctx.owner,
+        userIds: Object.fromEntries(ctx.userIds),
+        shops: [...ctx.shopSessions.values()].filter((x) => x.account !== true),
+      },
       date,
     ).catch((e: unknown) => {
       summary.note(

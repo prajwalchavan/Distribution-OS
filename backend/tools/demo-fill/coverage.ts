@@ -31,6 +31,11 @@ export interface CoverageSessions {
   driver1?: Session | undefined
   driver2?: Session | undefined
   /**
+   * The shopkeepers `shop1…3`, each signed in with the demo password on its own account (founder, 2026-09-29): the
+   * shopkeeper row's "login" holds when every stand-in shop of the day is reached by one of them.
+   */
+  shops?: readonly Session[] | undefined
+  /**
    * The testers' user ids, for a read as the owner (the tool's own read-back, which signs no tester in): a rep's
    * orders are found by its id, and a van's trip of the day carries its driver's id (`tripIdOf`).
    */
@@ -72,14 +77,13 @@ function tripOf(api: Api, s: Session, id: string) {
 // ------------------------------------------------------------------------------------------- shopkeeper
 
 /**
- * The shopkeeper row, read as the owner for the three shops that stand for `shop1…3` (no shopkeeper login can
- * be made through the API: DOS-400). Which shops they are is read off today's vans: the doors the
- * plan gives them (`SLOT_DOORS`).
+ * The shopkeeper row, for the three shops that stand for `shop1…3`. Which shops they are is read off today's vans:
+ * the doors the plan gives them (`SLOT_DOORS`). "login": each of those shops is reached by one of the shopkeepers'
+ * own accounts (signed up by themselves, joined by the tool's manager: founder, 2026-09-29), signed in with the demo
+ * password; the other features are read as the owner.
  */
 export async function shopkeeperRow(api: Api, s: CoverageSessions, date: string): Promise<Seen[]> {
-  const out: Seen[] = [
-    seen('shopkeeper', 'login', false, 'no shopkeeper login can be made through the API (DOS-400)'),
-  ]
+  const out: Seen[] = []
   const trips = {
     driver1: await dayTrip(api, s, s.owner, date, 'driver1'),
     driver2: await dayTrip(api, s, s.owner, date, 'driver2'),
@@ -130,6 +134,27 @@ export async function shopkeeperRow(api: Api, s: CoverageSessions, date: string)
     if (applies) offer++
   }
   const of3 = (n: number, what: string) => `${String(n)}/3 stand-in shops ${what}`
+  // Which stand-in shops a shopkeeper's own login reaches (a shop's own read: RLS gives it its linked shops only).
+  const standIns = new Set<string>()
+  for (const slot of SLOT_DOORS) {
+    const shopId = stopAt(...slot.delivered)?.retailerId ?? stopAt(...slot.onTheWay)?.retailerId
+    if (shopId) standIns.add(shopId)
+  }
+  const reached = new Set<string>()
+  for (const shopSession of s.shops ?? []) {
+    const mine = await maybe(
+      api.call(shopSession, contract.retailers.list, { limit: 100, activeOnly: false }),
+    )
+    for (const shop of mine?.items ?? []) if (standIns.has(shop.id)) reached.add(shop.id)
+  }
+  out.push(
+    seen(
+      'shopkeeper',
+      'login',
+      standIns.size === 3 && reached.size === 3,
+      `${String(reached.size)}/3 stand-in shops reached by a shopkeeper's own login (${String((s.shops ?? []).length)} signed in)`,
+    ),
+  )
   out.push(
     seen('shopkeeper', 'on-the-way', onWay === 3, of3(onWay, 'have a bill on a van still to come')),
     seen('shopkeeper', 'delivered-bill', delivered === 3, of3(delivered, 'had a bill delivered')),
