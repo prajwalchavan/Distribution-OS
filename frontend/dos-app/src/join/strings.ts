@@ -24,6 +24,8 @@ export const JOIN_STRINGS = {
   'join.found': 'With {distributor}',
   'join.ask': 'Ask to join',
   'join.asked': 'Request sent',
+  'join.askedJoined': 'You are already joined to this shop.',
+  'join.askedClosed': 'That request is closed. Tap Ask to join again to send a new one.',
   'join.search': 'Distributor’s name',
   'join.searchHelp': 'Type two letters or more of the name.',
   'join.searchEmpty': 'No distributor found by that name',

@@ -20,7 +20,7 @@
  * It lives at install level, beside `src/shops/`, because a group may import `src/` and never another group
  * (docs/31 §6.4). Screens import only `@dos/ui` for rendering, and so does this file.
  */
-import type { MyJoinRequest, ShopCodeLookupOut } from '@dos/contracts'
+import type { MyJoinRequest, MyJoinRequestOut, ShopCodeLookupOut } from '@dos/contracts'
 import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react'
 import { normalizeShopCode } from '@dos/domain'
 import {
@@ -41,6 +41,8 @@ import {
   type StatusFamily,
 } from '@dos/ui'
 import { useEffect, useRef, useState } from 'react'
+
+import { askedToastKey } from './requests'
 
 export interface AddDistributorProps {
   /** `account`: no distributor has joined the account yet (`/join`). `shop`: inside the shop's own group. */
@@ -145,8 +147,14 @@ export function AddDistributor({ mode }: AddDistributorProps): React.JSX.Element
       })
   }
 
-  const sent = (): void => {
-    setToast(t('join.asked'))
+  /*
+   * M2: the words follow the request the server answered with, and the NEXT ask is a new request with a new id —
+   * without `reset()` the hook keeps this id for the same input, and asking again after a withdraw or a refusal
+   * would get the closed request back instead of sending one.
+   */
+  const sent = (result: MyJoinRequestOut): void => {
+    ask.reset()
+    setToast(t(askedToastKey(result.item.state)))
     setFound(null)
     setCode('')
     setPicked(null)
